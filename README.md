@@ -1,74 +1,92 @@
-# Place Tracker
+# Keyadi — Geospatial Intelligence & Tri-Mode Radar
 
-Keyword-based local discovery + tracking app. Search any keyword (material, place type, street name)
-and find matching places nearby on a live map. Save searches to get alerted when new matches appear.
+> Deterministic spatial radar, live tri-mode telemetry (Car, Walk, Bike), radius trackers, and native mobile app with grounded AI assistance.
 
-## Stack
-- React + Vite + Tailwind
-- Supabase (Auth + Postgres + PostGIS)
-- Mapbox GL JS for the map
-- Google Places API for real place data (to be wired into a backend/API route)
+![Keyadi Logo](public/keyadi-logo.png)
 
-## Setup
+---
 
-### 1. Install dependencies
+## Features
+
+- 🛰️ **Deterministic Geospatial Radar**: Natural language query compilation to Overpass QL without AI hallucinations.
+- ⚡ **Tri-Mode Telemetry**: Parallel routing for Driving, Walking, and Cycling with live minutes and distance estimates.
+- 📱 **Native Mobile App (Capacitor)**:
+  - Android native project configured with circular 4K logo launcher icons and splash screens.
+  - Dedicated mobile bottom navigation bar (`MobileBottomNav`).
+  - Downloadable `.apk` package for **$0** store fees.
+- 📲 **Installable Progressive Web App (PWA)**: 1-click home screen install on Android & iOS.
+- 🔐 **Supabase Authentication**: Secure email/password login, registration, and persistent sessions.
+- 🗺️ **High-Performance Mapbox GL**: Dark/Light mode, high-res satellite streets cartography, compass bearing reset, and live GPS geolocation.
+- 🤝 **Interactive FAQ & Workable Contact**: With ticket tracking and partner motion marquee.
+
+---
+
+## Tech Stack
+
+- **Frontend**: React 18, Vite 5, Tailwind CSS
+- **Mobile Engine**: Capacitor 7 (Android / iOS)
+- **Map & Cartography**: Mapbox GL JS
+- **Database & Auth**: Supabase (PostgreSQL + PostGIS)
+- **Deployment**: Vercel / Netlify (SPA configured with `vercel.json` and `_redirects`)
+
+---
+
+## Quick Start
+
+### 1. Install Dependencies
 ```bash
 npm install
 ```
 
-### 2. Create a Supabase project
-1. Go to https://supabase.com and create a new project.
-2. In **Project Settings > API**, copy your Project URL and anon public key.
-3. In **SQL Editor**, run the contents of `supabase/schema.sql` to set up PostGIS, the
-   `trackers` and `tracker_matches` tables, and Row Level Security policies.
-
-### 3. Enable Google login in Supabase
-1. Go to **Authentication > Providers > Google** in your Supabase dashboard.
-2. Create OAuth credentials in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
-   (OAuth Client ID, type: Web application).
-3. Add the redirect URL Supabase gives you to your Google OAuth client's authorized redirect URIs.
-4. Paste the Google Client ID and Secret into Supabase and save.
-
-### 4. Get a Mapbox token
-Sign up at https://account.mapbox.com and grab a public access token.
-
-### 5. Configure environment variables
+### 2. Configure Environment Variables
+Copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
-Fill in `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_MAPBOX_TOKEN`.
+Fill in your credentials:
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_MAPBOX_TOKEN=your-mapbox-token
+VITE_GEMINI_API_KEY=your-gemini-key (optional)
+```
 
-### 6. Run it
+### 3. Start Development Server
 ```bash
 npm run dev
 ```
 
-## What's built so far
-- ✅ Email/password signup + login (Supabase Auth)
-- ✅ Google OAuth login
-- ✅ Protected `/dashboard` route (redirects to `/login` if not authenticated)
-- ✅ Map + keyword search UI (currently returns **mock results** — see `Dashboard.jsx`)
-- ✅ "Track" button that saves a search to Supabase (`trackers` table)
-- ✅ Database schema with PostGIS for proximity queries + Row Level Security
+---
 
-## What's next (not yet built)
-- **Backend API route** to actually call Google Places API (Text Search / Nearby Search) and
-  return real results — currently `handleSearch` in `Dashboard.jsx` returns mock data. Google
-  API keys must never live in frontend code, so this needs a small server (Express, or Vercel/
-  Supabase Edge Function).
-- **Background job** to periodically re-run saved trackers against the Places API and insert
-  new matches into `tracker_matches`.
-- **Notifications** (email via Resend/SendGrid, or Telegram bot) when new matches are found.
-- **Trackers dashboard page** to view/manage saved searches and match history.
+## Mobile App (Android)
 
-## Project structure
+### Open in Android Studio
+```bash
+npx cap open android
 ```
-src/
-  lib/supabaseClient.js       Supabase client init
-  context/AuthContext.jsx     Auth state + signup/login/logout functions
-  components/ProtectedRoute.jsx
-  pages/Login.jsx
-  pages/Signup.jsx
-  pages/Dashboard.jsx         Main map + search UI
-supabase/schema.sql           DB schema, PostGIS, RLS policies
+*(In Android Studio, click **Build > Build Bundle(s) / APK(s) > Build APK(s)**).*
+
+### Sync Latest Changes
+```bash
+npm run build
+npx cap sync
 ```
+
+---
+
+## 1-Click Deployment
+
+### Deploy to Vercel (Recommended)
+1. Go to [vercel.com/new](https://vercel.com/new).
+2. Select your repository: **`biruk6049/Keyadi`**.
+3. Under **Environment Variables**, add:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_MAPBOX_TOKEN`
+4. Click **Deploy**. Your site will be live worldwide in ~45 seconds with automated continuous deployment on every git push!
+
+### Deploy to Netlify
+1. Go to [app.netlify.com](https://app.netlify.com).
+2. Import repository **`biruk6049/Keyadi`**.
+3. Build command: `npm run build`, Publish directory: `dist`.
+4. Add the environment variables and click **Deploy**.
