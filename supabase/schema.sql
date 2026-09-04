@@ -30,7 +30,7 @@ create table if not exists tracker_matches (
   found_at timestamptz default now()
 );
 
--- 4. Row Level Security: users only see their own trackers
+-- 4. Row Level Security: users only see and manipulate their own trackers
 alter table trackers enable row level security;
 alter table tracker_matches enable row level security;
 
@@ -42,12 +42,37 @@ create policy "Users can insert their own trackers"
   on trackers for insert
   with check (auth.uid() = user_id);
 
+create policy "Users can update their own trackers"
+  on trackers for update
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
 create policy "Users can delete their own trackers"
   on trackers for delete
   using (auth.uid() = user_id);
 
 create policy "Users can view matches for their trackers"
   on tracker_matches for select
+  using (
+    exists (
+      select 1 from trackers
+      where trackers.id = tracker_matches.tracker_id
+      and trackers.user_id = auth.uid()
+    )
+  );
+
+create policy "Users can insert matches for their trackers"
+  on tracker_matches for insert
+  with check (
+    exists (
+      select 1 from trackers
+      where trackers.id = tracker_matches.tracker_id
+      and trackers.user_id = auth.uid()
+    )
+  );
+
+create policy "Users can delete matches for their trackers"
+  on tracker_matches for delete
   using (
     exists (
       select 1 from trackers

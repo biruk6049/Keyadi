@@ -39,6 +39,12 @@ function buildBBox(center, radiusKm) {
   ].join(',')
 }
 
+function sanitizeOsmTag(str) {
+  if (typeof str !== 'string') return ''
+  // Allow only safe alphanumeric and standard OSM characters: [a-zA-Z0-9_:*-]
+  return str.replace(/[^a-zA-Z0-9_:*-]/g, '').slice(0, 50)
+}
+
 /**
  * Build an Overpass query from structured tag pairs.
  * Each tag is [key, value], e.g. ['amenity', 'cafe'].
@@ -47,20 +53,30 @@ function buildBBox(center, radiusKm) {
 export function buildTagOverpassQuery(tags, center, radiusKm) {
   const bbox = buildBBox(center, radiusKm)
 
-  const clauses = tags.map(([key, value]) => {
-    const filter = value === '*' ? `["${key}"]` : `["${key}"="${value}"]`
-    return `  node${filter}(${bbox});\n  way${filter}(${bbox});`
-  }).join('\n')
+  const clauses = tags
+    .filter(([k, v]) => k && v)
+    .map(([rawKey, rawValue]) => {
+      const key = sanitizeOsmTag(rawKey)
+      const value = sanitizeOsmTag(rawValue)
+      if (!key) return null
+      const filter = value === '*' ? `["${key}"]` : `["${key}"="${value}"]`
+      return `  node${filter}(${bbox});\n  way${filter}(${bbox});`
+    })
+    .filter(Boolean)
+    .join('\n')
 
   return `[out:json][timeout:25];\n(\n${clauses}\n);\nout center 40;`
 }
 
 /**
  * Build a classic regex-based Overpass query (fallback).
+ * Sanitized to prevent Overpass QL syntax or prompt injection.
  */
 export function buildRegexOverpassQuery(keyword, center, radiusKm) {
   const bbox = buildBBox(center, radiusKm)
-  const safe = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').slice(0, 80)
+  // Strip special QL control characters
+  const sanitized = String(keyword || '').replace(/["[\]();\\]/g, '').slice(0, 80)
+  const safe = sanitized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return `[out:json][timeout:25];\n(\n  node["name"~"${safe}",i](${bbox});\n  way["name"~"${safe}",i](${bbox});\n);\nout center 35;`
 }
 
@@ -221,6 +237,7 @@ export function interpretWithLocalAI(userQuery) {
 // ── Unified Geospatial RAG Intelligence Engine ───────────────────────
 
 const CANDIDATE_MODELS = [
+  'gemini-3.8-flash',
   'gemini-flash-latest',
   'gemini-2.5-flash',
   'gemini-3.6-flash',
@@ -260,7 +277,7 @@ async function callGemini(contents, systemPrompt = '', timeoutMs = 8500) {
 
   for (const model of CANDIDATE_MODELS) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
       const bodyPayload = {
         contents: typeof contents === 'string' ? [{ parts: [{ text: contents }] }] : contents,
         generationConfig: {
@@ -276,7 +293,10 @@ async function callGemini(contents, systemPrompt = '', timeoutMs = 8500) {
 
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey,
+        },
         body: JSON.stringify(bodyPayload),
         signal: AbortSignal.timeout(timeoutMs),
       })

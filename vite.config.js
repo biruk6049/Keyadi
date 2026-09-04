@@ -5,5 +5,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    host: 'localhost',
+    fs: {
+      strict: true,
+      deny: ['.env', '.env.*', '*.key'],
+    },
   },
 })
