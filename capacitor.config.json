@@ -1,0 +1,14 @@
+{
+  "appId": "com.keyadi.tracker",
+  "appName": "Keyadi",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "backgroundColor": "#0e0d0b",
+    "allowMixedContent": true
+  }
+}
