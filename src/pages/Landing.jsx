@@ -189,7 +189,7 @@ function useTypewriter(words, { typeSpeed = 65, deleteSpeed = 35, pause = 1600 }
 
 export default function Landing() {
   const { settings } = useSettings()
-  const isDark = settings.darkMode
+  const isDark = true
   const scanText = useTypewriter(SCAN_TERMS)
   const [activeChip, setActiveChip] = useState(0)
 

@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 const SettingsContext = createContext(undefined)
 
 const DEFAULTS = {
-    darkMode: false,
+    darkMode: true,
     units: 'km', // 'km' | 'mi'
     searchMode: 'auto', // 'auto' (live GPS) | 'custom' (fixed point below)
     mapStyle: 'default', // 'default' | 'satellite'
