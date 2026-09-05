@@ -35,7 +35,7 @@ function getWeatherIcon(code, isDark) {
   return { icon: <CloudSunIcon size={22} color={amber} />, label: 'Fair' }
 }
 
-export default function WeatherWidget({ lat, lng, isDark }) {
+export default function WeatherWidget({ lat, lng, isDark = true }) {
   const [weather, setWeather] = useState(null)
   const [error, setError] = useState(false)
 

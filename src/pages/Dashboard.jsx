@@ -158,7 +158,7 @@ function getGreeting() {
 export default function Dashboard() {
   const { user, signOut } = useAuth()
   const { settings } = useSettings()
-  const isDark = settings.darkMode
+  const isDark = true
 
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
@@ -258,7 +258,7 @@ export default function Dashboard() {
       container: mapContainer.current,
       style: settings.mapStyle === 'satellite'
         ? 'mapbox://styles/mapbox/satellite-streets-v12'
-        : isDark ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
+        : 'mapbox://styles/mapbox/dark-v11',
       center: [center.lng, center.lat],
       zoom: 12,
       attributionControl: false,
@@ -276,9 +276,9 @@ export default function Dashboard() {
     if (!mapRef.current) return
     const style = settings.mapStyle === 'satellite'
       ? 'mapbox://styles/mapbox/satellite-streets-v12'
-      : isDark ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11'
+      : 'mapbox://styles/mapbox/dark-v11'
     mapRef.current.setStyle(style)
-  }, [isDark, settings.mapStyle])
+  }, [settings.mapStyle])
 
   // Apply Settings search-mode choice
   useEffect(() => {

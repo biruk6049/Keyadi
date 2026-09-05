@@ -11,14 +11,14 @@ const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 export default function Settings() {
   const { settings, updateSettings } = useSettings()
   const { user, signOut } = useAuth()
-  const isDark = settings.darkMode
+  const isDark = true
 
-  const ink = isDark ? '#f3f1ec' : '#100e0b'
-  const inkMuted = isDark ? 'rgba(243,241,236,0.65)' : 'rgba(16,14,11,0.65)'
-  const inkFaint = isDark ? 'rgba(243,241,236,0.40)' : 'rgba(16,14,11,0.40)'
-  const hairline = isDark ? 'rgba(243,241,236,0.12)' : 'rgba(16,14,11,0.12)'
-  const cardBg = isDark ? 'rgba(14, 13, 11, 0.86)' : 'rgba(255, 255, 255, 0.90)'
-  const inputBg = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.85)'
+  const ink = '#f3f1ec'
+  const inkMuted = 'rgba(243,241,236,0.65)'
+  const inkFaint = 'rgba(243,241,236,0.40)'
+  const hairline = 'rgba(243,241,236,0.12)'
+  const cardBg = 'rgba(14, 13, 11, 0.86)'
+  const inputBg = 'rgba(255, 255, 255, 0.04)'
   const amber = '#e8a33d'
 
   // Geocoding autocomplete state

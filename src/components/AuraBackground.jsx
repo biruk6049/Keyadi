@@ -1,5 +1,5 @@
-export default function AuraBackground({ isDark }) {
-    const beamBlend = isDark ? 'screen' : 'multiply'
+export default function AuraBackground({ isDark = true }) {
+    const beamBlend = 'screen'
 
     return (
         <div

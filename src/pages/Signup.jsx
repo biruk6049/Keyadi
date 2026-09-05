@@ -9,7 +9,7 @@ import KeyadiLogo from '../components/KeyadiLogo'
 export default function Signup() {
   const { signUpWithEmail } = useAuth()
   const { settings } = useSettings()
-  const isDark = settings.darkMode
+  const isDark = true
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -17,11 +17,11 @@ export default function Signup() {
   const [submitting, setSubmitting] = useState(false)
   const [confirmSent, setConfirmSent] = useState(false)
 
-  const ink = isDark ? '#f3f1ec' : '#100e0b'
-  const inkMuted = isDark ? 'rgba(243,241,236,0.65)' : 'rgba(16,14,11,0.65)'
-  const hairline = isDark ? 'rgba(243,241,236,0.12)' : 'rgba(16,14,11,0.12)'
-  const cardBg = isDark ? 'rgba(14, 13, 11, 0.86)' : 'rgba(255, 255, 255, 0.90)'
-  const inputBg = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.85)'
+  const ink = '#f3f1ec'
+  const inkMuted = 'rgba(243,241,236,0.65)'
+  const hairline = 'rgba(243,241,236,0.12)'
+  const cardBg = 'rgba(14, 13, 11, 0.86)'
+  const inputBg = 'rgba(255, 255, 255, 0.04)'
   const amber = '#e8a33d'
 
   const handleSubmit = async (e) => {

@@ -16,26 +16,32 @@ function loadSettings() {
     try {
         const raw = localStorage.getItem('placeTrackerSettings')
         if (!raw) return DEFAULTS
-        return { ...DEFAULTS, ...JSON.parse(raw) }
+        const parsed = JSON.parse(raw)
+        // Ensure darkMode is always true, cleaning up any stale legacy cache
+        const merged = { ...DEFAULTS, ...parsed, darkMode: true }
+        localStorage.setItem('placeTrackerSettings', JSON.stringify(merged))
+        return merged
     } catch {
         return DEFAULTS
     }
 }
 
 export function SettingsProvider({ children }) {
-    const [settings, setSettings] = useState(loadSettings)
+    const [settings, setSettings] = useState(() => {
+        const initial = loadSettings()
+        return { ...initial, darkMode: true }
+    })
 
     useEffect(() => {
-        localStorage.setItem('placeTrackerSettings', JSON.stringify(settings))
-        document.documentElement.classList.toggle('dark', settings.darkMode)
-        // Update the actual page background too, not just component-level styles -
-        // otherwise you get flashes of the old color at page edges/overscroll.
-        document.body.style.backgroundColor = settings.darkMode ? '#100e0b' : '#f3f1ec'
-        document.body.style.transition = 'background-color 0.3s ease'
+        const safeSettings = { ...settings, darkMode: true }
+        localStorage.setItem('placeTrackerSettings', JSON.stringify(safeSettings))
+        document.documentElement.classList.add('dark')
+        document.body.style.backgroundColor = '#0e0d0b'
+        document.body.style.color = '#f3f1ec'
     }, [settings])
 
     const updateSettings = (partial) => {
-        setSettings((prev) => ({ ...prev, ...partial }))
+        setSettings((prev) => ({ ...prev, ...partial, darkMode: true }))
     }
 
     return (
