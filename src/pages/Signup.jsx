@@ -177,6 +177,10 @@ export default function Signup() {
             </Link>
           </div>
         </div>
+
+        <div className="mt-6 text-center text-[11px] font-medium tracking-wide" style={{ color: inkMuted }}>
+          <span style={{ color: amber }}>Built by HAWAZ TECHNOLOGIES</span>
+        </div>
       </div>
     </PageBackground>
   )

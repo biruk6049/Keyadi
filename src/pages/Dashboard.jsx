@@ -927,7 +927,7 @@ export default function Dashboard() {
         </main>
 
         {/* ── Top Centered Floating Search Bar ── */}
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 w-full max-w-xl px-4 pointer-events-auto">
+        <div className="absolute top-4 left-3 right-16 sm:right-auto sm:left-1/2 sm:-translate-x-1/2 z-30 w-auto sm:w-full sm:max-w-xl pointer-events-auto">
           <form
             onSubmit={handleSearch}
             className="flex items-center rounded-full p-1.5 shadow-2xl backdrop-blur-2xl transition-all"
@@ -992,7 +992,7 @@ export default function Dashboard() {
           </form>
 
           {/* Quick Category Chips */}
-          <div className="mt-2 flex items-center justify-center gap-1.5 overflow-x-auto keyadi-hide-scrollbar py-0.5">
+          <div className="mt-2 flex items-center justify-start sm:justify-center gap-1.5 overflow-x-auto keyadi-hide-scrollbar px-1 py-0.5">
             {CATEGORY_PRESETS.slice(0, 5).map((cat) => (
               <button
                 key={cat.key}
@@ -1017,10 +1017,10 @@ export default function Dashboard() {
         </div>
 
         {/* ── Top-Right Floating Controls ── */}
-        <div className="absolute top-4 right-4 z-30 flex items-center gap-2 pointer-events-auto">
+        <div className="absolute top-4 right-3 sm:right-4 z-30 flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
           <button
             onClick={() => setAiEnabled(!aiEnabled)}
-            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur-xl shadow-lg transition hover:scale-105"
+            className="flex items-center gap-1 sm:gap-1.5 rounded-full px-2.5 py-1.5 sm:px-3 text-xs font-medium backdrop-blur-xl shadow-lg transition hover:scale-105"
             style={{
               backgroundColor: aiEnabled ? 'rgba(232,163,61,0.18)' : 'rgba(16,14,11,0.7)',
               color: aiEnabled ? amber : inkMuted,
@@ -1032,25 +1032,31 @@ export default function Dashboard() {
             <span className="hidden sm:inline">{aiEnabled ? 'Keyadi AI' : 'Basic'}</span>
           </button>
 
-          <Link to="/settings">
+          <Link to="/settings" className="hidden sm:inline-flex">
             <IconButton title="Settings" isDark={isDark}>
               <UserIcon size={16} />
             </IconButton>
           </Link>
 
-          <IconButton title="Sign out" isDark={isDark} onClick={signOut}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M16 17l5-5-5-5M21 12H9" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </IconButton>
+          <div className="hidden sm:inline-flex">
+            <IconButton title="Sign out" isDark={isDark} onClick={signOut}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M16 17l5-5-5-5M21 12H9" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </IconButton>
+          </div>
         </div>
 
         {/* ── Floating Left Glassmorphic Sidebar ── */}
         <aside
-          className="absolute top-4 bottom-4 left-4 z-30 flex flex-col rounded-3xl shadow-2xl backdrop-blur-2xl transition-all duration-300 pointer-events-auto overflow-hidden"
+          className={`
+            ${activeNav === 'map' ? 'hidden md:flex' : 'flex'}
+            fixed inset-x-3 bottom-20 top-24 z-30 flex-col rounded-3xl shadow-2xl backdrop-blur-2xl transition-all duration-300 pointer-events-auto overflow-hidden
+            md:absolute md:top-4 md:bottom-4 md:left-4 md:inset-x-auto md:z-30
+          `}
           style={{
-            width: sidebarExpanded ? '380px' : '230px',
+            width: typeof window !== 'undefined' && window.innerWidth >= 768 ? (sidebarExpanded ? '380px' : '230px') : 'auto',
             backgroundColor: isDark ? 'rgba(14, 13, 11, 0.86)' : 'rgba(255, 255, 255, 0.9)',
             border: `1px solid ${hairline}`,
             color: ink,
@@ -1065,9 +1071,23 @@ export default function Dashboard() {
               </span>
             </div>
 
+            {/* Mobile Close Button to return directly to map */}
+            <button
+              onClick={() => {
+                setActiveNav('map')
+                setSidebarExpanded(false)
+              }}
+              className="flex md:hidden h-8 w-8 items-center justify-center rounded-full text-xs hover:bg-white/10 transition border"
+              style={{ borderColor: hairline, color: inkMuted }}
+              title="Return to map"
+            >
+              ✕
+            </button>
+
+            {/* Desktop Expand/Collapse toggle */}
             <button
               onClick={() => setSidebarExpanded(!sidebarExpanded)}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-xs hover:bg-white/10 transition"
+              className="hidden md:flex h-7 w-7 items-center justify-center rounded-full text-xs hover:bg-white/10 transition"
               style={{ color: inkMuted }}
               title={sidebarExpanded ? 'Collapse panel' : 'Expand panel'}
             >

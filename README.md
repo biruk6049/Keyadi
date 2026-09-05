@@ -147,5 +147,5 @@ Keyadi is pre-configured for continuous zero-config deployment:
 ---
 
 <div align="center">
-  <sub>Built with precision for privacy-focused geographic exploration. © 2026 Keyadi. All rights reserved.</sub>
+  <sub>Built by <strong>HAWAZ TECHNOLOGIES</strong> · Privacy-focused geographic exploration and live telemetry. © 2026 Keyadi. All rights reserved.</sub>
 </div>

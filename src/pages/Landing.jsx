@@ -318,18 +318,18 @@ export default function Landing() {
 
       <div className="relative z-10 flex min-h-screen flex-col">
         {/* ── Top Floating Navigation Bar ── */}
-        <header className="sticky top-0 z-40 mx-auto w-full max-w-6xl px-6 py-5 sm:px-10">
+        <header className="sticky top-0 z-40 mx-auto w-full max-w-6xl px-3 py-3 sm:px-10 sm:py-5">
           <div
-            className="flex items-center justify-between rounded-full px-5 py-3 shadow-2xl backdrop-blur-2xl transition-all"
+            className="flex items-center justify-between rounded-full px-3.5 py-2 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-2xl transition-all"
             style={{
               backgroundColor: isDark ? 'rgba(14, 13, 11, 0.82)' : 'rgba(255, 255, 255, 0.88)',
               border: `1px solid ${hairline}`,
             }}
           >
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <KeyadiLogo size={36} />
-              <span className="text-lg font-bold tracking-tight" style={{ color: ink }}>
+            <Link to="/" className="flex items-center gap-2 group shrink-0">
+              <KeyadiLogo size={32} />
+              <span className="text-base sm:text-lg font-bold tracking-tight" style={{ color: ink }}>
                 Keyadi
               </span>
             </Link>
@@ -344,11 +344,11 @@ export default function Landing() {
             </nav>
 
             {/* Actions */}
-            <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <button
                 type="button"
                 onClick={() => setGetAppOpen(true)}
-                className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all hover:scale-105 border shadow-sm"
+                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 sm:px-3.5 sm:py-1.5 text-xs font-bold transition-all hover:scale-105 border shadow-sm whitespace-nowrap"
                 style={{
                   backgroundColor: 'rgba(232, 163, 61, 0.15)',
                   color: amber,
@@ -356,33 +356,33 @@ export default function Landing() {
                 }}
                 title="Download mobile app"
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="shrink-0">
                   <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
                   <line x1="12" y1="18" x2="12.01" y2="18" />
                 </svg>
-                <span>Get the App</span>
+                <span className="whitespace-nowrap">Get App</span>
               </button>
 
               <Link
                 to="/login"
-                className="rounded-full px-3.5 py-2 text-xs font-semibold transition hover:opacity-80"
+                className="hidden sm:inline-block rounded-full px-3.5 py-2 text-xs font-semibold transition hover:opacity-80 whitespace-nowrap"
                 style={{ color: ink }}
               >
                 Sign in
               </Link>
               <Link
                 to="/signup"
-                className="flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-transform hover:scale-105 shadow-md"
+                className="hidden sm:flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-transform hover:scale-105 shadow-md whitespace-nowrap"
                 style={{ backgroundColor: amber, color: '#100e0b' }}
               >
                 <SparklesIcon size={12} color="#100e0b" />
-                <span>Create Account</span>
+                <span className="whitespace-nowrap">Create Account</span>
               </Link>
 
               {/* Mobile hamburger button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="flex md:hidden h-8 w-8 items-center justify-center rounded-full text-xs hover:bg-white/10 transition"
+                className="flex md:hidden h-8 w-8 items-center justify-center rounded-full text-sm hover:bg-white/10 transition shrink-0"
                 style={{ color: ink }}
                 aria-label="Toggle navigation menu"
               >
@@ -1205,14 +1205,14 @@ export default function Landing() {
               >
                 <div className="flex items-center gap-2 mb-1.5 font-semibold text-amber-400">
                   <SparklesIcon size={13} color={amber} />
-                  <span>Direct Contact: Biruk</span>
+                  <span>Direct Engineering & Operations — Hawaz Technologies</span>
                 </div>
                 <p>
-                  For immediate questions, custom telemetry setups, or direct support, you can reach out directly via phone at{' '}
+                  For institutional deployments, enterprise telemetry integration, or technical support, contact the engineering team via phone at{' '}
                   <a href="tel:+251909005450" className="text-emerald-400 font-semibold underline decoration-emerald-400/40">
                     +251 909005450
                   </a>{' '}
-                  or by emailing{' '}
+                  or via email at{' '}
                   <a href="mailto:biruk5868@gmail.com" className="text-amber-400 font-semibold underline decoration-amber-400/40">
                     biruk5868@gmail.com
                   </a>.
@@ -1224,12 +1224,18 @@ export default function Landing() {
 
         {/* ── Modern Minimalist Footer ── */}
         <footer className="mt-auto border-t py-8 px-6 sm:px-10" style={{ borderColor: hairline }}>
-          <div className="mx-auto max-w-6xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs" style={{ color: inkFaint }}>
-            <div className="flex items-center gap-2.5">
-              <KeyadiLogo size={22} />
-              <span className="font-semibold" style={{ color: ink }}>Keyadi Geospatial Intelligence</span>
-              <span>·</span>
-              <span>© {new Date().getFullYear()}</span>
+          <div className="mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4 text-xs" style={{ color: inkFaint }}>
+            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
+              <div className="flex items-center gap-2.5">
+                <KeyadiLogo size={22} />
+                <span className="font-semibold" style={{ color: ink }}>Keyadi Geospatial Intelligence</span>
+                <span>·</span>
+                <span>© {new Date().getFullYear()}</span>
+              </div>
+              <span className="hidden sm:inline" style={{ color: hairline }}>•</span>
+              <span className="font-semibold tracking-wide" style={{ color: amber }}>
+                Built by HAWAZ TECHNOLOGIES
+              </span>
             </div>
             <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-6">
               <a href="#features" className="hover:text-amber-400 transition">Features</a>

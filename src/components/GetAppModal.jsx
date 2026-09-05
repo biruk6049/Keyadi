@@ -84,13 +84,13 @@ export default function GetAppModal({ isOpen, onClose, isDark = true }) {
             </div>
           </div>
           <div className="flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider mb-2" style={{ backgroundColor: 'rgba(232, 163, 61, 0.15)', color: amber, border: `1px solid ${amber}44` }}>
-            Official Mobile Edition
+            Enterprise Mobile Suite
           </div>
           <h2 className="text-2xl font-bold tracking-tight" style={{ color: ink }}>
-            Get Keyadi for Mobile
+            Deploy Keyadi Mobile
           </h2>
-          <p className="text-xs sm:text-sm mt-1.5 max-w-sm" style={{ color: inkMuted }}>
-            Install Keyadi directly on your phone with zero store fees. Features our 4K circular logo on your home screen.
+          <p className="text-xs sm:text-sm mt-1.5 max-w-sm leading-relaxed" style={{ color: inkMuted }}>
+            Access high-precision geospatial telemetry, live proximity radar, and automated venue monitoring directly on your mobile device.
           </p>
         </div>
 
@@ -113,10 +113,10 @@ export default function GetAppModal({ isOpen, onClose, isDark = true }) {
                 </div>
                 <div>
                   <h4 className="text-sm font-bold" style={{ color: ink }}>
-                    Android Direct APK
+                    Android Native Package (.APK)
                   </h4>
                   <p className="text-xs mt-0.5" style={{ color: inkMuted }}>
-                    Download and install the native Android APK package directly.
+                    Standalone production package with hardware GPS sync and background telemetry.
                   </p>
                 </div>
               </div>
@@ -130,14 +130,14 @@ export default function GetAppModal({ isOpen, onClose, isDark = true }) {
               </a>
             </div>
             <div className="mt-2.5 flex items-center gap-2 text-[10px]" style={{ color: inkMuted }}>
-              <span className="flex items-center gap-1 text-emerald-400">
+              <span className="flex items-center gap-1 text-emerald-400 font-medium">
                 <CheckCircleIcon size={12} color="#34d399" />
-                100% Free
+                Hardware GPS Sync
               </span>
               <span>•</span>
-              <span>No Google Play Store account required</span>
+              <span>Direct Distribution</span>
               <span>•</span>
-              <span>Native GPS Radar</span>
+              <span>Verified Build</span>
             </div>
           </div>
 
@@ -159,10 +159,10 @@ export default function GetAppModal({ isOpen, onClose, isDark = true }) {
                 </div>
                 <div>
                   <h4 className="text-sm font-bold" style={{ color: ink }}>
-                    iOS & Android Instant Install
+                    Progressive Web Application (iOS & Android)
                   </h4>
                   <p className="text-xs mt-0.5" style={{ color: inkMuted }}>
-                    Install directly to your home screen via browser. Zero download delay.
+                    Instant home screen installation with zero storage overhead and offline vector caching.
                   </p>
                 </div>
               </div>
@@ -177,7 +177,7 @@ export default function GetAppModal({ isOpen, onClose, isDark = true }) {
                     borderColor: 'rgba(56, 189, 248, 0.35)',
                   }}
                 >
-                  Install Now
+                  Install App
                 </button>
               ) : (
                 <button
@@ -197,26 +197,26 @@ export default function GetAppModal({ isOpen, onClose, isDark = true }) {
             {/* iOS Helper Instructions */}
             <div className="mt-3 rounded-xl p-2.5 text-[11px] leading-relaxed border" style={{ backgroundColor: isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.03)', borderColor: hairline }}>
               <div className="font-semibold text-xs mb-1" style={{ color: amber }}>
-                📱 For iPhone (Safari) Users:
+                📱 Installation Guide for Apple iOS (Safari):
               </div>
               <ol className="list-decimal list-inside space-y-0.5" style={{ color: inkMuted }}>
-                <li>Open this website in Safari on your iPhone</li>
-                <li>Tap the <strong>Share button (􀈂)</strong> at the bottom</li>
-                <li>Select <strong>Add to Home Screen</strong> (Keyadi circular logo will appear)</li>
+                <li>Open <strong>keyadi.vercel.app</strong> in Apple Safari on your iPhone</li>
+                <li>Tap the <strong>Share button (􀈂)</strong> in the browser toolbar</li>
+                <li>Select <strong>Add to Home Screen</strong> to place the circular Keyadi icon on your device</li>
               </ol>
             </div>
           </div>
         </div>
 
         {/* Footer Note */}
-        <div className="flex items-center justify-between text-[11px]" style={{ color: inkMuted }}>
-          <span>Ready for Google Play & App Store submissions</span>
+        <div className="flex items-center justify-between text-[11px] pt-1 border-t" style={{ borderColor: hairline, color: inkMuted }}>
+          <span className="font-medium" style={{ color: amber }}>Built by HAWAZ TECHNOLOGIES</span>
           <button
             onClick={onClose}
-            className="font-medium hover:underline"
-            style={{ color: amber }}
+            className="font-medium hover:underline text-xs"
+            style={{ color: ink }}
           >
-            Got it, thanks
+            Dismiss
           </button>
         </div>
       </div>

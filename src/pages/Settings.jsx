@@ -369,6 +369,16 @@ export default function Settings() {
                 Sign out
               </button>
             </div>
+
+            {/* System Info & Hawaz Technologies Footer */}
+            <div className="pt-6 pb-2 text-center text-xs space-y-1" style={{ color: inkFaint }}>
+              <p className="font-semibold tracking-wider text-[11px]" style={{ color: amber }}>
+                Built by HAWAZ TECHNOLOGIES
+              </p>
+              <p className="text-[10px]">
+                Keyadi Geospatial Intelligence Platform · Telemetry Core v1.2
+              </p>
+            </div>
           </div>
         </div>
       </div>
