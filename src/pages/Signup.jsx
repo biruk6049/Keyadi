@@ -45,7 +45,7 @@ export default function Signup() {
     return (
       <PageBackground showToggle={false}>
         <div
-          className="flex min-h-screen items-center justify-center px-4 py-12 selection:bg-amber-500/20 selection:text-amber-400"
+          className="flex flex-col min-h-screen items-center justify-center px-4 py-8 sm:py-12 selection:bg-amber-500/20 selection:text-amber-400"
           style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif", color: ink }}
         >
           <div
@@ -86,7 +86,7 @@ export default function Signup() {
   return (
     <PageBackground showToggle={false}>
       <div
-        className="flex min-h-screen items-center justify-center px-4 py-12 selection:bg-amber-500/20 selection:text-amber-400"
+        className="flex flex-col min-h-screen items-center justify-center px-4 py-8 sm:py-12 selection:bg-amber-500/20 selection:text-amber-400"
         style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif", color: ink }}
       >
         <div

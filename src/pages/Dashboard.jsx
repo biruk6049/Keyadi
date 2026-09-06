@@ -103,6 +103,16 @@ function formatDuration(seconds) {
   return `${h}h ${m}m`
 }
 
+function formatDistance(meters, units = 'km') {
+  if (typeof meters !== 'number' || isNaN(meters) || meters <= 0) return ''
+  if (units === 'mi') {
+    const mi = (meters * 0.000621371).toFixed(1)
+    return `${mi} mi`
+  }
+  const km = (meters / 1000).toFixed(1)
+  return `${km} km`
+}
+
 function getPlacePhoto(place) {
   const type = (place?.type || '').toLowerCase()
   const name = (place?.name || '').toLowerCase()
@@ -202,6 +212,8 @@ export default function Dashboard() {
   const [activeMode, setActiveMode] = useState('driving')
   const [activeNav, setActiveNav] = useState('map')
   const [sidebarExpanded, setSidebarExpanded] = useState(false)
+  const [mobileSheetExpanded, setMobileSheetExpanded] = useState(false)
+  const [placeSheetMinimized, setPlaceSheetMinimized] = useState(false)
 
   // AI Search & Geospatial RAG state
   const [aiEnabled, setAiEnabled] = useState(true)
@@ -386,18 +398,30 @@ export default function Dashboard() {
     setTrackersLoading(false)
   }
 
-  // Plot saved tracker locations on the map
+  // Plot saved tracker locations on the map (only when on Saved tab to prevent duplicate dot confusion)
   const plotTrackerMarkers = () => {
     trackerMarkersRef.current.forEach((m) => m.remove())
     trackerMarkersRef.current = []
     if (!mapRef.current) return
+    // Only plot saved tracker markers when viewing the Saved radars tab!
+    if (activeNav !== 'saved') return
+
     trackers.forEach((t) => {
       const el = document.createElement('div')
-      el.style.cssText =
-        'width:12px;height:12px;border-radius:50%;background:#2dd4bf;border:2px solid #fff;box-shadow:0 0 6px rgba(45,212,191,0.5);cursor:pointer;'
-      const marker = new mapboxgl.Marker({ element: el })
+      el.className = 'cursor-pointer flex flex-col items-center group transition-transform hover:scale-110'
+      el.innerHTML = `
+        <div style="background:rgba(18,16,13,0.92);color:#2dd4bf;border:1px solid rgba(45,212,191,0.6);padding:3px 9px;border-radius:20px;font-size:11px;font-family:'Outfit',sans-serif;font-weight:600;display:flex;align-items:center;gap:5px;box-shadow:0 4px 14px rgba(0,0,0,0.5);backdrop-filter:blur(8px);">
+          <span style="width:7px;height:7px;border-radius:50%;background:#2dd4bf;box-shadow:0 0 8px #2dd4bf;"></span>
+          <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📡 ${t.keyword} (${(t.radius_m / 1000).toFixed(1)}km)</span>
+        </div>
+        <div style="width:6px;height:6px;background:#2dd4bf;transform:rotate(45deg);margin-top:-3px;"></div>
+      `
+      el.addEventListener('click', (e) => {
+        e.stopPropagation()
+        mapRef.current?.flyTo({ center: [t.lng, t.lat], zoom: 13 })
+      })
+      const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([t.lng, t.lat])
-        .setPopup(new mapboxgl.Popup({ offset: 10 }).setText(`Tracker: ${t.keyword} · ${(t.radius_m / 1000).toFixed(1)} km`))
         .addTo(mapRef.current)
       trackerMarkersRef.current.push(marker)
     })
@@ -405,7 +429,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     plotTrackerMarkers()
-  }, [trackers])
+  }, [trackers, activeNav])
 
   const deleteTracker = async (id) => {
     await supabase.from('trackers').delete().eq('id', id)
@@ -827,6 +851,7 @@ export default function Dashboard() {
   const selectPlace = (place) => {
     if (!place) return
     setSelectedPlace(place)
+    setPlaceSheetMinimized(false)
     setPlaceAnswer('')
     try {
       if (typeof place.lng === 'number' && typeof place.lat === 'number' && !isNaN(place.lng) && !isNaN(place.lat)) {
@@ -855,6 +880,7 @@ export default function Dashboard() {
 
   const closeDirections = () => {
     setSelectedPlace(null)
+    setPlaceSheetMinimized(false)
     setRoutes({})
     setPlaceAddress('')
     clearRoute()
@@ -1048,41 +1074,62 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* ── Floating Left Glassmorphic Sidebar ── */}
+        {/* ── Floating Left Glassmorphic Sidebar (Desktop) / Interactive Bottom Sheet (Mobile) ── */}
         <aside
           className={`
-            ${activeNav === 'map' ? 'hidden md:flex' : 'flex'}
-            fixed inset-x-3 bottom-20 top-24 z-30 flex-col rounded-3xl shadow-2xl backdrop-blur-2xl transition-all duration-300 pointer-events-auto overflow-hidden
-            md:absolute md:top-4 md:bottom-4 md:left-4 md:inset-x-auto md:z-30
+            ${activeNav === 'map' || selectedPlace ? 'hidden md:flex' : 'flex'}
+            fixed inset-x-0 bottom-16 z-30 flex-col rounded-t-3xl shadow-2xl backdrop-blur-2xl transition-all duration-300 pointer-events-auto overflow-hidden
+            ${mobileSheetExpanded ? 'h-[80vh]' : 'h-[46vh]'}
+            md:h-auto md:absolute md:top-4 md:bottom-4 md:left-4 md:inset-x-auto md:z-30 md:rounded-3xl
           `}
           style={{
-            width: typeof window !== 'undefined' && window.innerWidth >= 768 ? (sidebarExpanded ? '380px' : '230px') : 'auto',
-            backgroundColor: isDark ? 'rgba(14, 13, 11, 0.86)' : 'rgba(255, 255, 255, 0.9)',
+            width: typeof window !== 'undefined' && window.innerWidth >= 768 ? (sidebarExpanded ? '380px' : '230px') : '100%',
+            backgroundColor: isDark ? 'rgba(14, 13, 11, 0.90)' : 'rgba(255, 255, 255, 0.92)',
             border: `1px solid ${hairline}`,
             color: ink,
           }}
         >
+          {/* Mobile Sheet Drag Handle */}
+          <div
+            className="flex md:hidden flex-col items-center pt-2 pb-1 cursor-pointer select-none"
+            onClick={() => setMobileSheetExpanded(!mobileSheetExpanded)}
+          >
+            <div className="w-12 h-1.5 rounded-full bg-white/20 transition hover:bg-white/40" />
+          </div>
+
           {/* Brand Header */}
-          <div className="flex items-center justify-between px-4 pt-4 pb-3">
+          <div className="flex items-center justify-between px-4 pt-1.5 md:pt-4 pb-2 md:pb-3 shrink-0">
             <div className="flex items-center gap-2.5">
-              <KeyadiLogo size={34} />
-              <span className="text-lg font-bold tracking-tight" style={{ color: ink, fontFamily: "'Outfit', sans-serif" }}>
-                Keyadi
+              <KeyadiLogo size={30} className="md:w-[34px] md:h-[34px]" />
+              <span className="text-base md:text-lg font-bold tracking-tight" style={{ color: ink, fontFamily: "'Outfit', sans-serif" }}>
+                {activeNav === 'places' ? `Places (${results.length})` : activeNav === 'saved' ? `Saved Radars (${trackers.length})` : 'Keyadi Telemetry'}
               </span>
             </div>
 
-            {/* Mobile Close Button to return directly to map */}
-            <button
-              onClick={() => {
-                setActiveNav('map')
-                setSidebarExpanded(false)
-              }}
-              className="flex md:hidden h-8 w-8 items-center justify-center rounded-full text-xs hover:bg-white/10 transition border"
-              style={{ borderColor: hairline, color: inkMuted }}
-              title="Return to map"
-            >
-              ✕
-            </button>
+            <div className="flex items-center gap-1.5">
+              {/* Mobile Expand / Minimize button */}
+              <button
+                onClick={() => setMobileSheetExpanded(!mobileSheetExpanded)}
+                className="flex md:hidden h-7 px-2.5 items-center justify-center rounded-full text-[11px] font-semibold border transition"
+                style={{ borderColor: hairline, color: amber }}
+                title={mobileSheetExpanded ? 'Minimize sheet' : 'Expand sheet'}
+              >
+                {mobileSheetExpanded ? 'Minimize ↓' : 'Expand ↑'}
+              </button>
+
+              {/* Mobile Close Button to return directly to map */}
+              <button
+                onClick={() => {
+                  setActiveNav('map')
+                  setSidebarExpanded(false)
+                }}
+                className="flex md:hidden h-7 w-7 items-center justify-center rounded-full text-xs hover:bg-white/10 transition border"
+                style={{ borderColor: hairline, color: inkMuted }}
+                title="Return to map"
+              >
+                ✕
+              </button>
+            </div>
 
             {/* Desktop Expand/Collapse toggle */}
             <button
@@ -1095,8 +1142,8 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {/* Navigation Items */}
-          <nav className="flex flex-col gap-1 px-3 py-1">
+          {/* Navigation Items (Desktop Only - Mobile uses bottom nav) */}
+          <nav className="hidden md:flex flex-col gap-1 px-3 py-1 shrink-0">
             {[
               { id: 'dashboard', label: 'Dashboard', icon: <GridIcon size={16} /> },
               { id: 'map', label: 'Map', icon: <MapIcon size={16} /> },
@@ -1388,34 +1435,104 @@ export default function Dashboard() {
           </div>
         </aside>
 
-        {/* ── Floating Place Details Card ── */}
+        {/* ── Floating Place Details & Directions Bottom Sheet / Card ── */}
         {selectedPlace && (
           <div
-            className="absolute top-16 md:top-20 right-3 sm:right-5 z-30 w-88 max-w-[calc(100vw-24px)] sm:max-w-[calc(100vw-40px)] max-h-[calc(100vh-230px)] md:max-h-[calc(100vh-200px)] overflow-y-auto keyadi-hide-scrollbar rounded-3xl p-4 shadow-2xl backdrop-blur-2xl transition-all pointer-events-auto"
+            className={`
+              fixed inset-x-0 bottom-16 z-30 transition-all duration-300 pointer-events-auto
+              ${placeSheetMinimized ? 'max-h-20' : 'max-h-[50vh]'}
+              overflow-y-auto keyadi-hide-scrollbar rounded-t-3xl md:rounded-3xl p-3.5 sm:p-4 md:p-5
+              shadow-2xl backdrop-blur-2xl md:absolute md:top-20 md:right-5 md:bottom-auto md:w-88 md:max-w-md md:max-h-[calc(100vh-200px)]
+            `}
             style={{
-              backgroundColor: isDark ? 'rgba(14, 13, 11, 0.88)' : 'rgba(255, 255, 255, 0.92)',
+              backgroundColor: isDark ? 'rgba(14, 13, 11, 0.94)' : 'rgba(255, 255, 255, 0.96)',
               border: `1px solid ${hairline}`,
               color: ink,
             }}
           >
-            {/* Header: Category Badge & Close Button (Images erased) */}
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                {typeBadge(selectedPlace.type)}
-              </div>
-              <button
-                onClick={closeDirections}
-                className="flex h-7 w-7 items-center justify-center rounded-full transition shadow-sm hover:scale-105"
-                style={{
-                  backgroundColor: isDark ? 'rgba(243,241,236,0.08)' : 'rgba(16,14,11,0.06)',
-                  color: inkMuted,
-                  border: `1px solid ${hairline}`,
-                }}
-                title="Close"
-              >
-                ✕
-              </button>
+            {/* Mobile Sheet Drag Handle */}
+            <div
+              className="flex md:hidden flex-col items-center pt-0 pb-2 cursor-pointer select-none"
+              onClick={() => setPlaceSheetMinimized(!placeSheetMinimized)}
+            >
+              <div className="w-12 h-1 rounded-full bg-white/30" />
             </div>
+
+            {placeSheetMinimized ? (
+              /* Minimized Mobile Route Pill - lets user view full map & route */
+              <div className="flex md:hidden items-center justify-between gap-2 px-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500/20 text-amber-400 shrink-0">
+                    <ModeIcon icon={TRAVEL_MODES.find(m => m.key === activeMode)?.icon || 'car'} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold truncate" style={{ color: ink }}>
+                      {selectedPlace.name}
+                    </div>
+                    <div className="text-[11px] font-semibold" style={{ color: amber }}>
+                      {routes[activeMode] && routes[activeMode] !== 'loading' && routes[activeMode] !== 'error'
+                        ? `${formatDuration(routes[activeMode].duration)} • ${formatDistance(routes[activeMode].distance, settings.units)}`
+                        : 'Calculating route…'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => setPlaceSheetMinimized(false)}
+                    className="flex h-7 px-2.5 items-center justify-center rounded-full text-[11px] font-bold border transition shadow-sm"
+                    style={{ borderColor: amber, color: amber, backgroundColor: 'rgba(232, 163, 61, 0.12)' }}
+                  >
+                    Details ↑
+                  </button>
+                  <button
+                    onClick={closeDirections}
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-xs hover:bg-white/10 transition border"
+                    style={{ borderColor: hairline, color: inkMuted }}
+                    title="Close"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Header: Category Badge & Close Button */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={closeDirections}
+                      className="flex md:hidden items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border transition hover:bg-white/10"
+                      style={{ borderColor: hairline, color: amber }}
+                    >
+                      ← Results
+                    </button>
+                    {typeBadge(selectedPlace.type)}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    {/* Minimize to full map button for mobile */}
+                    <button
+                      onClick={() => setPlaceSheetMinimized(true)}
+                      className="flex md:hidden h-7 px-2.5 items-center justify-center rounded-full text-[11px] font-medium border transition"
+                      style={{ borderColor: hairline, color: inkMuted }}
+                      title="See full map"
+                    >
+                      Map View ↓
+                    </button>
+                    <button
+                      onClick={closeDirections}
+                      className="flex h-7 w-7 items-center justify-center rounded-full transition shadow-sm hover:scale-105"
+                      style={{
+                        backgroundColor: isDark ? 'rgba(243,241,236,0.08)' : 'rgba(16,14,11,0.06)',
+                        color: inkMuted,
+                        border: `1px solid ${hairline}`,
+                      }}
+                      title="Close directions"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
 
             {/* Title & Star Rating */}
             <div className="flex items-start justify-between gap-2 mb-1">
@@ -1545,8 +1662,10 @@ export default function Dashboard() {
                 </div>
               ) : null}
             </div>
-          </div>
+          </>
         )}
+      </div>
+    )}
 
         {/* ── Weather Widget (Floating Bottom-Left) ── */}
         <WeatherWidget
