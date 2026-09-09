@@ -37,6 +37,16 @@ import {
 } from '../lib/aiSearch'
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN
+const escapeHtml = (str) => {
+  if (str == null) return ''
+  return String(str).replace(/[&<>"']/g, (m) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[m]))
+}
 
 const RADIUS_OPTIONS_KM = [1, 3, 5, 10, 20]
 const PLACEHOLDER_TERMS = ['best coffee shops', 'where to buy cement', 'pharmacy near me', 'plumber', 'hotel with wifi']
@@ -409,10 +419,12 @@ export default function Dashboard() {
     trackers.forEach((t) => {
       const el = document.createElement('div')
       el.className = 'cursor-pointer flex flex-col items-center group transition-transform hover:scale-110'
+      const safeKeyword = escapeHtml(t.keyword)
+      const safeRadius = (Number(t.radius_m || 0) / 1000).toFixed(1)
       el.innerHTML = `
         <div style="background:rgba(18,16,13,0.92);color:#2dd4bf;border:1px solid rgba(45,212,191,0.6);padding:3px 9px;border-radius:20px;font-size:11px;font-family:'Outfit',sans-serif;font-weight:600;display:flex;align-items:center;gap:5px;box-shadow:0 4px 14px rgba(0,0,0,0.5);backdrop-filter:blur(8px);">
           <span style="width:7px;height:7px;border-radius:50%;background:#2dd4bf;box-shadow:0 0 8px #2dd4bf;"></span>
-          <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 ${t.keyword} (${(t.radius_m / 1000).toFixed(1)}km)</span>
+          <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 ${safeKeyword} (${safeRadius}km)</span>
         </div>
         <div style="width:6px;height:6px;background:#2dd4bf;transform:rotate(45deg);margin-top:-3px;"></div>
       `
@@ -447,10 +459,11 @@ export default function Dashboard() {
       const el = document.createElement('div')
       el.className = 'cursor-pointer flex flex-col items-center group transition-transform hover:scale-110'
       el.style.cssText = 'cursor:pointer;display:flex;flex-direction:column;align-items:center;'
+      const safeName = escapeHtml(place.name)
       el.innerHTML = `
         <div style="background:rgba(18,16,13,0.92);color:#f3f1ec;border:1px solid rgba(232,163,61,0.6);padding:3px 9px;border-radius:20px;font-size:11px;font-family:'Outfit',sans-serif;font-weight:600;display:flex;align-items:center;gap:5px;box-shadow:0 4px 14px rgba(0,0,0,0.5);backdrop-filter:blur(8px);">
           <span style="width:7px;height:7px;border-radius:50%;background:#e8a33d;box-shadow:0 0 8px #e8a33d;"></span>
-          <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${place.name}</span>
+          <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeName}</span>
         </div>
         <div style="width:6px;height:6px;background:#e8a33d;transform:rotate(45deg);margin-top:-3px;"></div>
       `
