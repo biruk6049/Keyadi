@@ -70,88 +70,76 @@ const FAQ_ITEMS = [
 
 const TRUSTED_COMPANIES = [
   {
-    name: 'Supabase',
-    role: 'Database & Realtime Auth',
-    badge: 'PostgreSQL Core',
+    name: 'Google Maps',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M21.362 9.354H12V.304a.6.6 0 0 0-1.025-.424L.65 10.373a.6.6 0 0 0 .425 1.023H10.3v9.05a.6.6 0 0 0 1.025.424l10.325-10.493a.6.6 0 0 0-.288-1.023z" fill="#3ECF8E" />
+        <path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="#4285F4"/>
+        <path d="M12 2C9.79 2 7.8 2.89 6.34 4.34L12 10V2z" fill="#EA4335"/>
+        <path d="M17.66 4.34C16.2 2.89 14.21 2 12 2v8l5.66-5.66z" fill="#FBBC04"/>
+        <path d="M12 10l-5.66-5.66C4.89 5.8 4 7.79 4 10c0 5.25 7 12 8 12V10z" fill="#34A853"/>
+        <circle cx="12" cy="10" r="3.2" fill="#FFFFFF"/>
+        <circle cx="12" cy="10" r="1.8" fill="#1A73E8"/>
       </svg>
     ),
   },
   {
     name: 'Mapbox',
-    role: 'Vector Cartography & GL',
-    badge: 'Mapbox GL JS',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#4264FB" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
-      </svg>
-    ),
-  },
-  {
-    name: 'Google Maps',
-    role: 'Satellite & Geocoding',
-    badge: 'Global Coverage',
-    icon: (
-      <svg width="20" height="22" viewBox="0 0 24 24">
-        <path fill="#4285F4" d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z"/>
-        <circle cx="12" cy="10" r="3.5" fill="#fff"/>
-        <circle cx="12" cy="10" r="2" fill="#EA4335"/>
+        <circle cx="12" cy="12" r="12" fill="#4264FB"/>
+        <path d="M12 4.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15zm-2.4 3.75v6.5h1.6v-3.7l1.7 3.7h1.4l1.7-3.7v3.7h1.6v-6.5h-1.8l-1.8 3.9-1.8-3.9H9.6z" fill="#FFFFFF"/>
       </svg>
     ),
   },
   {
     name: 'OpenStreetMap',
-    role: 'Open Geospatial Core',
-    badge: 'Verified POIs',
     icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="9" stroke="#7EBC6F" strokeWidth="2"/>
-        <path d="M7 15l4-6 3 4 3-5" stroke="#7EBC6F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#7EBC6F">
+        <path d="M17.915 2.502a1.86 1.86 0 0 0-.82.203L10.51 5.92 4.975 2.527a1.86 1.86 0 0 0-1.92.053 1.86 1.86 0 0 0-.895 1.58v14.414a1.86 1.86 0 0 0 .95 1.625l6.586 3.593c.3.16.635.244.97.244a1.86 1.86 0 0 0 .822-.203l6.586-3.215 5.534 3.393a1.86 1.86 0 0 0 1.92-.053 1.86 1.86 0 0 0 .895-1.58V5.978a1.86 1.86 0 0 0-.95-1.625L18.887 2.76a1.86 1.86 0 0 0-.972-.258zm-.62 3.033l3.35 1.634v11.385l-3.35-2.054V5.535zm-6.685 1.705l3.965-1.937v11.375l-3.965 1.937V7.24zm-6.685-1.7l3.35 2.054v11.385l-3.35-1.83V5.54z"/>
       </svg>
     ),
   },
   {
-    name: 'Overpass API',
-    role: 'Geospatial QL Engine',
-    badge: 'Live Overpass Turbo',
+    name: 'Supabase',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" stroke="#F59E0B" strokeWidth="2" fill="#F59E0B" fillOpacity="0.2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M13.35.53a1.5 1.5 0 0 0-2.3.24L.6 15.35a1.5 1.5 0 0 0 1.23 2.25h8.82L9.3 23.47a1.5 1.5 0 0 0 2.3-.24l10.45-14.58a1.5 1.5 0 0 0-1.23-2.25h-8.82L13.35.53z" fill="#3ECF8E"/>
       </svg>
     ),
   },
   {
-    name: 'React 18',
-    role: 'Reactive Framework',
-    badge: 'Concurrent Core',
+    name: 'Vercel',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 1L24 22H0L12 1Z" />
+      </svg>
+    ),
+  },
+  {
+    name: 'React',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <ellipse cx="12" cy="12" rx="10" ry="4" stroke="#61DAFB" strokeWidth="1.6" transform="rotate(30 12 12)"/>
-        <ellipse cx="12" cy="12" rx="10" ry="4" stroke="#61DAFB" strokeWidth="1.6" transform="rotate(90 12 12)"/>
-        <ellipse cx="12" cy="12" rx="10" ry="4" stroke="#61DAFB" strokeWidth="1.6" transform="rotate(150 12 12)"/>
-        <circle cx="12" cy="12" r="2" fill="#61DAFB"/>
+        <ellipse cx="12" cy="12" rx="10" ry="3.8" stroke="#61DAFB" strokeWidth="1.6" transform="rotate(30 12 12)"/>
+        <ellipse cx="12" cy="12" rx="10" ry="3.8" stroke="#61DAFB" strokeWidth="1.6" transform="rotate(90 12 12)"/>
+        <ellipse cx="12" cy="12" rx="10" ry="3.8" stroke="#61DAFB" strokeWidth="1.6" transform="rotate(150 12 12)"/>
+        <circle cx="12" cy="12" r="1.8" fill="#61DAFB"/>
       </svg>
     ),
   },
   {
     name: 'Vite',
-    role: 'Lightning Bundler',
-    badge: 'Next-Gen Build',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M22 4L12 22 2 4l9 2.5L12 2l1 4.5L22 4z" stroke="#BD34FE" strokeWidth="1.8" fill="#BD34FE" fillOpacity="0.2" strokeLinecap="round" strokeLinejoin="round"/>
+        <path d="M22 4L12 22 2 4l9.5 2.5L12 2l.5 4.5L22 4z" fill="#BD34FE"/>
+        <path d="M12 2l-1 4.5-9.5-2.5 10 18 2-9 4.5-.5L12 2z" fill="#FFDD35"/>
       </svg>
     ),
   },
   {
     name: 'Tailwind CSS',
-    role: 'Modern Utility Styling',
-    badge: 'Hardware Accelerated',
     icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M12 6c-2.4 0-3.9 1.2-4.5 3.6 1-.6 2.1-.8 3.3-.6 1.4.2 2.4 1.2 3.5 2.3C16.1 13 18.2 15 22 15c2.4 0 3.9-1.2 4.5-3.6-1 .6-2.1.8-3.3.6-1.4-.2-2.4-1.2-3.5-2.3C17.9 8 15.8 6 12 6zM2 15c2.4 0 3.9-1.2 4.5-3.6-1 .6-2.1.8-3.3.6-1.4-.2-2.4-1.2-3.5-2.3C1.9 8-.2 6-4 6c-2.4 0-3.9 1.2-4.5 3.6 1-.6 2.1-.8 3.3-.6 1.4.2 2.4 1.2 3.5 2.3C-6.1 13-4 15-.2 15z" fill="#38BDF8"/>
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="#38BDF8">
+        <path d="M12.001 4.8c-3.2 0-5.2 1.6-6 4.8 1.2-.8 2.6-1.1 4.2-.9 1.8.3 3.1 1.6 4.5 3.1 2.3 2.3 5 5 10.5 5 3.2 0 5.2-1.6 6-4.8-1.2.8-2.6 1.1-4.2.9-1.8-.3-3.1-1.6-4.5-3.1-2.3-2.3-5-5-10.5-5zm-9.6 7.2c-3.2 0-5.2 1.6-6 4.8 1.2-.8 2.6-1.1 4.2-.9 1.8.3 3.1 1.6 4.5 3.1 2.3 2.3 5 5 10.5 5 3.2 0 5.2-1.6 6-4.8-1.2.8-2.6 1.1-4.2.9-1.8-.3-3.1-1.6-4.5-3.1-2.3-2.3-5-5-10.5-5z"/>
       </svg>
     ),
   },
@@ -807,13 +795,13 @@ export default function Landing() {
               }}
             >
               <SparklesIcon size={12} color={amber} />
-              <span>Trusted Ecosystem & Cloud Partners</span>
+              <span>Technology Stack</span>
             </span>
             <h4 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: ink }}>
-              Built With & Trusted Alongside Leading Technologies
+              Powered By Leading Map & Cloud Technologies
             </h4>
             <p className="mt-1 text-xs sm:text-sm" style={{ color: inkMuted }}>
-              Engineered with world-class geospatial, database, cartography, and cloud platforms.
+              Built with industry-standard mapping, database, and cloud platforms.
             </p>
           </div>
 
@@ -832,34 +820,18 @@ export default function Landing() {
               {[...TRUSTED_COMPANIES, ...TRUSTED_COMPANIES].map((comp, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 rounded-2xl px-5 py-3 border transition-all duration-200 hover:scale-105 hover:border-amber-500/50 group cursor-default shrink-0 shadow-md"
+                  className="flex items-center gap-3 rounded-2xl px-4 py-2.5 border transition-all duration-200 hover:scale-105 hover:border-amber-500/40 group cursor-default shrink-0 shadow-sm"
                   style={{
-                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.03)',
+                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)',
                     borderColor: hairline,
                   }}
                 >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform">
                     {comp.icon}
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold tracking-tight" style={{ color: ink }}>
-                        {comp.name}
-                      </span>
-                      <span
-                        className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-                        style={{
-                          backgroundColor: 'rgba(232, 163, 61, 0.12)',
-                          color: amber,
-                        }}
-                      >
-                        {comp.badge}
-                      </span>
-                    </div>
-                    <div className="text-[11px]" style={{ color: inkMuted }}>
-                      {comp.role}
-                    </div>
-                  </div>
+                  <span className="text-sm font-semibold tracking-tight whitespace-nowrap" style={{ color: ink }}>
+                    {comp.name}
+                  </span>
                 </div>
               ))}
             </div>
