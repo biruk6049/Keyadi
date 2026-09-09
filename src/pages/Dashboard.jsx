@@ -403,7 +403,7 @@ export default function Dashboard() {
     trackerMarkersRef.current.forEach((m) => m.remove())
     trackerMarkersRef.current = []
     if (!mapRef.current) return
-    // Only plot saved tracker markers when viewing the Saved radars tab!
+    // Only plot saved tracker markers when viewing the Saved places tab!
     if (activeNav !== 'saved') return
 
     trackers.forEach((t) => {
@@ -412,7 +412,7 @@ export default function Dashboard() {
       el.innerHTML = `
         <div style="background:rgba(18,16,13,0.92);color:#2dd4bf;border:1px solid rgba(45,212,191,0.6);padding:3px 9px;border-radius:20px;font-size:11px;font-family:'Outfit',sans-serif;font-weight:600;display:flex;align-items:center;gap:5px;box-shadow:0 4px 14px rgba(0,0,0,0.5);backdrop-filter:blur(8px);">
           <span style="width:7px;height:7px;border-radius:50%;background:#2dd4bf;box-shadow:0 0 8px #2dd4bf;"></span>
-          <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📡 ${t.keyword} (${(t.radius_m / 1000).toFixed(1)}km)</span>
+          <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 ${t.keyword} (${(t.radius_m / 1000).toFixed(1)}km)</span>
         </div>
         <div style="width:6px;height:6px;background:#2dd4bf;transform:rotate(45deg);margin-top:-3px;"></div>
       `
@@ -1102,7 +1102,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-2.5">
               <KeyadiLogo size={30} className="md:w-[34px] md:h-[34px]" />
               <span className="text-base md:text-lg font-bold tracking-tight" style={{ color: ink, fontFamily: "'Outfit', sans-serif" }}>
-                {activeNav === 'places' ? `Places (${results.length})` : activeNav === 'saved' ? `Saved Radars (${trackers.length})` : 'Keyadi Telemetry'}
+                {activeNav === 'places' ? `Places (${results.length})` : activeNav === 'saved' ? `Saved Places (${trackers.length})` : 'Keyadi Places'}
               </span>
             </div>
 

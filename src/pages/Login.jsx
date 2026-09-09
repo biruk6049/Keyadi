@@ -68,7 +68,7 @@ export default function Login() {
             Welcome back
           </h1>
           <p className="text-sm mb-6 leading-relaxed" style={{ color: inkMuted }}>
-            Sign in to access your live map telemetry and saved trackers.
+            Sign in to access your saved places, custom searches, and live directions.
           </p>
 
           {error && (

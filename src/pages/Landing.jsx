@@ -47,9 +47,9 @@ const FAQ_ITEMS = [
     cat: 'Pricing',
   },
   {
-    q: 'How does Tri-Mode Telemetry calculate routes and travel times?',
-    a: 'When you select any place or click an origin, Keyadi queries routing profiles in parallel across 3 travel modes (Driving, Walking, and Cycling), displaying real-time distance and estimated minutes with neon vector telemetry overlay paths directly on the map.',
-    cat: 'Telemetry',
+    q: 'How does Keyadi calculate routes and travel times?',
+    a: 'When you select any place or request directions, Keyadi queries routing profiles in parallel across 3 travel modes (Driving, Walking, and Cycling), displaying real-time distance and estimated minutes with illuminated route lines directly on the map.',
+    cat: 'Directions',
   },
   {
     q: 'Can I monitor specific neighborhoods or keywords continuously?',
@@ -337,7 +337,7 @@ export default function Landing() {
             {/* Nav links */}
             <nav className="hidden md:flex items-center gap-6 text-sm font-medium" style={{ color: inkMuted }}>
               <a href="#features" className="transition-colors hover:text-amber-400">Features</a>
-              <a href="#telemetry" className="transition-colors hover:text-amber-400">Telemetry</a>
+              <a href="#directions" className="transition-colors hover:text-amber-400">Directions</a>
               <a href="#demo" className="transition-colors hover:text-amber-400">Live Demo</a>
               <a href="#faq" className="transition-colors hover:text-amber-400">FAQ</a>
               <a href="#contact" className="transition-colors hover:text-amber-400">Contact</a>
@@ -409,12 +409,12 @@ export default function Landing() {
                 Features
               </a>
               <a
-                href="#telemetry"
+                href="#directions"
                 onClick={() => setMobileMenuOpen(false)}
                 className="px-3 py-2 rounded-xl hover:text-amber-400 hover:bg-white/5 transition"
                 style={{ color: ink }}
               >
-                Telemetry
+                Directions
               </a>
               <a
                 href="#demo"
@@ -492,7 +492,7 @@ export default function Landing() {
             }}
           >
             <SparklesIcon size={13} color={amber} />
-            <span className="tracking-wide uppercase text-[11px]">Intelligent Geospatial AI & Telemetry</span>
+            <span className="tracking-wide uppercase text-[11px]">Smart Place Search & Live Directions</span>
           </div>
 
           {/* Main Title */}
@@ -507,7 +507,7 @@ export default function Landing() {
                 textShadow: '0 0 40px rgba(232, 163, 61, 0.25)',
               }}
             >
-              Intelligent Telemetry.
+              Smart Directions.
             </span>
           </h1>
 
@@ -572,7 +572,7 @@ export default function Landing() {
         </section>
 
         {/* ── 3D Perspective Hero Map Showcase ── */}
-        <section id="telemetry" className="mx-auto w-full max-w-6xl px-6 pb-20 sm:px-10">
+        <section id="directions" className="mx-auto w-full max-w-6xl px-6 pb-20 sm:px-10">
           <div className="relative mx-auto max-w-5xl [perspective:1400px]">
             <div
               className="relative overflow-hidden rounded-3xl border shadow-2xl backdrop-blur-2xl transition-all duration-700 [transform:rotateX(10deg)_scale(0.98)] hover:[transform:rotateX(2deg)_scale(1)]"
@@ -667,7 +667,7 @@ export default function Landing() {
                   </div>
                 </div>
 
-                {/* Multimodal Telemetry Metrics */}
+                {/* Multimodal Travel Time Metrics */}
                 <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-3" style={{ borderColor: hairline }}>
                   <div className="rounded-xl p-2 text-center" style={{ backgroundColor: 'rgba(232, 163, 61, 0.08)' }}>
                     <div className="text-[10px] uppercase font-bold text-amber-400">Drive</div>
@@ -716,18 +716,18 @@ export default function Landing() {
             {[
               {
                 icon: <SparklesIcon size={20} color={amber} />,
-                title: 'Grounded Semantic RAG',
-                desc: 'Ask naturally in plain English. Keyadi converts your intent into structured Overpass geospatial queries with zero hallucination.',
+                title: 'Natural Place Search',
+                desc: 'Search naturally in plain words. Keyadi understands what you need and queries map data to find verified local spots.',
               },
               {
                 icon: <ClockIcon size={20} color="#38bdf8" />,
-                title: 'Tri-Mode Telemetry',
-                desc: 'Real-time asynchronous calculation of driving, walking, and biking travel times with neon route lines rendered on dark vector maps.',
+                title: 'Live Travel Times',
+                desc: 'Real-time calculation of driving, walking, and cycling travel times with illuminated route lines rendered directly on the map.',
               },
               {
                 icon: <PinIcon size={20} color="#2dd4bf" />,
-                title: 'Live Radius Trackers',
-                desc: 'Save persistent triggers on any location or material keyword. Keyadi continuously monitors the zone and notifies you instantly.',
+                title: 'Saved Places & Spots',
+                desc: 'Save custom locations and favorite spots to quickly pull up directions and details whenever you need them.',
               },
             ].map((feat, i) => (
               <div
@@ -884,7 +884,7 @@ export default function Landing() {
 
             {/* Filter Category Pills */}
             <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-              {['All', 'Product', 'Telemetry', 'Features', 'Pricing', 'Security'].map((cat) => (
+              {['All', 'Product', 'Directions', 'Features', 'Pricing', 'Security'].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setFaqFilter(cat)}
@@ -1205,10 +1205,10 @@ export default function Landing() {
               >
                 <div className="flex items-center gap-2 mb-1.5 font-semibold text-amber-400">
                   <SparklesIcon size={13} color={amber} />
-                  <span>Direct Engineering & Operations — Hawaz Technologies</span>
+                  <span>Support & Inquiries — Hawaz Technologies</span>
                 </div>
                 <p>
-                  For institutional deployments, enterprise telemetry integration, or technical support, contact the engineering team via phone at{' '}
+                  For questions, feedback, partnerships, or technical support, reach out to the Keyadi team via phone at{' '}
                   <a href="tel:+251909005450" className="text-emerald-400 font-semibold underline decoration-emerald-400/40">
                     +251 909005450
                   </a>{' '}
@@ -1228,7 +1228,7 @@ export default function Landing() {
             <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
               <div className="flex items-center gap-2.5">
                 <KeyadiLogo size={22} />
-                <span className="font-semibold" style={{ color: ink }}>Keyadi Geospatial Intelligence</span>
+                <span className="font-semibold" style={{ color: ink }}>Keyadi</span>
                 <span>·</span>
                 <span>© {new Date().getFullYear()}</span>
               </div>
@@ -1239,7 +1239,7 @@ export default function Landing() {
             </div>
             <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-6">
               <a href="#features" className="hover:text-amber-400 transition">Features</a>
-              <a href="#telemetry" className="hover:text-amber-400 transition">Telemetry</a>
+              <a href="#directions" className="hover:text-amber-400 transition">Directions</a>
               <a href="#faq" className="hover:text-amber-400 transition">FAQ</a>
               <a href="#contact" className="hover:text-amber-400 transition">Contact</a>
               <Link to="/login" className="hover:text-amber-400 transition">Sign in</Link>

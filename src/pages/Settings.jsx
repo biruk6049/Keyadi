@@ -135,7 +135,7 @@ export default function Settings() {
               Settings
             </h1>
             <p className="mt-1 text-sm leading-relaxed" style={{ color: inkMuted }}>
-              Manage map styling, distance units, search origin, and telemetry preferences.
+              Manage map styling, distance units, search origin, and navigation preferences.
             </p>
           </div>
 
@@ -185,10 +185,10 @@ export default function Settings() {
             >
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-base font-bold" style={{ color: ink }}>Distance Units</h2>
-                <span className="text-xs font-medium" style={{ color: '#2dd4bf' }}>Telemetry</span>
+                <span className="text-xs font-medium" style={{ color: '#2dd4bf' }}>Format</span>
               </div>
               <p className="text-xs mb-4 leading-relaxed" style={{ color: inkMuted }}>
-                Select metric (kilometers) or imperial (miles) format for venue distances and telemetry routes.
+                Select metric (kilometers) or imperial (miles) format for place distances and travel routes.
               </p>
               <div className="flex gap-3">
                 {[
@@ -215,7 +215,7 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* Card 3: Search Location & Telemetry Mode */}
+            {/* Card 3: Search Location & Coordinate Mode */}
             <div
               className="rounded-3xl p-6 shadow-2xl backdrop-blur-2xl border"
               style={{ backgroundColor: cardBg, borderColor: hairline }}
@@ -376,7 +376,7 @@ export default function Settings() {
                 Built by HAWAZ TECHNOLOGIES
               </p>
               <p className="text-[10px]">
-                Keyadi Geospatial Intelligence Platform · Telemetry Core v1.2
+                Keyadi · Local Places & Live Directions v1.2
               </p>
             </div>
           </div>

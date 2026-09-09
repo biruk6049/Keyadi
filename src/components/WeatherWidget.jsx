@@ -84,20 +84,20 @@ export default function WeatherWidget({ lat, lng, isDark = true }) {
 
   return (
     <div
-      className="absolute bottom-6 right-20 z-20 hidden md:flex items-center gap-3 rounded-2xl border px-3.5 py-2.5 shadow-lg backdrop-blur-xl pointer-events-auto"
+      className="absolute bottom-20 md:bottom-6 left-3 md:left-auto md:right-20 z-20 flex items-center gap-2 md:gap-3 rounded-2xl border px-2.5 py-1.5 md:px-3.5 md:py-2.5 shadow-lg backdrop-blur-xl pointer-events-auto transition-all"
       style={{ backgroundColor: bg, borderColor: border }}
     >
       <div className="flex items-center justify-center">{icon}</div>
       <div>
-        <p className="text-sm font-semibold leading-tight" style={{ color: ink }}>
+        <p className="text-xs md:text-sm font-semibold leading-tight" style={{ color: ink }}>
           {weather.temp}°C
         </p>
-        <p className="text-[10px] font-medium leading-tight tracking-wide" style={{ color: muted }}>
+        <p className="text-[9px] md:text-[10px] font-medium leading-tight tracking-wide" style={{ color: muted }}>
           {label}
         </p>
       </div>
       <div
-        className="ml-1 border-l pl-2.5 space-y-0.5"
+        className="hidden sm:block ml-1 border-l pl-2.5 space-y-0.5"
         style={{ borderColor: border }}
       >
         <div className="flex items-center gap-1.5 text-[10px] leading-tight" style={{ color: muted }}>

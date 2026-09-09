@@ -115,7 +115,7 @@ export default function Signup() {
             Create your account
           </h1>
           <p className="text-sm mb-6 leading-relaxed" style={{ color: inkMuted }}>
-            Start exploring places with intelligent AI telemetry and live trackers.
+            Start exploring places near you with smart search, live directions, and saved spots.
           </p>
 
           {error && (
