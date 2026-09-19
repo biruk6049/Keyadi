@@ -1196,27 +1196,51 @@ export default function Landing() {
 
         {/* ── Modern Minimalist Footer ── */}
         <footer className="mt-auto border-t py-8 px-6 sm:px-10" style={{ borderColor: hairline }}>
-          <div className="mx-auto max-w-6xl flex flex-col md:flex-row items-center justify-between gap-4 text-xs" style={{ color: inkFaint }}>
-            <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
-              <div className="flex items-center gap-2.5">
-                <KeyadiLogo size={22} />
-                <span className="font-semibold" style={{ color: ink }}>Keyadi</span>
-                <span>·</span>
-                <span>© {new Date().getFullYear()}</span>
+          <div className="mx-auto max-w-6xl flex flex-col gap-6 text-xs" style={{ color: inkFaint }}>
+            {/* Top row: Brand + Nav links */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
+                <div className="flex items-center gap-2.5">
+                  <KeyadiLogo size={22} />
+                  <span className="font-semibold" style={{ color: ink }}>Keyadi</span>
+                  <span>·</span>
+                  <span>© {new Date().getFullYear()}</span>
+                </div>
+                <span className="hidden sm:inline" style={{ color: hairline }}>•</span>
+                <span className="font-semibold tracking-wide" style={{ color: amber }}>
+                  Built by HAWAZ TECHNOLOGIES
+                </span>
               </div>
-              <span className="hidden sm:inline" style={{ color: hairline }}>•</span>
-              <span className="font-semibold tracking-wide" style={{ color: amber }}>
-                Built by HAWAZ TECHNOLOGIES
-              </span>
+              <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-6">
+                <a href="#features" className="hover:text-amber-400 transition">Features</a>
+                <a href="#directions" className="hover:text-amber-400 transition">Directions</a>
+                <a href="#faq" className="hover:text-amber-400 transition">FAQ</a>
+                <a href="#contact" className="hover:text-amber-400 transition">Contact</a>
+                <Link to="/login" className="hover:text-amber-400 transition">Sign in</Link>
+                <Link to="/signup" className="hover:text-amber-400 transition font-medium text-amber-400">Create account</Link>
+                <Link to="/dashboard" className="hover:text-amber-400 transition">Map</Link>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-6">
-              <a href="#features" className="hover:text-amber-400 transition">Features</a>
-              <a href="#directions" className="hover:text-amber-400 transition">Directions</a>
-              <a href="#faq" className="hover:text-amber-400 transition">FAQ</a>
-              <a href="#contact" className="hover:text-amber-400 transition">Contact</a>
-              <Link to="/login" className="hover:text-amber-400 transition">Sign in</Link>
-              <Link to="/signup" className="hover:text-amber-400 transition font-medium text-amber-400">Create account</Link>
-              <Link to="/dashboard" className="hover:text-amber-400 transition">Map</Link>
+
+            {/* Legal links row */}
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 pt-3 border-t" style={{ borderColor: hairline }}>
+              <Link to="/privacy" className="hover:text-amber-400 transition">Privacy Policy</Link>
+              <span style={{ color: hairline }}>·</span>
+              <Link to="/terms" className="hover:text-amber-400 transition">Terms of Service</Link>
+              <span style={{ color: hairline }}>·</span>
+              <Link to="/cookies" className="hover:text-amber-400 transition">Cookie Policy</Link>
+              <span style={{ color: hairline }}>·</span>
+              <Link to="/refund" className="hover:text-amber-400 transition">Refund Policy</Link>
+            </div>
+
+            {/* Business details */}
+            <div className="text-center text-[10px] leading-relaxed" style={{ color: inkFaint }}>
+              <p>
+                Hawaz Technologies · Addis Ababa, Ethiopia ·{' '}
+                <a href="mailto:biruk5868@gmail.com" className="text-amber-400/70 hover:text-amber-400 transition">biruk5868@gmail.com</a>
+                {' '}·{' '}
+                <a href="tel:+251909005450" className="text-amber-400/70 hover:text-amber-400 transition">+251 909 005 450</a>
+              </p>
             </div>
           </div>
         </footer>

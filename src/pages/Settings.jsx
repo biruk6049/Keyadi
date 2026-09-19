@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useSettings } from '../context/SettingsContext'
 import { useAuth } from '../context/AuthContext'
+import { supabase } from '../lib/supabaseClient'
 import PageBackground from '../components/PageBackground'
 import { MapIcon, SatelliteIcon, CrosshairIcon, SparklesIcon, UserIcon } from '../components/Icons'
 import KeyadiLogo from '../components/KeyadiLogo'
@@ -86,6 +87,38 @@ export default function Settings() {
     })
     setSuggestions([])
     setShowSuggestions(false)
+  }
+
+  // Data deletion state
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteComplete, setDeleteComplete] = useState(false)
+
+  const handleDataDeletion = async () => {
+    setDeleting(true)
+    try {
+      // 1. Delete all trackers from Supabase
+      if (user?.id) {
+        await supabase.from('trackers').delete().eq('user_id', user.id)
+      }
+      // 2. Clear all Keyadi localStorage keys
+      const keysToRemove = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i)
+        if (key && (key.startsWith('keyadi_') || key.startsWith('sb-'))) {
+          keysToRemove.push(key)
+        }
+      }
+      keysToRemove.forEach((k) => localStorage.removeItem(k))
+      // 3. Show completion, then sign out
+      setDeleteComplete(true)
+      setTimeout(async () => {
+        await signOut()
+      }, 2500)
+    } catch (err) {
+      console.error('Data deletion error:', err)
+      setDeleting(false)
+    }
   }
 
   return (
@@ -370,8 +403,49 @@ export default function Settings() {
               </button>
             </div>
 
+            {/* Card 5: Data Deletion Request */}
+            <div
+              className="rounded-3xl p-6 shadow-2xl backdrop-blur-2xl border"
+              style={{ backgroundColor: cardBg, borderColor: hairline }}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl"
+                  style={{ backgroundColor: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)' }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                    <path d="M10 11v6" />
+                    <path d="M14 11v6" />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: ink }}>Request Data Deletion</p>
+                  <p className="text-[11px]" style={{ color: inkFaint }}>Permanently erase your account data, trackers, and preferences</p>
+                </div>
+              </div>
+              <p className="text-xs leading-relaxed mb-4" style={{ color: inkMuted }}>
+                This action will delete all your saved trackers, clear local preferences, and sign you out. Your Supabase authentication record can be fully removed by contacting{' '}
+                <a href="mailto:biruk5868@gmail.com" className="text-amber-400 underline decoration-amber-400/40">biruk5868@gmail.com</a>.
+              </p>
+              <button
+                onClick={() => setShowDeleteModal(true)}
+                className="rounded-2xl px-5 py-2.5 text-xs font-semibold transition hover:bg-red-500/15 text-red-400 border border-red-500/25"
+              >
+                Request Deletion
+              </button>
+            </div>
+
             {/* System Info & Hawaz Technologies Footer */}
             <div className="pt-6 pb-2 text-center text-xs space-y-1" style={{ color: inkFaint }}>
+              <div className="flex flex-wrap items-center justify-center gap-3 mb-2">
+                <Link to="/privacy" className="hover:text-amber-400 transition">Privacy</Link>
+                <span style={{ color: hairline }}>·</span>
+                <Link to="/terms" className="hover:text-amber-400 transition">Terms</Link>
+                <span style={{ color: hairline }}>·</span>
+                <Link to="/cookies" className="hover:text-amber-400 transition">Cookies</Link>
+              </div>
               <p className="font-semibold tracking-wider text-[11px]" style={{ color: amber }}>
                 Built by HAWAZ TECHNOLOGIES
               </p>
@@ -382,6 +456,76 @@ export default function Settings() {
           </div>
         </div>
       </div>
+
+      {/* Data Deletion Confirmation Modal */}
+      {showDeleteModal && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center px-4"
+          style={{ backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(6px)' }}
+          onClick={() => !deleting && setShowDeleteModal(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl p-8 shadow-2xl backdrop-blur-2xl border"
+            style={{ backgroundColor: cardBg, borderColor: hairline }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {deleteComplete ? (
+              <div className="text-center">
+                <div
+                  className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
+                  style={{ backgroundColor: 'rgba(45,212,191,0.15)' }}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold mb-2" style={{ color: ink }}>Data Deleted</h3>
+                <p className="text-xs" style={{ color: inkMuted }}>All your data has been erased. You will be signed out momentarily.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div
+                    className="flex h-11 w-11 items-center justify-center rounded-2xl"
+                    style={{ backgroundColor: 'rgba(239,68,68,0.15)' }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                      <line x1="12" y1="9" x2="12" y2="13" />
+                      <line x1="12" y1="17" x2="12.01" y2="17" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold" style={{ color: ink }}>Confirm Data Deletion</h3>
+                    <p className="text-[11px]" style={{ color: inkFaint }}>This action cannot be undone</p>
+                  </div>
+                </div>
+                <p className="text-xs leading-relaxed mb-6" style={{ color: inkMuted }}>
+                  This will permanently delete all your saved trackers, clear your local preferences and consent records, and sign you out of Keyadi.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeleteModal(false)}
+                    className="flex-1 rounded-2xl py-2.5 text-xs font-semibold border transition hover:opacity-80"
+                    style={{ borderColor: hairline, color: ink }}
+                    disabled={deleting}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDataDeletion}
+                    disabled={deleting}
+                    className="flex-1 rounded-2xl py-2.5 text-xs font-bold transition hover:opacity-90 disabled:opacity-60"
+                    style={{ backgroundColor: '#ef4444', color: '#ffffff' }}
+                  >
+                    {deleting ? 'Deleting…' : 'Delete All My Data'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </PageBackground>
   )
 }

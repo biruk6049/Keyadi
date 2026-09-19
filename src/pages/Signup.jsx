@@ -16,6 +16,8 @@ export default function Signup() {
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const [confirmSent, setConfirmSent] = useState(false)
+  const [agreeTerms, setAgreeTerms] = useState(false)
+  const [agreeAge, setAgreeAge] = useState(false)
 
   const ink = '#f3f1ec'
   const inkMuted = 'rgba(243,241,236,0.65)'
@@ -160,11 +162,44 @@ export default function Signup() {
               />
             </div>
 
+            {/* Consent Checkboxes */}
+            <div className="space-y-3 pt-1">
+              <label className="flex items-start gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-2 accent-amber-400 shrink-0 cursor-pointer"
+                  style={{ accentColor: amber }}
+                  aria-label="Agree to Terms of Service and Privacy Policy"
+                />
+                <span className="text-xs leading-relaxed" style={{ color: inkMuted }}>
+                  I agree to the{' '}
+                  <Link to="/terms" className="text-amber-400 underline decoration-amber-400/40 hover:text-amber-300" target="_blank">Terms of Service</Link>
+                  {' '}and{' '}
+                  <Link to="/privacy" className="text-amber-400 underline decoration-amber-400/40 hover:text-amber-300" target="_blank">Privacy Policy</Link>
+                </span>
+              </label>
+              <label className="flex items-start gap-2.5 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={agreeAge}
+                  onChange={(e) => setAgreeAge(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-2 accent-amber-400 shrink-0 cursor-pointer"
+                  style={{ accentColor: amber }}
+                  aria-label="Confirm age is 13 or older"
+                />
+                <span className="text-xs leading-relaxed" style={{ color: inkMuted }}>
+                  I confirm that I am <strong style={{ color: ink }}>13 years of age or older</strong>
+                </span>
+              </label>
+            </div>
+
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || !agreeTerms || !agreeAge}
               style={{ backgroundColor: amber, color: '#100e0b' }}
-              className="w-full rounded-2xl py-3.5 text-sm font-bold shadow-xl transition-all hover:scale-[1.02] hover:opacity-95 disabled:opacity-60 mt-2"
+              className="w-full rounded-2xl py-3.5 text-sm font-bold shadow-xl transition-all hover:scale-[1.02] hover:opacity-95 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
             >
               {submitting ? 'Creating account…' : 'Create Account →'}
             </button>
