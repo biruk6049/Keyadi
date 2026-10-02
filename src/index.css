@@ -167,6 +167,13 @@ h6 {
   border-radius: 4px;
 }
 
+/* Remove outline from form inputs — they have their own focus styles */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: none;
+}
+
 /* Remove outline for mouse/touch interactions */
 *:focus:not(:focus-visible) {
   outline: none;

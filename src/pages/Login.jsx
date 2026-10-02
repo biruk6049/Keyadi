@@ -92,7 +92,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 style={{ backgroundColor: inputBg, borderColor: hairline, color: ink }}
-                className="w-full rounded-2xl border px-4 py-3 text-sm outline-none transition focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                className="w-full rounded-2xl border px-4 py-3 text-sm outline-none transition"
                 placeholder="name@example.com"
               />
             </div>
@@ -107,7 +107,7 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={{ backgroundColor: inputBg, borderColor: hairline, color: ink }}
-                className="w-full rounded-2xl border px-4 py-3 text-sm outline-none transition focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+                className="w-full rounded-2xl border px-4 py-3 text-sm outline-none transition"
                 placeholder="••••••••"
               />
             </div>

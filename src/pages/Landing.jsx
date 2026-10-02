@@ -1003,7 +1003,7 @@ export default function Landing() {
                         value={contactForm.name}
                         onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                         placeholder="e.g. Alex Morgan"
-                        className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border focus:border-amber-500"
+                        className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border"
                         style={{
                           backgroundColor: inputBg,
                           borderColor: hairline,
@@ -1021,7 +1021,7 @@ export default function Landing() {
                         value={contactForm.email}
                         onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
                         placeholder="alex@example.com"
-                        className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border focus:border-amber-500"
+                        className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border"
                         style={{
                           backgroundColor: inputBg,
                           borderColor: hairline,
@@ -1063,7 +1063,7 @@ export default function Landing() {
                       value={contactForm.message}
                       onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
                       placeholder="Describe what you need or how we can help..."
-                      className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border focus:border-amber-500 resize-none"
+                      className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border resize-none"
                       style={{
                         backgroundColor: inputBg,
                         borderColor: hairline,
