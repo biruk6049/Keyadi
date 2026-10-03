@@ -498,12 +498,12 @@ export default function Dashboard() {
     setSearchError('Search cancelled.')
   }
 
-  // ── Overpass fetch – race all endpoints in parallel for speed ──
+  // ── High-Reliability Geospatial Fetch (Overpass + Photon OpenStreetMap Fallback) ──
   const overpassCacheRef = useRef(new Map())
   const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
   const parseOverpassElements = (elements) =>
-    elements
+    (elements || [])
       .map((el) => {
         const lat = el.lat ?? el.center?.lat
         const lng = el.lon ?? el.center?.lon
@@ -517,66 +517,102 @@ export default function Dashboard() {
       })
       .filter(Boolean)
 
-  const fetchOverpass = async (query, signal) => {
-    // Check cache first
-    const cacheKey = query
+  const fetchOverpass = async (query, signal, searchTerm = '') => {
+    // Check in-memory cache first
+    const cacheKey = searchTerm ? `${searchTerm}-${center.lat.toFixed(3)}-${center.lng.toFixed(3)}` : query
     const cached = overpassCacheRef.current.get(cacheKey)
-    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+    if (cached && Date.now() - cached.ts < CACHE_TTL && cached.data?.length > 0) {
       return cached.data
     }
 
     const endpoints = [
+      'https://z.overpass-api.de/api/interpreter',
       'https://overpass-api.de/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter',
-      'https://overpass.private.coffee/api/interpreter',
     ]
 
-    // Race all endpoints in parallel – fastest valid response wins
-    const results = await Promise.any(
-      endpoints.map(async (endpoint) => {
+    let foundPlaces = []
+
+    // 1. Try Overpass mirrors
+    for (const endpoint of endpoints) {
+      if (signal?.aborted) break
+      try {
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 12000)
+        const timeoutId = setTimeout(() => controller.abort(), 9000)
 
-        // Also abort if the parent signal fires
-        const onParentAbort = () => controller.abort()
-        signal?.addEventListener('abort', onParentAbort, { once: true })
+        const onAbort = () => controller.abort()
+        signal?.addEventListener('abort', onAbort, { once: true })
 
-        try {
-          const res = await fetch(endpoint, {
-            method: 'POST',
-            body: 'data=' + encodeURIComponent(query),
-            signal: controller.signal,
-          })
-          clearTimeout(timeoutId)
-          signal?.removeEventListener('abort', onParentAbort)
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: 'data=' + encodeURIComponent(query),
+          signal: controller.signal,
+        })
+        clearTimeout(timeoutId)
+        signal?.removeEventListener('abort', onAbort)
 
-          if (!res.ok) {
-            const text = await res.text()
-            throw new Error(`Server responded ${res.status}: ${text.slice(0, 200)}`)
-          }
-
+        if (res.ok) {
           const data = await res.json()
-          return parseOverpassElements(data.elements)
-        } catch (err) {
-          clearTimeout(timeoutId)
-          signal?.removeEventListener('abort', onParentAbort)
-          throw err
+          const parsed = parseOverpassElements(data.elements)
+          if (parsed.length > 0) {
+            foundPlaces = parsed
+            break
+          }
         }
-      })
-    ).catch((aggErr) => {
-      throw aggErr.errors?.[0] || new Error('All Overpass endpoints failed')
-    })
-
-    // Cache the result
-    overpassCacheRef.current.set(cacheKey, { data: results, ts: Date.now() })
-    // Prune old entries
-    if (overpassCacheRef.current.size > 50) {
-      const oldest = [...overpassCacheRef.current.entries()]
-        .sort((a, b) => a[1].ts - b[1].ts)[0]
-      if (oldest) overpassCacheRef.current.delete(oldest[0])
+      } catch (err) {
+        // Try next endpoint
+      }
     }
 
-    return results
+    // 2. High-Availability Fallback: Photon OpenStreetMap Geocoding API
+    // Photon is hosted by Komoot, operates with zero rate limits, and indexes all OSM POIs globally
+    if (foundPlaces.length === 0 && searchTerm) {
+      try {
+        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(searchTerm)}&lat=${center.lat}&lon=${center.lng}&limit=35`
+        const res = await fetch(photonUrl, { signal })
+        if (res.ok) {
+          const data = await res.json()
+          const photonPlaces = (data.features || [])
+            .map((f) => {
+              const p = f.properties || {}
+              const coords = f.geometry?.coordinates
+              if (!coords || coords.length < 2) return null
+              const name = p.name || p.street || p.district
+              if (!name) return null
+              return {
+                name,
+                lat: coords[1],
+                lng: coords[0],
+                type: p.osm_value || p.osm_key || p.type || 'place',
+                phone: '',
+                website: '',
+                openingHours: '',
+              }
+            })
+            .filter(Boolean)
+
+          if (photonPlaces.length > 0) {
+            foundPlaces = photonPlaces
+          }
+        }
+      } catch (err) {
+        // Fallback failed
+      }
+    }
+
+    // Only cache successful, non-empty results
+    if (foundPlaces.length > 0) {
+      overpassCacheRef.current.set(cacheKey, { data: foundPlaces, ts: Date.now() })
+      if (overpassCacheRef.current.size > 50) {
+        const oldest = [...overpassCacheRef.current.entries()].sort((a, b) => a[1].ts - b[1].ts)[0]
+        if (oldest) overpassCacheRef.current.delete(oldest[0])
+      }
+    }
+
+    return foundPlaces
   }
 
   // ── Main search ──
@@ -619,7 +655,7 @@ export default function Dashboard() {
         query = buildRegexOverpassQuery(term.trim(), center, radiusKm)
       }
 
-      const places = await fetchOverpass(query, controller.signal)
+      const places = await fetchOverpass(query, controller.signal, term.trim())
 
       // Sort by distance and attach distanceKm
       const origin = myLocation || center
@@ -691,7 +727,7 @@ export default function Dashboard() {
     const controller = new AbortController()
     abortRef.current = controller
 
-    fetchOverpass(query, controller.signal)
+    fetchOverpass(query, controller.signal, category.label)
       .then((places) => {
         const origin = myLocation || center
         places.forEach((p) => {
