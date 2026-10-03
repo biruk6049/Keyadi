@@ -271,11 +271,11 @@ export function getActiveGeminiKey() {
 /**
  * Resilient Gemini API call with model fallback and strict JSON parsing.
  */
-async function callGemini(contents, systemPrompt = '', timeoutMs = 8500) {
+async function callGemini(contents, systemPrompt = '', timeoutMs = 5000, maxAttempts = 2) {
   const apiKey = getGeminiKey()
   if (!apiKey) return null
 
-  for (const model of CANDIDATE_MODELS) {
+  for (const model of CANDIDATE_MODELS.slice(0, maxAttempts)) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
       const bodyPayload = {
@@ -341,7 +341,8 @@ export async function interpretWithRAG(userQuery) {
       const parsed = await callGemini(
         `Query: "${userQuery}"`,
         GEMINI_RETRIEVAL_PROMPT,
-        5000
+        3500,
+        2
       )
 
       if (parsed && Array.isArray(parsed.tags) && parsed.tags.length > 0) {

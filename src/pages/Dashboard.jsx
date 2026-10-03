@@ -498,49 +498,85 @@ export default function Dashboard() {
     setSearchError('Search cancelled.')
   }
 
-  // ── Overpass fetch with fallback endpoints ──
+  // ── Overpass fetch – race all endpoints in parallel for speed ──
+  const overpassCacheRef = useRef(new Map())
+  const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+  const parseOverpassElements = (elements) =>
+    elements
+      .map((el) => {
+        const lat = el.lat ?? el.center?.lat
+        const lng = el.lon ?? el.center?.lon
+        const name = el.tags?.name
+        const type = el.tags?.amenity || el.tags?.shop || el.tags?.tourism || el.tags?.leisure || el.tags?.craft || el.tags?.office || ''
+        const phone = el.tags?.phone || el.tags?.['contact:phone'] || ''
+        const website = el.tags?.website || el.tags?.['contact:website'] || ''
+        const openingHours = el.tags?.opening_hours || ''
+        if (!lat || !lng || !name) return null
+        return { name, lat, lng, type, phone, website, openingHours }
+      })
+      .filter(Boolean)
+
   const fetchOverpass = async (query, signal) => {
+    // Check cache first
+    const cacheKey = query
+    const cached = overpassCacheRef.current.get(cacheKey)
+    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+      return cached.data
+    }
+
     const endpoints = [
       'https://overpass-api.de/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter',
       'https://overpass.private.coffee/api/interpreter',
     ]
-    let lastError = null
 
-    for (const endpoint of endpoints) {
-      try {
-        const timeoutId = setTimeout(() => signal?.abort?.(), 28000)
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          body: 'data=' + encodeURIComponent(query),
-          signal,
-        })
-        clearTimeout(timeoutId)
+    // Race all endpoints in parallel – fastest valid response wins
+    const results = await Promise.any(
+      endpoints.map(async (endpoint) => {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 12000)
 
-        if (!res.ok) {
-          const text = await res.text()
-          throw new Error(`Server responded ${res.status}: ${text.slice(0, 200)}`)
-        }
+        // Also abort if the parent signal fires
+        const onParentAbort = () => controller.abort()
+        signal?.addEventListener('abort', onParentAbort, { once: true })
 
-        const data = await res.json()
-        return data.elements
-          .map((el) => {
-            const lat = el.lat ?? el.center?.lat
-            const lng = el.lon ?? el.center?.lon
-            const name = el.tags?.name
-            const type = el.tags?.amenity || el.tags?.shop || el.tags?.tourism || el.tags?.leisure || el.tags?.craft || el.tags?.office || ''
-            const phone = el.tags?.phone || el.tags?.['contact:phone'] || ''
-            const website = el.tags?.website || el.tags?.['contact:website'] || ''
-            const openingHours = el.tags?.opening_hours || ''
-            if (!lat || !lng || !name) return null
-            return { name, lat, lng, type, phone, website, openingHours }
+        try {
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            body: 'data=' + encodeURIComponent(query),
+            signal: controller.signal,
           })
-          .filter(Boolean)
-      } catch (err) {
-        lastError = err
-      }
+          clearTimeout(timeoutId)
+          signal?.removeEventListener('abort', onParentAbort)
+
+          if (!res.ok) {
+            const text = await res.text()
+            throw new Error(`Server responded ${res.status}: ${text.slice(0, 200)}`)
+          }
+
+          const data = await res.json()
+          return parseOverpassElements(data.elements)
+        } catch (err) {
+          clearTimeout(timeoutId)
+          signal?.removeEventListener('abort', onParentAbort)
+          throw err
+        }
+      })
+    ).catch((aggErr) => {
+      throw aggErr.errors?.[0] || new Error('All Overpass endpoints failed')
+    })
+
+    // Cache the result
+    overpassCacheRef.current.set(cacheKey, { data: results, ts: Date.now() })
+    // Prune old entries
+    if (overpassCacheRef.current.size > 50) {
+      const oldest = [...overpassCacheRef.current.entries()]
+        .sort((a, b) => a[1].ts - b[1].ts)[0]
+      if (oldest) overpassCacheRef.current.delete(oldest[0])
     }
-    throw lastError || new Error('All endpoints failed')
+
+    return results
   }
 
   // ── Main search ──
