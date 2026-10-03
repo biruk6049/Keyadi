@@ -122,11 +122,18 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t text-center text-xs" style={{ borderColor: hairline, color: inkMuted }}>
-            Don't have an account?{' '}
-            <Link to="/signup" className="font-bold text-amber-400 hover:underline">
-              Create one for free
-            </Link>
+          <div className="mt-6 pt-5 border-t text-center text-xs space-y-2.5" style={{ borderColor: hairline, color: inkMuted }}>
+            <div>
+              Don't have an account?{' '}
+              <Link to="/signup" className="font-bold text-amber-400 hover:underline">
+                Create one for free
+              </Link>
+            </div>
+            <div>
+              <Link to="/dashboard" className="text-white/60 hover:text-white transition font-medium">
+                Explore map as guest →
+              </Link>
+            </div>
           </div>
         </div>
 

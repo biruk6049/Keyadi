@@ -205,11 +205,18 @@ export default function Signup() {
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t text-center text-xs" style={{ borderColor: hairline, color: inkMuted }}>
-            Already have an account?{' '}
-            <Link to="/login" className="font-bold text-amber-400 hover:underline">
-              Sign in here
-            </Link>
+          <div className="mt-6 pt-5 border-t text-center text-xs space-y-2.5" style={{ borderColor: hairline, color: inkMuted }}>
+            <div>
+              Already have an account?{' '}
+              <Link to="/login" className="font-bold text-amber-400 hover:underline">
+                Sign in here
+              </Link>
+            </div>
+            <div>
+              <Link to="/dashboard" className="text-white/60 hover:text-white transition font-medium">
+                Explore map as guest →
+              </Link>
+            </div>
           </div>
         </div>
 

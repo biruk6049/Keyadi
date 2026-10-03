@@ -387,20 +387,30 @@ export default function Settings() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: inkFaint }}>
-                    Authenticated Account
+                    {user ? 'Authenticated Account' : 'Account Status'}
                   </p>
                   <p className="text-sm font-bold" style={{ color: ink }}>
-                    {user?.email || 'Active User'}
+                    {user?.email || 'Guest Explorer'}
                   </p>
                 </div>
               </div>
 
-              <button
-                onClick={signOut}
-                className="rounded-2xl px-4 py-2 text-xs font-semibold transition hover:bg-red-500/10 text-red-400 border border-red-500/20"
-              >
-                Sign out
-              </button>
+              {user ? (
+                <button
+                  onClick={signOut}
+                  className="rounded-2xl px-4 py-2 text-xs font-semibold transition hover:bg-red-500/10 text-red-400 border border-red-500/20"
+                >
+                  Sign out
+                </button>
+              ) : (
+                <Link
+                  to="/login"
+                  className="rounded-2xl px-4 py-2 text-xs font-bold transition hover:scale-105 shadow-md"
+                  style={{ backgroundColor: amber, color: '#100e0b' }}
+                >
+                  Sign In
+                </Link>
+              )}
             </div>
 
             {/* Card 5: Data Deletion Request */}

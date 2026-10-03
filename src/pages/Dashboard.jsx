@@ -945,7 +945,7 @@ export default function Dashboard() {
     const { data: userData, error: userError } = await supabase.auth.getUser()
     if (userError || !userData?.user) {
       setSaveStatus('error')
-      setSaveError('Your session expired - please sign in again.')
+      setSaveError('Please sign in or create an account to save trackers.')
       return
     }
 
@@ -1113,14 +1113,24 @@ export default function Dashboard() {
             </IconButton>
           </Link>
 
-          <div className="hidden sm:inline-flex">
-            <IconButton title="Sign out" isDark={isDark} onClick={signOut}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M16 17l5-5-5-5M21 12H9" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </IconButton>
-          </div>
+          {user ? (
+            <div className="hidden sm:inline-flex">
+              <IconButton title="Sign out" isDark={isDark} onClick={signOut}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M16 17l5-5-5-5M21 12H9" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </IconButton>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition hover:scale-105 shadow-md"
+              style={{ backgroundColor: amber, color: '#100e0b' }}
+            >
+              Sign In
+            </Link>
+          )}
         </div>
 
         {/* ── Floating Left Glassmorphic Sidebar (Desktop) / Interactive Bottom Sheet (Mobile) ── */}
@@ -1484,14 +1494,15 @@ export default function Dashboard() {
           </div>
         </aside>
 
-        {/* ── Floating Place Details & Directions Bottom Sheet / Card ── */}
+        {/* ── Floating Place Details & Directions Bottom Sheet (Mobile) / Side Card (PC) ── */}
         {selectedPlace && (
           <div
             className={`
               fixed inset-x-0 bottom-16 z-30 transition-all duration-300 pointer-events-auto
               ${placeSheetMinimized ? 'max-h-20' : 'max-h-[50vh]'}
               overflow-y-auto keyadi-hide-scrollbar rounded-t-3xl md:rounded-3xl p-3.5 sm:p-4 md:p-5
-              shadow-2xl backdrop-blur-2xl md:absolute md:top-20 md:right-5 md:bottom-auto md:w-88 md:max-w-md md:max-h-[calc(100vh-200px)]
+              shadow-2xl backdrop-blur-2xl
+              md:absolute md:top-20 md:right-6 md:left-auto md:inset-x-auto md:bottom-auto md:w-[390px] md:max-w-md md:max-h-[calc(100vh-140px)]
             `}
             style={{
               backgroundColor: isDark ? 'rgba(14, 13, 11, 0.94)' : 'rgba(255, 255, 255, 0.96)',
