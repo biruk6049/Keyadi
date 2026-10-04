@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import mapboxgl from 'mapbox-gl'
 import { useAuth } from '../context/AuthContext'
@@ -478,6 +478,25 @@ export default function Dashboard() {
       markersRef.current.push(marker)
     })
   }
+
+  // ── Always sort places strictly from shortest distance to largest distance ──
+  const displayResults = useMemo(() => {
+    const origin = (settings.searchMode === 'auto' && myLocation) ? myLocation : center
+    return [...results]
+      .map((p) => {
+        const d = (typeof p.lat === 'number' && typeof p.lng === 'number' && origin?.lat && origin?.lng)
+          ? haversineDistance(origin.lat, origin.lng, p.lat, p.lng)
+          : (p.distanceKm || 0)
+        return { ...p, distanceKm: d }
+      })
+      .filter((p) => typeof p.distanceKm === 'number' && !isNaN(p.distanceKm) && p.distanceKm <= radiusKm)
+      .sort((a, b) => a.distanceKm - b.distanceKm)
+  }, [results, myLocation, center, settings.searchMode, radiusKm])
+
+  // Sync map markers whenever displayResults updates
+  useEffect(() => {
+    plotResults(displayResults)
+  }, [displayResults])
 
   const addToHistory = (term) => {
     setHistory((prev) => {
@@ -1255,7 +1274,7 @@ export default function Dashboard() {
             <div className="flex items-center gap-2.5">
               <KeyadiLogo size={30} className="md:w-[34px] md:h-[34px]" />
               <span className="text-base md:text-lg font-bold tracking-tight" style={{ color: ink, fontFamily: "'Outfit', sans-serif" }}>
-                {activeNav === 'places' ? `Places (${results.length})` : activeNav === 'saved' ? `Saved Places (${trackers.length})` : 'Keyadi Places'}
+                {activeNav === 'places' ? `Places (${displayResults.length})` : activeNav === 'saved' ? `Saved Places (${trackers.length})` : 'Keyadi Places'}
               </span>
             </div>
 
@@ -1300,7 +1319,7 @@ export default function Dashboard() {
             {[
               { id: 'dashboard', label: 'Dashboard', icon: <GridIcon size={16} /> },
               { id: 'map', label: 'Map', icon: <MapIcon size={16} /> },
-              { id: 'places', label: 'Places', icon: <PinIcon size={16} />, badge: results.length > 0 ? results.length : null },
+              { id: 'places', label: 'Places', icon: <PinIcon size={16} />, badge: displayResults.length > 0 ? displayResults.length : null },
               { id: 'saved', label: 'Saved', icon: <BookmarkIcon size={16} />, badge: trackers.length > 0 ? trackers.length : null },
             ].map((item) => {
               const isActive = activeNav === item.id
@@ -1430,21 +1449,20 @@ export default function Dashboard() {
                   {/* Results header & list */}
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: inkFaint }}>
-                      Results ({results.length})
+                      Results ({displayResults.length})
                     </span>
                     {loading && <button onClick={cancelSearch} className="text-xs text-red-400">Cancel</button>}
                   </div>
 
-                  {results.length === 0 && !loading && (
+                  {displayResults.length === 0 && !loading && (
                     <p className="text-xs text-center py-6" style={{ color: inkFaint }}>
                       No places to display. Search above to explore.
                     </p>
                   )}
 
                   <ul className="space-y-2 mb-4">
-                    {results.map((place, i) => {
-                      const origin = myLocation || center
-                      const dist = haversineDistance(origin.lat, origin.lng, place.lat, place.lng)
+                    {displayResults.map((place, i) => {
+                      const dist = place.distanceKm
                       const distLabel = settings.units === 'mi'
                         ? `${(dist * 0.621371).toFixed(1)} mi`
                         : `${dist.toFixed(1)} km`
