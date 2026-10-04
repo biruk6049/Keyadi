@@ -10,7 +10,7 @@
 
 // ── Category presets (used by quick-pick chips) ──────────────────────
 export const CATEGORY_PRESETS = [
-  { key: 'food',        label: 'Food',        iconKey: 'food',        tags: [['amenity', 'restaurant'], ['amenity', 'fast_food'], ['amenity', 'food_court']] },
+  { key: 'food',        label: 'Food',        iconKey: 'food',        tags: [['amenity', 'restaurant'], ['amenity', 'cafe'], ['amenity', 'fast_food'], ['amenity', 'food_court'], ['shop', 'bakery'], ['shop', 'pastry']] },
   { key: 'cafe',        label: 'Café',        iconKey: 'cafe',        tags: [['amenity', 'cafe']] },
   { key: 'gas',         label: 'Fuel',        iconKey: 'gas',         tags: [['amenity', 'fuel']] },
   { key: 'pharmacy',    label: 'Pharmacy',    iconKey: 'pharmacy',    tags: [['amenity', 'pharmacy'], ['healthcare', 'pharmacy']] },
@@ -27,31 +27,18 @@ export const CATEGORY_PRESETS = [
 
 // ── Overpass query builders ──────────────────────────────────────────
 
-function buildBBox(center, radiusKm) {
-  const radiusM = radiusKm * 1000
-  const latDelta = radiusM / 111000
-  const lngDelta = radiusM / (111000 * Math.cos((center.lat * Math.PI) / 180))
-  return [
-    center.lat - latDelta,
-    center.lng - lngDelta,
-    center.lat + latDelta,
-    center.lng + lngDelta,
-  ].join(',')
-}
-
 function sanitizeOsmTag(str) {
   if (typeof str !== 'string') return ''
-  // Allow only safe alphanumeric and standard OSM characters: [a-zA-Z0-9_:*-]
   return str.replace(/[^a-zA-Z0-9_:*-]/g, '').slice(0, 50)
 }
 
 /**
- * Build an Overpass query from structured tag pairs.
+ * Build an Overpass query from structured tag pairs with exact circular radius.
  * Each tag is [key, value], e.g. ['amenity', 'cafe'].
- * Wildcard value '*' becomes a has-key filter.
+ * Always requires ["name"] so only legitimate named venues are returned.
  */
 export function buildTagOverpassQuery(tags, center, radiusKm) {
-  const bbox = buildBBox(center, radiusKm)
+  const radiusM = Math.round(radiusKm * 1000)
 
   const clauses = tags
     .filter(([k, v]) => k && v)
@@ -60,12 +47,12 @@ export function buildTagOverpassQuery(tags, center, radiusKm) {
       const value = sanitizeOsmTag(rawValue)
       if (!key) return null
       const filter = value === '*' ? `["${key}"]` : `["${key}"="${value}"]`
-      return `  node${filter}(${bbox});\n  way${filter}(${bbox});`
+      return `  node${filter}["name"](around:${radiusM},${center.lat},${center.lng});\n  way${filter}["name"](around:${radiusM},${center.lat},${center.lng});`
     })
     .filter(Boolean)
     .join('\n')
 
-  return `[out:json][timeout:25];\n(\n${clauses}\n);\nout center 40;`
+  return `[out:json][timeout:30];\n(\n${clauses}\n);\nout center 150;`
 }
 
 /**
@@ -73,11 +60,10 @@ export function buildTagOverpassQuery(tags, center, radiusKm) {
  * Sanitized to prevent Overpass QL syntax or prompt injection.
  */
 export function buildRegexOverpassQuery(keyword, center, radiusKm) {
-  const bbox = buildBBox(center, radiusKm)
-  // Strip special QL control characters
+  const radiusM = Math.round(radiusKm * 1000)
   const sanitized = String(keyword || '').replace(/["[\]();\\]/g, '').slice(0, 80)
   const safe = sanitized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return `[out:json][timeout:25];\n(\n  node["name"~"${safe}",i](${bbox});\n  way["name"~"${safe}",i](${bbox});\n);\nout center 35;`
+  return `[out:json][timeout:30];\n(\n  node["name"~"${safe}",i](around:${radiusM},${center.lat},${center.lng});\n  way["name"~"${safe}",i](around:${radiusM},${center.lat},${center.lng});\n);\nout center 120;`
 }
 
 // ── Built-in Semantic AI Engine ──────────────────────────────────────
@@ -97,9 +83,9 @@ const SEMANTIC_INTENTS = [
   },
   {
     patterns: [/food/i, /eat/i, /restaurant/i, /dinner/i, /lunch/i, /breakfast/i, /brunch/i, /pizza/i, /burger/i, /fast food/i, /shawarma/i, /grill/i, /bbq/i, /sushi/i, /dine/i],
-    tags: [['amenity', 'restaurant'], ['amenity', 'fast_food'], ['amenity', 'food_court']],
-    description: 'Restaurants, dining & quick eats',
-    refinements: ['Fast food & casual dining', 'Traditional restaurants', 'Late night food'],
+    tags: [['amenity', 'restaurant'], ['amenity', 'cafe'], ['amenity', 'fast_food'], ['amenity', 'food_court'], ['shop', 'bakery'], ['shop', 'pastry'], ['amenity', 'bar']],
+    description: 'Restaurants, cafés & dining spots',
+    refinements: ['Restaurants & fine dining', 'Cafés & breakfast', 'Fast food & casual eats', 'Bakeries & pastries'],
   },
   {
     patterns: [/pharmacy/i, /medicine/i, /drug/i, /chemist/i, /prescription/i, /pills/i, /medical store/i],
@@ -507,20 +493,20 @@ Answer the question concisely in 1-2 sentences using ONLY the provided verified 
  * Build an AI-optimized Overpass query from interpretation.
  */
 export function buildAIOverpassQuery(aiResult, center, radiusKm) {
-  const bbox = buildBBox(center, radiusKm)
+  const radiusM = Math.round(radiusKm * 1000)
   const { tags, nameFilter } = aiResult
 
-  const nameClause = nameFilter ? `["name"~"${nameFilter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}",i]` : ''
+  const nameClause = nameFilter ? `["name"~"${nameFilter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}",i]` : '["name"]'
 
   const clauses = tags.map(([key, value]) => {
     const tagFilter = value === '*' ? `["${key}"]` : `["${key}"="${value}"]`
-    return `  node${tagFilter}${nameClause}(${bbox});\n  way${tagFilter}${nameClause}(${bbox});`
+    return `  node${tagFilter}${nameClause}(around:${radiusM},${center.lat},${center.lng});\n  way${tagFilter}${nameClause}(around:${radiusM},${center.lat},${center.lng});`
   }).join('\n')
 
   const nameFallback = nameFilter
-    ? `\n  node["name"~"${nameFilter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}",i](${bbox});\n  way["name"~"${nameFilter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}",i](${bbox});`
+    ? `\n  node["name"~"${nameFilter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}",i](around:${radiusM},${center.lat},${center.lng});\n  way["name"~"${nameFilter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}",i](around:${radiusM},${center.lat},${center.lng});`
     : ''
 
-  return `[out:json][timeout:25];\n(\n${clauses}${nameFallback}\n);\nout center 45;`
+  return `[out:json][timeout:30];\n(\n${clauses}${nameFallback}\n);\nout center 150;`
 }
 

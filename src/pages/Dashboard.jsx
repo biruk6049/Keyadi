@@ -498,7 +498,7 @@ export default function Dashboard() {
     setSearchError('Search cancelled.')
   }
 
-  // ── High-Reliability Geospatial Fetch (Parallel Overpass + Nominatim + Photon Fallbacks) ──
+  // ── High-Reliability Geospatial Fetch (Overpass API + Photon Fallback) ──
   const overpassCacheRef = useRef(new Map())
   const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
@@ -517,163 +517,124 @@ export default function Dashboard() {
       })
       .filter(Boolean)
 
-  const fetchOverpass = async (query, signal, searchTerm = '') => {
+  const fetchOverpass = async (query, signal, searchTerm = '', searchCenter = center, currentRadius = radiusKm) => {
     // Check in-memory cache first
-    const cacheKey = searchTerm ? `${searchTerm}-${center.lat.toFixed(3)}-${center.lng.toFixed(3)}-${radiusKm}` : query
+    const cacheKey = searchTerm
+      ? `${searchTerm.toLowerCase()}-${searchCenter.lat.toFixed(3)}-${searchCenter.lng.toFixed(3)}-${currentRadius}`
+      : `${query}-${searchCenter.lat.toFixed(3)}-${searchCenter.lng.toFixed(3)}-${currentRadius}`
     const cached = overpassCacheRef.current.get(cacheKey)
     if (cached && Date.now() - cached.ts < CACHE_TTL && cached.data?.length > 0) {
-      console.log('[Keyadi] Cache hit for:', cacheKey)
+      console.log('[Keyadi] Cache hit for:', cacheKey, `${cached.data.length} places`)
       return cached.data
     }
 
+    // Top verified, high-availability Overpass mirrors
     const endpoints = [
-      'https://overpass-api.de/api/interpreter',
-      'https://z.overpass-api.de/api/interpreter',
+      'https://overpass.openstreetmap.fr/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter',
+      'https://overpass-api.de/api/interpreter',
+      'https://lz4.overpass-api.de/api/interpreter',
+      'https://overpass.private.coffee/api/interpreter',
     ]
 
     let foundPlaces = []
 
-    // ── Strategy 1: Race ALL Overpass endpoints in parallel (fastest wins) ──
-    try {
-      const racePromises = endpoints.map(async (endpoint) => {
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s per endpoint
-
-        const onAbort = () => controller.abort()
-        signal?.addEventListener('abort', onAbort, { once: true })
-
-        try {
-          const res = await fetch(endpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'data=' + encodeURIComponent(query),
-            signal: controller.signal,
-          })
-          clearTimeout(timeoutId)
-          signal?.removeEventListener('abort', onAbort)
-
-          if (!res.ok) throw new Error(`HTTP ${res.status}`)
-          const data = await res.json()
-          const parsed = parseOverpassElements(data.elements)
-          if (parsed.length === 0) throw new Error('No results from this endpoint')
-          console.log(`[Keyadi] Overpass success from ${endpoint}: ${parsed.length} places`)
-          return parsed
-        } catch (err) {
-          clearTimeout(timeoutId)
-          signal?.removeEventListener('abort', onAbort)
-          throw err
-        }
-      })
-
-      // Promise.any resolves with the FIRST successful result
-      foundPlaces = await Promise.any(racePromises)
-    } catch (err) {
-      // All Overpass endpoints failed — continue to fallbacks
-      console.warn('[Keyadi] All Overpass endpoints failed, trying fallbacks…', err.message || '')
-    }
-
-    // ── Strategy 2: Nominatim Structured Search Fallback ──
-    if (foundPlaces.length === 0 && searchTerm && !signal?.aborted) {
+    // ── Strategy 1: OpenStreetMap Overpass (Full geographic database) ──
+    for (const endpoint of endpoints) {
+      if (signal?.aborted) break
       try {
-        const nominatimUrl = `https://nominatim.openstreetmap.org/search?` +
-          `q=${encodeURIComponent(searchTerm)}` +
-          `&format=json&addressdetails=1&limit=50` +
-          `&viewbox=${center.lng - 0.1},${center.lat + 0.1},${center.lng + 0.1},${center.lat - 0.1}` +
-          `&bounded=1`
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 10000)
+        const timeoutId = setTimeout(() => controller.abort(), 25000)
+
         const onAbort = () => controller.abort()
         signal?.addEventListener('abort', onAbort, { once: true })
 
-        const res = await fetch(nominatimUrl, {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'User-Agent': 'Keyadi/1.0 (https://keyadi.vercel.app)',
+          },
+          body: 'data=' + encodeURIComponent(query),
           signal: controller.signal,
-          headers: { 'User-Agent': 'Keyadi/1.0' },
         })
         clearTimeout(timeoutId)
         signal?.removeEventListener('abort', onAbort)
 
         if (res.ok) {
           const data = await res.json()
-          const nominatimPlaces = (data || [])
-            .map((item) => {
-              const lat = parseFloat(item.lat)
-              const lng = parseFloat(item.lon)
-              const name = item.display_name?.split(',')[0] || item.name
-              if (!lat || !lng || !name) return null
-              const dist = haversineDistance(center.lat, center.lng, lat, lng)
-              if (dist > radiusKm * 1.5) return null // Slight tolerance for Nominatim
-              return {
-                name,
-                lat,
-                lng,
-                type: item.type || item.class || 'place',
-                phone: '',
-                website: '',
-                openingHours: '',
-                distanceKm: dist,
-              }
-            })
-            .filter(Boolean)
-
-          if (nominatimPlaces.length > 0) {
-            console.log(`[Keyadi] Nominatim fallback success: ${nominatimPlaces.length} places`)
-            foundPlaces = nominatimPlaces
+          const parsed = parseOverpassElements(data.elements)
+          if (parsed.length > 0) {
+            console.log(`[Keyadi] Overpass success from ${endpoint}: ${parsed.length} places`)
+            foundPlaces = parsed
+            break
           }
         }
       } catch (err) {
-        console.warn('[Keyadi] Nominatim fallback failed:', err.message)
+        // Continue to next mirror
       }
     }
 
-    // ── Strategy 3: Photon Geocoding Fallback ──
+    // ── Strategy 2: Photon High-Availability Fallback ──
     if (foundPlaces.length === 0 && searchTerm && !signal?.aborted) {
       try {
-        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(searchTerm)}&lat=${center.lat}&lon=${center.lng}&limit=50`
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 8000)
-        const onAbort = () => controller.abort()
-        signal?.addEventListener('abort', onAbort, { once: true })
+        const searchTermsToTry = [searchTerm]
+        const lower = searchTerm.toLowerCase()
+        if (lower.includes('food') || lower.includes('eat') || lower.includes('restaurant')) {
+          searchTermsToTry.unshift('restaurant', 'cafe')
+        } else if (lower.includes('coffee') || lower.includes('cafe')) {
+          searchTermsToTry.unshift('cafe')
+        }
 
-        const res = await fetch(photonUrl, { signal: controller.signal })
-        clearTimeout(timeoutId)
-        signal?.removeEventListener('abort', onAbort)
+        for (const term of searchTermsToTry) {
+          if (foundPlaces.length > 0) break
+          const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(term)}&lat=${searchCenter.lat}&lon=${searchCenter.lng}&limit=60`
+          const controller = new AbortController()
+          const timeoutId = setTimeout(() => controller.abort(), 12000)
+          const onAbort = () => controller.abort()
+          signal?.addEventListener('abort', onAbort, { once: true })
 
-        if (res.ok) {
-          const data = await res.json()
-          const junkTypes = new Set(['bus_stop', 'stop_position', 'platform', 'highway', 'traffic_signals', 'bench', 'street', 'city', 'country', 'crossing', 'boundary', 'track'])
-          const photonPlaces = (data.features || [])
-            .map((f) => {
-              const p = f.properties || {}
-              const coords = f.geometry?.coordinates
-              if (!coords || coords.length < 2) return null
-              const name = p.name || p.street
-              if (!name) return null
-              if (junkTypes.has(p.osm_value) || junkTypes.has(p.osm_key)) return null
+          const res = await fetch(photonUrl, { signal: controller.signal })
+          clearTimeout(timeoutId)
+          signal?.removeEventListener('abort', onAbort)
 
-              const dist = haversineDistance(center.lat, center.lng, coords[1], coords[0])
-              if (dist > radiusKm * 2) return null // Wider net for Photon, will be filtered later
+          if (res.ok) {
+            const data = await res.json()
+            const junkTypes = new Set(['bus_stop', 'stop_position', 'platform', 'highway', 'traffic_signals', 'bench', 'street', 'city', 'country', 'crossing', 'boundary', 'track', 'administrative', 'village', 'hamlet'])
+            const photonPlaces = (data.features || [])
+              .map((f) => {
+                const p = f.properties || {}
+                const coords = f.geometry?.coordinates
+                if (!coords || coords.length < 2) return null
+                const name = p.name
+                if (!name) return null
+                if (junkTypes.has(p.osm_value) || junkTypes.has(p.osm_key) || junkTypes.has(p.type)) return null
 
-              return {
-                name,
-                lat: coords[1],
-                lng: coords[0],
-                type: p.osm_value || p.osm_key || p.type || 'place',
-                phone: '',
-                website: '',
-                openingHours: '',
-                distanceKm: dist,
-              }
-            })
-            .filter(Boolean)
+                // Strictly enforce radiusKm — never return places outside user's radius
+                const dist = haversineDistance(searchCenter.lat, searchCenter.lng, coords[1], coords[0])
+                if (dist > currentRadius) return null
 
-          if (photonPlaces.length > 0) {
-            console.log(`[Keyadi] Photon fallback success: ${photonPlaces.length} places`)
-            foundPlaces = photonPlaces
+                return {
+                  name,
+                  lat: coords[1],
+                  lng: coords[0],
+                  type: p.osm_value || p.osm_key || p.type || 'place',
+                  phone: '',
+                  website: '',
+                  openingHours: '',
+                  distanceKm: dist,
+                }
+              })
+              .filter(Boolean)
+
+            if (photonPlaces.length > 0) {
+              console.log(`[Keyadi] Photon fallback success: ${photonPlaces.length} places`)
+              foundPlaces = photonPlaces
+            }
           }
         }
       } catch (err) {
-        console.warn('[Keyadi] Photon fallback failed:', err.message)
+        console.warn('[Keyadi] Photon fallback error:', err.message)
       }
     }
 
@@ -709,6 +670,9 @@ export default function Dashboard() {
     abortRef.current = controller
 
     try {
+      // Precise search origin: live GPS if available and auto mode, otherwise map center
+      const origin = (settings.searchMode === 'auto' && myLocation) ? myLocation : center
+
       let query
       let aiResultObj = null
 
@@ -718,25 +682,23 @@ export default function Dashboard() {
         setAiThinking(false)
 
         if (aiResultObj) {
-          query = buildAIOverpassQuery(aiResultObj, center, radiusKm)
+          query = buildAIOverpassQuery(aiResultObj, origin, radiusKm)
           setAiEngine(aiResultObj.engine)
           setAiRefinements(aiResultObj.refinements || [])
           setAiDescription(aiResultObj.description)
         } else {
-          query = buildRegexOverpassQuery(term.trim(), center, radiusKm)
+          query = buildRegexOverpassQuery(term.trim(), origin, radiusKm)
         }
       } else {
-        query = buildRegexOverpassQuery(term.trim(), center, radiusKm)
+        query = buildRegexOverpassQuery(term.trim(), origin, radiusKm)
       }
 
-      const places = await fetchOverpass(query, controller.signal, term.trim())
+      const places = await fetchOverpass(query, controller.signal, term.trim(), origin, radiusKm)
 
-      // Sort by distance and attach distanceKm
-      const origin = myLocation || center
+      // Calculate distance strictly from the search origin
       places.forEach((p) => {
         p.distanceKm = haversineDistance(origin.lat, origin.lng, p.lat, p.lng)
       })
-      places.sort((a, b) => a.distanceKm - b.distanceKm)
 
       // Deduplicate by name + rough coordinates
       const seen = new Set()
@@ -749,10 +711,6 @@ export default function Dashboard() {
 
       // Strictly filter to places strictly within the requested radiusKm
       const inRadius = unique
-        .map((p) => {
-          p.distanceKm = haversineDistance(origin.lat, origin.lng, p.lat, p.lng)
-          return p
-        })
         .filter((p) => p.distanceKm <= radiusKm)
         .sort((a, b) => a.distanceKm - b.distanceKm)
 
@@ -760,6 +718,12 @@ export default function Dashboard() {
       plotResults(inRadius)
       addToHistory(term.trim())
       incrementSearchCount()
+
+      if (inRadius.length === 0) {
+        setSearchError(`No places found within ${radiusKm} km. Try increasing the search radius or exploring another category.`)
+      } else {
+        setSearchError(null)
+      }
 
       if (aiResultObj) {
         setAiDescription(`${aiResultObj.description} — found ${inRadius.length} place${inRadius.length !== 1 ? 's' : ''} within ${radiusKm}km`)
@@ -792,13 +756,14 @@ export default function Dashboard() {
 
   // ── Category quick search ──
   const runCategorySearch = (category) => {
-    const query = buildTagOverpassQuery(category.tags, center, radiusKm)
+    const origin = (settings.searchMode === 'auto' && myLocation) ? myLocation : center
+    const query = buildTagOverpassQuery(category.tags, origin, radiusKm)
     setKeyword(category.label)
     setLoading(true)
     setSearchError(null)
     setSelectedPlace(null)
     setAiEngine('Category Preset')
-    setAiDescription(`Searching for ${category.label} nearby…`)
+    setAiDescription(`Searching for ${category.label} within ${radiusKm}km…`)
     setAiRefinements([])
     setPlaceAddress('')
     setRagSummary('')
@@ -810,13 +775,11 @@ export default function Dashboard() {
     const controller = new AbortController()
     abortRef.current = controller
 
-    fetchOverpass(query, controller.signal, category.label)
+    fetchOverpass(query, controller.signal, category.label, origin, radiusKm)
       .then((places) => {
-        const origin = myLocation || center
         places.forEach((p) => {
           p.distanceKm = haversineDistance(origin.lat, origin.lng, p.lat, p.lng)
         })
-        places.sort((a, b) => a.distanceKm - b.distanceKm)
         const seen = new Set()
         const unique = places.filter(p => {
           const key = `${p.name.toLowerCase()}-${p.lat.toFixed(3)}-${p.lng.toFixed(3)}`
@@ -827,16 +790,18 @@ export default function Dashboard() {
 
         // Strictly filter to places strictly within the requested radiusKm
         const inRadius = unique
-          .map((p) => {
-            p.distanceKm = haversineDistance(origin.lat, origin.lng, p.lat, p.lng)
-            return p
-          })
           .filter((p) => p.distanceKm <= radiusKm)
           .sort((a, b) => a.distanceKm - b.distanceKm)
 
         setResults(inRadius)
         plotResults(inRadius)
         incrementSearchCount()
+
+        if (inRadius.length === 0) {
+          setSearchError(`No ${category.label} found within ${radiusKm} km. Try increasing the search radius.`)
+        } else {
+          setSearchError(null)
+        }
         setAiDescription(`${category.label} — found ${inRadius.length} place${inRadius.length !== 1 ? 's' : ''} within ${radiusKm}km`)
 
         if (inRadius.length > 0) {
