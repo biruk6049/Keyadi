@@ -549,31 +549,28 @@ export default function Dashboard() {
 
     // Top verified, high-availability Overpass mirrors
     const endpoints = [
-      'https://overpass.openstreetmap.fr/api/interpreter',
-      'https://overpass.kumi.systems/api/interpreter',
       'https://overpass-api.de/api/interpreter',
-      'https://lz4.overpass-api.de/api/interpreter',
+      'https://overpass.kumi.systems/api/interpreter',
       'https://overpass.private.coffee/api/interpreter',
+      'https://overpass.openstreetmap.fr/api/interpreter',
+      'https://lz4.overpass-api.de/api/interpreter',
     ]
 
     let foundPlaces = []
+    let lastError = null
 
-    // ── Strategy 1: OpenStreetMap Overpass (Full geographic database) ──
+    // ── OpenStreetMap Overpass (Full geographic database, fast bbox evaluation) ──
     for (const endpoint of endpoints) {
       if (signal?.aborted) break
       try {
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 25000)
+        const timeoutId = setTimeout(() => controller.abort(), 20000)
 
         const onAbort = () => controller.abort()
         signal?.addEventListener('abort', onAbort, { once: true })
 
         const res = await fetch(endpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'User-Agent': 'Keyadi/1.0 (https://keyadi.vercel.app)',
-          },
           body: 'data=' + encodeURIComponent(query),
           signal: controller.signal,
         })
@@ -590,71 +587,13 @@ export default function Dashboard() {
           }
         }
       } catch (err) {
+        lastError = err
         // Continue to next mirror
       }
     }
 
-    // ── Strategy 2: Photon High-Availability Fallback ──
-    if (foundPlaces.length === 0 && searchTerm && !signal?.aborted) {
-      try {
-        const searchTermsToTry = [searchTerm]
-        const lower = searchTerm.toLowerCase()
-        if (lower.includes('food') || lower.includes('eat') || lower.includes('restaurant')) {
-          searchTermsToTry.unshift('restaurant', 'cafe')
-        } else if (lower.includes('coffee') || lower.includes('cafe')) {
-          searchTermsToTry.unshift('cafe')
-        }
-
-        for (const term of searchTermsToTry) {
-          if (foundPlaces.length > 0) break
-          const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(term)}&lat=${searchCenter.lat}&lon=${searchCenter.lng}&limit=60`
-          const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), 12000)
-          const onAbort = () => controller.abort()
-          signal?.addEventListener('abort', onAbort, { once: true })
-
-          const res = await fetch(photonUrl, { signal: controller.signal })
-          clearTimeout(timeoutId)
-          signal?.removeEventListener('abort', onAbort)
-
-          if (res.ok) {
-            const data = await res.json()
-            const junkTypes = new Set(['bus_stop', 'stop_position', 'platform', 'highway', 'traffic_signals', 'bench', 'street', 'city', 'country', 'crossing', 'boundary', 'track', 'administrative', 'village', 'hamlet'])
-            const photonPlaces = (data.features || [])
-              .map((f) => {
-                const p = f.properties || {}
-                const coords = f.geometry?.coordinates
-                if (!coords || coords.length < 2) return null
-                const name = p.name
-                if (!name) return null
-                if (junkTypes.has(p.osm_value) || junkTypes.has(p.osm_key) || junkTypes.has(p.type)) return null
-
-                // Strictly enforce radiusKm — never return places outside user's radius
-                const dist = haversineDistance(searchCenter.lat, searchCenter.lng, coords[1], coords[0])
-                if (dist > currentRadius) return null
-
-                return {
-                  name,
-                  lat: coords[1],
-                  lng: coords[0],
-                  type: p.osm_value || p.osm_key || p.type || 'place',
-                  phone: '',
-                  website: '',
-                  openingHours: '',
-                  distanceKm: dist,
-                }
-              })
-              .filter(Boolean)
-
-            if (photonPlaces.length > 0) {
-              console.log(`[Keyadi] Photon fallback success: ${photonPlaces.length} places`)
-              foundPlaces = photonPlaces
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('[Keyadi] Photon fallback error:', err.message)
-      }
+    if (foundPlaces.length === 0 && lastError && !signal?.aborted) {
+      console.warn('[Keyadi] Overpass query notice:', lastError.message)
     }
 
     // Only cache successful, non-empty results
@@ -670,8 +609,9 @@ export default function Dashboard() {
   }
 
   // ── Main search ──
-  const runSearch = async (term) => {
+  const runSearch = async (term, targetRadius = null) => {
     if (!term.trim()) return
+    const effectiveRadius = typeof targetRadius === 'number' ? targetRadius : radiusKm
     setLoading(true)
     setSearchError(null)
     setSelectedPlace(null)
@@ -701,18 +641,18 @@ export default function Dashboard() {
         setAiThinking(false)
 
         if (aiResultObj) {
-          query = buildAIOverpassQuery(aiResultObj, origin, radiusKm)
+          query = buildAIOverpassQuery(aiResultObj, origin, effectiveRadius)
           setAiEngine(aiResultObj.engine)
           setAiRefinements(aiResultObj.refinements || [])
           setAiDescription(aiResultObj.description)
         } else {
-          query = buildRegexOverpassQuery(term.trim(), origin, radiusKm)
+          query = buildRegexOverpassQuery(term.trim(), origin, effectiveRadius)
         }
       } else {
-        query = buildRegexOverpassQuery(term.trim(), origin, radiusKm)
+        query = buildRegexOverpassQuery(term.trim(), origin, effectiveRadius)
       }
 
-      const places = await fetchOverpass(query, controller.signal, term.trim(), origin, radiusKm)
+      const places = await fetchOverpass(query, controller.signal, term.trim(), origin, effectiveRadius)
 
       // Calculate distance strictly from the search origin
       places.forEach((p) => {
@@ -728,9 +668,10 @@ export default function Dashboard() {
         return true
       })
 
-      // Strictly filter to places strictly within the requested radiusKm
+      // Strictly filter to places strictly within the requested effectiveRadius
+      // and sort strictly from shortest distance to largest distance
       const inRadius = unique
-        .filter((p) => p.distanceKm <= radiusKm)
+        .filter((p) => typeof p.distanceKm === 'number' && !isNaN(p.distanceKm) && p.distanceKm <= effectiveRadius)
         .sort((a, b) => a.distanceKm - b.distanceKm)
 
       setResults(inRadius)
@@ -739,13 +680,13 @@ export default function Dashboard() {
       incrementSearchCount()
 
       if (inRadius.length === 0) {
-        setSearchError(`No places found within ${radiusKm} km. Try increasing the search radius or exploring another category.`)
+        setSearchError(`No places found within ${effectiveRadius} km. Try increasing the search radius or exploring another category.`)
       } else {
         setSearchError(null)
       }
 
       if (aiResultObj) {
-        setAiDescription(`${aiResultObj.description} — found ${inRadius.length} place${inRadius.length !== 1 ? 's' : ''} within ${radiusKm}km`)
+        setAiDescription(`${aiResultObj.description} — found ${inRadius.length} place${inRadius.length !== 1 ? 's' : ''} within ${effectiveRadius}km`)
       }
 
       // ── Grounded RAG Synthesis Phase ──
@@ -774,15 +715,16 @@ export default function Dashboard() {
   }
 
   // ── Category quick search ──
-  const runCategorySearch = (category) => {
+  const runCategorySearch = (category, targetRadius = null) => {
+    const effectiveRadius = typeof targetRadius === 'number' ? targetRadius : radiusKm
     const origin = (settings.searchMode === 'auto' && myLocation) ? myLocation : center
-    const query = buildTagOverpassQuery(category.tags, origin, radiusKm)
+    const query = buildTagOverpassQuery(category.tags, origin, effectiveRadius)
     setKeyword(category.label)
     setLoading(true)
     setSearchError(null)
     setSelectedPlace(null)
     setAiEngine('Category Preset')
-    setAiDescription(`Searching for ${category.label} within ${radiusKm}km…`)
+    setAiDescription(`Searching for ${category.label} within ${effectiveRadius}km…`)
     setAiRefinements([])
     setPlaceAddress('')
     setRagSummary('')
@@ -794,7 +736,7 @@ export default function Dashboard() {
     const controller = new AbortController()
     abortRef.current = controller
 
-    fetchOverpass(query, controller.signal, category.label, origin, radiusKm)
+    fetchOverpass(query, controller.signal, category.label, origin, effectiveRadius)
       .then((places) => {
         places.forEach((p) => {
           p.distanceKm = haversineDistance(origin.lat, origin.lng, p.lat, p.lng)
@@ -807,9 +749,10 @@ export default function Dashboard() {
           return true
         })
 
-        // Strictly filter to places strictly within the requested radiusKm
+        // Strictly filter to places strictly within the requested effectiveRadius
+        // and sort strictly from shortest distance to largest distance
         const inRadius = unique
-          .filter((p) => p.distanceKm <= radiusKm)
+          .filter((p) => typeof p.distanceKm === 'number' && !isNaN(p.distanceKm) && p.distanceKm <= effectiveRadius)
           .sort((a, b) => a.distanceKm - b.distanceKm)
 
         setResults(inRadius)
@@ -817,11 +760,11 @@ export default function Dashboard() {
         incrementSearchCount()
 
         if (inRadius.length === 0) {
-          setSearchError(`No ${category.label} found within ${radiusKm} km. Try increasing the search radius.`)
+          setSearchError(`No ${category.label} found within ${effectiveRadius} km. Try increasing the search radius.`)
         } else {
           setSearchError(null)
         }
-        setAiDescription(`${category.label} — found ${inRadius.length} place${inRadius.length !== 1 ? 's' : ''} within ${radiusKm}km`)
+        setAiDescription(`${category.label} — found ${inRadius.length} place${inRadius.length !== 1 ? 's' : ''} within ${effectiveRadius}km`)
 
         if (inRadius.length > 0) {
           setRagSynthesizing(true)
@@ -1371,7 +1314,12 @@ export default function Dashboard() {
                         <button
                           key={r}
                           type="button"
-                          onClick={() => setRadiusKm(r)}
+                          onClick={() => {
+                            setRadiusKm(r)
+                            if (keyword.trim()) {
+                              runSearch(keyword.trim(), r)
+                            }
+                          }}
                           className="flex-1 py-1 rounded-lg text-xs font-medium transition"
                           style={{
                             backgroundColor: radiusKm === r ? 'rgba(232,163,61,0.2)' : 'transparent',

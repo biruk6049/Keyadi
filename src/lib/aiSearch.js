@@ -27,32 +27,43 @@ export const CATEGORY_PRESETS = [
 
 // ── Overpass query builders ──────────────────────────────────────────
 
+export function buildBBox(center, radiusKm) {
+  const latDelta = radiusKm / 111.32
+  const cosLat = Math.cos((center.lat * Math.PI) / 180)
+  const lngDelta = radiusKm / (111.32 * (Math.abs(cosLat) > 0.01 ? Math.abs(cosLat) : 1))
+  const south = Math.max(-90, center.lat - latDelta).toFixed(6)
+  const west = Math.max(-180, center.lng - lngDelta).toFixed(6)
+  const north = Math.min(90, center.lat + latDelta).toFixed(6)
+  const east = Math.min(180, center.lng + lngDelta).toFixed(6)
+  return `${south},${west},${north},${east}`
+}
+
 function sanitizeOsmTag(str) {
   if (typeof str !== 'string') return ''
   return str.replace(/[^a-zA-Z0-9_:*-]/g, '').slice(0, 50)
 }
 
 /**
- * Build an Overpass query from structured tag pairs with exact circular radius.
+ * Build an Overpass query from structured tag pairs within a precise bounding box.
  * Each tag is [key, value], e.g. ['amenity', 'cafe'].
  * Always requires ["name"] so only legitimate named venues are returned.
  */
 export function buildTagOverpassQuery(tags, center, radiusKm) {
-  const radiusM = Math.round(radiusKm * 1000)
+  const bbox = buildBBox(center, radiusKm)
 
-  const clauses = tags
+  const clauses = (tags || [])
     .filter(([k, v]) => k && v)
     .map(([rawKey, rawValue]) => {
       const key = sanitizeOsmTag(rawKey)
       const value = sanitizeOsmTag(rawValue)
       if (!key) return null
       const filter = value === '*' ? `["${key}"]` : `["${key}"="${value}"]`
-      return `  node${filter}["name"](around:${radiusM},${center.lat},${center.lng});\n  way${filter}["name"](around:${radiusM},${center.lat},${center.lng});`
+      return `  node${filter}["name"];\n  way${filter}["name"];`
     })
     .filter(Boolean)
     .join('\n')
 
-  return `[out:json][timeout:30];\n(\n${clauses}\n);\nout center 150;`
+  return `[out:json][timeout:25][bbox:${bbox}];\n(\n${clauses}\n);\nout center 150;`
 }
 
 /**
@@ -60,10 +71,10 @@ export function buildTagOverpassQuery(tags, center, radiusKm) {
  * Sanitized to prevent Overpass QL syntax or prompt injection.
  */
 export function buildRegexOverpassQuery(keyword, center, radiusKm) {
-  const radiusM = Math.round(radiusKm * 1000)
+  const bbox = buildBBox(center, radiusKm)
   const sanitized = String(keyword || '').replace(/["[\]();\\]/g, '').slice(0, 80)
   const safe = sanitized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return `[out:json][timeout:30];\n(\n  node["name"~"${safe}",i](around:${radiusM},${center.lat},${center.lng});\n  way["name"~"${safe}",i](around:${radiusM},${center.lat},${center.lng});\n);\nout center 120;`
+  return `[out:json][timeout:25][bbox:${bbox}];\n(\n  node["name"~"${safe}",i];\n  way["name"~"${safe}",i];\n);\nout center 120;`
 }
 
 // ── Built-in Semantic AI Engine ──────────────────────────────────────
@@ -493,20 +504,23 @@ Answer the question concisely in 1-2 sentences using ONLY the provided verified 
  * Build an AI-optimized Overpass query from interpretation.
  */
 export function buildAIOverpassQuery(aiResult, center, radiusKm) {
-  const radiusM = Math.round(radiusKm * 1000)
+  const bbox = buildBBox(center, radiusKm)
   const { tags, nameFilter } = aiResult
 
   const nameClause = nameFilter ? `["name"~"${nameFilter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}",i]` : '["name"]'
 
-  const clauses = tags.map(([key, value]) => {
-    const tagFilter = value === '*' ? `["${key}"]` : `["${key}"="${value}"]`
-    return `  node${tagFilter}${nameClause}(around:${radiusM},${center.lat},${center.lng});\n  way${tagFilter}${nameClause}(around:${radiusM},${center.lat},${center.lng});`
-  }).join('\n')
+  const clauses = (tags || []).map(([key, value]) => {
+    const k = sanitizeOsmTag(key)
+    const v = sanitizeOsmTag(value)
+    if (!k) return null
+    const tagFilter = v === '*' ? `["${k}"]` : `["${k}"="${v}"]`
+    return `  node${tagFilter}${nameClause};\n  way${tagFilter}${nameClause};`
+  }).filter(Boolean).join('\n')
 
   const nameFallback = nameFilter
-    ? `\n  node["name"~"${nameFilter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}",i](around:${radiusM},${center.lat},${center.lng});\n  way["name"~"${nameFilter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}",i](around:${radiusM},${center.lat},${center.lng});`
+    ? `\n  node["name"~"${nameFilter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}",i];\n  way["name"~"${nameFilter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}",i];`
     : ''
 
-  return `[out:json][timeout:30];\n(\n${clauses}${nameFallback}\n);\nout center 150;`
+  return `[out:json][timeout:25][bbox:${bbox}];\n(\n${clauses}${nameFallback}\n);\nout center 150;`
 }
 
