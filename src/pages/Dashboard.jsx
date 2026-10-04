@@ -498,7 +498,7 @@ export default function Dashboard() {
     setSearchError('Search cancelled.')
   }
 
-  // ── High-Reliability Geospatial Fetch (Overpass + Photon OpenStreetMap Fallback) ──
+  // ── High-Reliability Geospatial Fetch (Parallel Overpass + Nominatim + Photon Fallbacks) ──
   const overpassCacheRef = useRef(new Map())
   const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
@@ -519,60 +519,126 @@ export default function Dashboard() {
 
   const fetchOverpass = async (query, signal, searchTerm = '') => {
     // Check in-memory cache first
-    const cacheKey = searchTerm ? `${searchTerm}-${center.lat.toFixed(3)}-${center.lng.toFixed(3)}` : query
+    const cacheKey = searchTerm ? `${searchTerm}-${center.lat.toFixed(3)}-${center.lng.toFixed(3)}-${radiusKm}` : query
     const cached = overpassCacheRef.current.get(cacheKey)
     if (cached && Date.now() - cached.ts < CACHE_TTL && cached.data?.length > 0) {
+      console.log('[Keyadi] Cache hit for:', cacheKey)
       return cached.data
     }
 
     const endpoints = [
-      'https://z.overpass-api.de/api/interpreter',
       'https://overpass-api.de/api/interpreter',
+      'https://z.overpass-api.de/api/interpreter',
       'https://overpass.kumi.systems/api/interpreter',
     ]
 
     let foundPlaces = []
 
-    // 1. Try Overpass mirrors with sufficient timeout
-    for (const endpoint of endpoints) {
-      if (signal?.aborted) break
-      try {
+    // ── Strategy 1: Race ALL Overpass endpoints in parallel (fastest wins) ──
+    try {
+      const racePromises = endpoints.map(async (endpoint) => {
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 22000)
+        const timeoutId = setTimeout(() => controller.abort(), 15000) // 15s per endpoint
 
         const onAbort = () => controller.abort()
         signal?.addEventListener('abort', onAbort, { once: true })
 
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: 'data=' + encodeURIComponent(query),
+        try {
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'data=' + encodeURIComponent(query),
+            signal: controller.signal,
+          })
+          clearTimeout(timeoutId)
+          signal?.removeEventListener('abort', onAbort)
+
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          const data = await res.json()
+          const parsed = parseOverpassElements(data.elements)
+          if (parsed.length === 0) throw new Error('No results from this endpoint')
+          console.log(`[Keyadi] Overpass success from ${endpoint}: ${parsed.length} places`)
+          return parsed
+        } catch (err) {
+          clearTimeout(timeoutId)
+          signal?.removeEventListener('abort', onAbort)
+          throw err
+        }
+      })
+
+      // Promise.any resolves with the FIRST successful result
+      foundPlaces = await Promise.any(racePromises)
+    } catch (err) {
+      // All Overpass endpoints failed — continue to fallbacks
+      console.warn('[Keyadi] All Overpass endpoints failed, trying fallbacks…', err.message || '')
+    }
+
+    // ── Strategy 2: Nominatim Structured Search Fallback ──
+    if (foundPlaces.length === 0 && searchTerm && !signal?.aborted) {
+      try {
+        const nominatimUrl = `https://nominatim.openstreetmap.org/search?` +
+          `q=${encodeURIComponent(searchTerm)}` +
+          `&format=json&addressdetails=1&limit=50` +
+          `&viewbox=${center.lng - 0.1},${center.lat + 0.1},${center.lng + 0.1},${center.lat - 0.1}` +
+          `&bounded=1`
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 10000)
+        const onAbort = () => controller.abort()
+        signal?.addEventListener('abort', onAbort, { once: true })
+
+        const res = await fetch(nominatimUrl, {
           signal: controller.signal,
+          headers: { 'User-Agent': 'Keyadi/1.0' },
         })
         clearTimeout(timeoutId)
         signal?.removeEventListener('abort', onAbort)
 
         if (res.ok) {
           const data = await res.json()
-          const parsed = parseOverpassElements(data.elements)
-          if (parsed.length > 0) {
-            foundPlaces = parsed
-            break
+          const nominatimPlaces = (data || [])
+            .map((item) => {
+              const lat = parseFloat(item.lat)
+              const lng = parseFloat(item.lon)
+              const name = item.display_name?.split(',')[0] || item.name
+              if (!lat || !lng || !name) return null
+              const dist = haversineDistance(center.lat, center.lng, lat, lng)
+              if (dist > radiusKm * 1.5) return null // Slight tolerance for Nominatim
+              return {
+                name,
+                lat,
+                lng,
+                type: item.type || item.class || 'place',
+                phone: '',
+                website: '',
+                openingHours: '',
+                distanceKm: dist,
+              }
+            })
+            .filter(Boolean)
+
+          if (nominatimPlaces.length > 0) {
+            console.log(`[Keyadi] Nominatim fallback success: ${nominatimPlaces.length} places`)
+            foundPlaces = nominatimPlaces
           }
         }
       } catch (err) {
-        // Try next endpoint
+        console.warn('[Keyadi] Nominatim fallback failed:', err.message)
       }
     }
 
-    // 2. High-Availability Fallback: Photon OpenStreetMap Geocoding API
-    // Strictly filtered to genuine venues within the requested radius
-    if (foundPlaces.length === 0 && searchTerm) {
+    // ── Strategy 3: Photon Geocoding Fallback ──
+    if (foundPlaces.length === 0 && searchTerm && !signal?.aborted) {
       try {
-        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(searchTerm)}&lat=${center.lat}&lon=${center.lng}&limit=40`
-        const res = await fetch(photonUrl, { signal })
+        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(searchTerm)}&lat=${center.lat}&lon=${center.lng}&limit=50`
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 8000)
+        const onAbort = () => controller.abort()
+        signal?.addEventListener('abort', onAbort, { once: true })
+
+        const res = await fetch(photonUrl, { signal: controller.signal })
+        clearTimeout(timeoutId)
+        signal?.removeEventListener('abort', onAbort)
+
         if (res.ok) {
           const data = await res.json()
           const junkTypes = new Set(['bus_stop', 'stop_position', 'platform', 'highway', 'traffic_signals', 'bench', 'street', 'city', 'country', 'crossing', 'boundary', 'track'])
@@ -586,7 +652,7 @@ export default function Dashboard() {
               if (junkTypes.has(p.osm_value) || junkTypes.has(p.osm_key)) return null
 
               const dist = haversineDistance(center.lat, center.lng, coords[1], coords[0])
-              if (dist > radiusKm) return null
+              if (dist > radiusKm * 2) return null // Wider net for Photon, will be filtered later
 
               return {
                 name,
@@ -602,11 +668,12 @@ export default function Dashboard() {
             .filter(Boolean)
 
           if (photonPlaces.length > 0) {
+            console.log(`[Keyadi] Photon fallback success: ${photonPlaces.length} places`)
             foundPlaces = photonPlaces
           }
         }
       } catch (err) {
-        // Fallback failed
+        console.warn('[Keyadi] Photon fallback failed:', err.message)
       }
     }
 
