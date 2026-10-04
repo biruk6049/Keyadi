@@ -533,12 +533,12 @@ export default function Dashboard() {
 
     let foundPlaces = []
 
-    // 1. Try Overpass mirrors
+    // 1. Try Overpass mirrors with sufficient timeout
     for (const endpoint of endpoints) {
       if (signal?.aborted) break
       try {
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 9000)
+        const timeoutId = setTimeout(() => controller.abort(), 22000)
 
         const onAbort = () => controller.abort()
         signal?.addEventListener('abort', onAbort, { once: true })
@@ -568,20 +568,26 @@ export default function Dashboard() {
     }
 
     // 2. High-Availability Fallback: Photon OpenStreetMap Geocoding API
-    // Photon is hosted by Komoot, operates with zero rate limits, and indexes all OSM POIs globally
+    // Strictly filtered to genuine venues within the requested radius
     if (foundPlaces.length === 0 && searchTerm) {
       try {
-        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(searchTerm)}&lat=${center.lat}&lon=${center.lng}&limit=35`
+        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(searchTerm)}&lat=${center.lat}&lon=${center.lng}&limit=40`
         const res = await fetch(photonUrl, { signal })
         if (res.ok) {
           const data = await res.json()
+          const junkTypes = new Set(['bus_stop', 'stop_position', 'platform', 'highway', 'traffic_signals', 'bench', 'street', 'city', 'country', 'crossing', 'boundary', 'track'])
           const photonPlaces = (data.features || [])
             .map((f) => {
               const p = f.properties || {}
               const coords = f.geometry?.coordinates
               if (!coords || coords.length < 2) return null
-              const name = p.name || p.street || p.district
+              const name = p.name || p.street
               if (!name) return null
+              if (junkTypes.has(p.osm_value) || junkTypes.has(p.osm_key)) return null
+
+              const dist = haversineDistance(center.lat, center.lng, coords[1], coords[0])
+              if (dist > radiusKm) return null
+
               return {
                 name,
                 lat: coords[1],
@@ -590,6 +596,7 @@ export default function Dashboard() {
                 phone: '',
                 website: '',
                 openingHours: '',
+                distanceKm: dist,
               }
             })
             .filter(Boolean)
@@ -673,19 +680,28 @@ export default function Dashboard() {
         return true
       })
 
-      setResults(unique)
-      plotResults(unique)
+      // Strictly filter to places strictly within the requested radiusKm
+      const inRadius = unique
+        .map((p) => {
+          p.distanceKm = haversineDistance(origin.lat, origin.lng, p.lat, p.lng)
+          return p
+        })
+        .filter((p) => p.distanceKm <= radiusKm)
+        .sort((a, b) => a.distanceKm - b.distanceKm)
+
+      setResults(inRadius)
+      plotResults(inRadius)
       addToHistory(term.trim())
       incrementSearchCount()
 
       if (aiResultObj) {
-        setAiDescription(`${aiResultObj.description} — found ${unique.length} place${unique.length !== 1 ? 's' : ''}`)
+        setAiDescription(`${aiResultObj.description} — found ${inRadius.length} place${inRadius.length !== 1 ? 's' : ''} within ${radiusKm}km`)
       }
 
       // ── Grounded RAG Synthesis Phase ──
-      if (aiEnabled && unique.length > 0) {
+      if (aiEnabled && inRadius.length > 0) {
         setRagSynthesizing(true)
-        synthesizeWithRAG(term.trim(), unique, origin, settings.units)
+        synthesizeWithRAG(term.trim(), inRadius, origin, settings.units)
           .then((ragRes) => {
             if (ragRes) {
               setRagSummary(ragRes.ragSummary || '')
@@ -741,14 +757,24 @@ export default function Dashboard() {
           seen.add(key)
           return true
         })
-        setResults(unique)
-        plotResults(unique)
-        incrementSearchCount()
-        setAiDescription(`${category.label} — found ${unique.length} place${unique.length !== 1 ? 's' : ''}`)
 
-        if (unique.length > 0) {
+        // Strictly filter to places strictly within the requested radiusKm
+        const inRadius = unique
+          .map((p) => {
+            p.distanceKm = haversineDistance(origin.lat, origin.lng, p.lat, p.lng)
+            return p
+          })
+          .filter((p) => p.distanceKm <= radiusKm)
+          .sort((a, b) => a.distanceKm - b.distanceKm)
+
+        setResults(inRadius)
+        plotResults(inRadius)
+        incrementSearchCount()
+        setAiDescription(`${category.label} — found ${inRadius.length} place${inRadius.length !== 1 ? 's' : ''} within ${radiusKm}km`)
+
+        if (inRadius.length > 0) {
           setRagSynthesizing(true)
-          synthesizeWithRAG(category.label, unique, origin, settings.units)
+          synthesizeWithRAG(category.label, inRadius, origin, settings.units)
             .then((ragRes) => {
               if (ragRes) {
                 setRagSummary(ragRes.ragSummary || '')
