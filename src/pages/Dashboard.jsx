@@ -34,6 +34,7 @@ import {
   buildAIOverpassQuery,
   buildTagOverpassQuery,
   buildRegexOverpassQuery,
+  searchPlacesReliable,
 } from '../lib/aiSearch'
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN
@@ -195,6 +196,7 @@ export default function Dashboard() {
   const [results, setResults] = useState([])
   const [loading, setLoading] = useState(false)
   const [searchError, setSearchError] = useState(null)
+  const [searchNotice, setSearchNotice] = useState(null)
   const [radiusKm, setRadiusKm] = useState(5)
   const [history, setHistory] = useState(() => {
     try {
@@ -455,6 +457,10 @@ export default function Dashboard() {
 
   const plotResults = (places) => {
     clearMarkers()
+    if (!mapRef.current || !Array.isArray(places) || places.length === 0) return
+
+    const bounds = new mapboxgl.LngLatBounds()
+
     places.forEach((place) => {
       const el = document.createElement('div')
       el.className = 'cursor-pointer flex flex-col items-center group transition-transform hover:scale-110'
@@ -476,7 +482,22 @@ export default function Dashboard() {
         .setLngLat([place.lng, place.lat])
         .addTo(mapRef.current)
       markersRef.current.push(marker)
+
+      bounds.extend([place.lng, place.lat])
     })
+
+    const origin = (settings.searchMode === 'auto' && myLocation) ? myLocation : center
+    if (origin && typeof origin.lng === 'number' && typeof origin.lat === 'number') {
+      bounds.extend([origin.lng, origin.lat])
+    }
+
+    try {
+      if (!bounds.isEmpty()) {
+        mapRef.current.fitBounds(bounds, { padding: 80, maxZoom: 15, duration: 1000 })
+      }
+    } catch (bErr) {
+      console.warn('fitBounds error:', bErr)
+    }
   }
 
 
@@ -500,103 +521,13 @@ export default function Dashboard() {
     setSearchError('Search cancelled.')
   }
 
-  // ── High-Reliability Geospatial Fetch (Overpass API + Photon Fallback) ──
-  const overpassCacheRef = useRef(new Map())
-  const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
-
-  const parseOverpassElements = (elements) =>
-    (elements || [])
-      .map((el) => {
-        const lat = el.lat ?? el.center?.lat
-        const lng = el.lon ?? el.center?.lon
-        const name = el.tags?.name
-        const type = el.tags?.amenity || el.tags?.shop || el.tags?.tourism || el.tags?.leisure || el.tags?.craft || el.tags?.office || ''
-        const phone = el.tags?.phone || el.tags?.['contact:phone'] || ''
-        const website = el.tags?.website || el.tags?.['contact:website'] || ''
-        const openingHours = el.tags?.opening_hours || ''
-        if (!lat || !lng || !name) return null
-        return { name, lat, lng, type, phone, website, openingHours }
-      })
-      .filter(Boolean)
-
-  const fetchOverpass = async (query, signal, searchTerm = '', searchCenter = center, currentRadius = radiusKm) => {
-    // Check in-memory cache first
-    const cacheKey = searchTerm
-      ? `${searchTerm.toLowerCase()}-${searchCenter.lat.toFixed(3)}-${searchCenter.lng.toFixed(3)}-${currentRadius}`
-      : `${query}-${searchCenter.lat.toFixed(3)}-${searchCenter.lng.toFixed(3)}-${currentRadius}`
-    const cached = overpassCacheRef.current.get(cacheKey)
-    if (cached && Date.now() - cached.ts < CACHE_TTL && cached.data?.length > 0) {
-      console.log('[Keyadi] Cache hit for:', cacheKey, `${cached.data.length} places`)
-      return cached.data
-    }
-
-    // Top verified, high-availability Overpass mirrors
-    const endpoints = [
-      'https://overpass-api.de/api/interpreter',
-      'https://overpass.kumi.systems/api/interpreter',
-      'https://overpass.private.coffee/api/interpreter',
-      'https://overpass.openstreetmap.fr/api/interpreter',
-      'https://lz4.overpass-api.de/api/interpreter',
-    ]
-
-    let foundPlaces = []
-    let lastError = null
-
-    // ── OpenStreetMap Overpass (Full geographic database, fast bbox evaluation) ──
-    for (const endpoint of endpoints) {
-      if (signal?.aborted) break
-      try {
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 20000)
-
-        const onAbort = () => controller.abort()
-        signal?.addEventListener('abort', onAbort, { once: true })
-
-        const res = await fetch(endpoint, {
-          method: 'POST',
-          body: 'data=' + encodeURIComponent(query),
-          signal: controller.signal,
-        })
-        clearTimeout(timeoutId)
-        signal?.removeEventListener('abort', onAbort)
-
-        if (res.ok) {
-          const data = await res.json()
-          const parsed = parseOverpassElements(data.elements)
-          if (parsed.length > 0) {
-            console.log(`[Keyadi] Overpass success from ${endpoint}: ${parsed.length} places`)
-            foundPlaces = parsed
-            break
-          }
-        }
-      } catch (err) {
-        lastError = err
-        // Continue to next mirror
-      }
-    }
-
-    if (foundPlaces.length === 0 && lastError && !signal?.aborted) {
-      console.warn('[Keyadi] Overpass query notice:', lastError.message)
-    }
-
-    // Only cache successful, non-empty results
-    if (foundPlaces.length > 0) {
-      overpassCacheRef.current.set(cacheKey, { data: foundPlaces, ts: Date.now() })
-      if (overpassCacheRef.current.size > 50) {
-        const oldest = [...overpassCacheRef.current.entries()].sort((a, b) => a[1].ts - b[1].ts)[0]
-        if (oldest) overpassCacheRef.current.delete(oldest[0])
-      }
-    }
-
-    return foundPlaces
-  }
-
-  // ── Main search ──
+  // ── High-Reliability Geospatial Search Engine ──
   const runSearch = async (term, targetRadius = null) => {
-    if (!term.trim()) return
+    if (!term || !term.trim()) return
     const effectiveRadius = typeof targetRadius === 'number' ? targetRadius : radiusKm
     setLoading(true)
     setSearchError(null)
+    setSearchNotice(null)
     setSelectedPlace(null)
     setAiDescription('')
     setAiEngine('')
@@ -612,70 +543,49 @@ export default function Dashboard() {
     abortRef.current = controller
 
     try {
-      // Precise search origin: live GPS if available and auto mode, otherwise map center
       const origin = (settings.searchMode === 'auto' && myLocation) ? myLocation : center
+      setAiThinking(true)
 
-      let query
-      let aiResultObj = null
-
-      if (aiEnabled) {
-        setAiThinking(true)
-        aiResultObj = await interpretWithAI(term.trim())
-        setAiThinking(false)
-
-        if (aiResultObj) {
-          query = buildAIOverpassQuery(aiResultObj, origin, effectiveRadius)
-          setAiEngine(aiResultObj.engine)
-          setAiRefinements(aiResultObj.refinements || [])
-          setAiDescription(aiResultObj.description)
-        } else {
-          query = buildRegexOverpassQuery(term.trim(), origin, effectiveRadius)
-        }
-      } else {
-        query = buildRegexOverpassQuery(term.trim(), origin, effectiveRadius)
-      }
-
-      const places = await fetchOverpass(query, controller.signal, term.trim(), origin, effectiveRadius)
-
-      // Calculate distance strictly from the search origin
-      places.forEach((p) => {
-        p.distanceKm = haversineDistance(origin.lat, origin.lng, p.lat, p.lng)
+      const searchRes = await searchPlacesReliable({
+        term: term.trim(),
+        center: origin,
+        radiusKm: effectiveRadius,
+        mapboxToken: mapboxgl.accessToken || '',
+        signal: controller.signal,
       })
+      setAiThinking(false)
 
-      // Deduplicate by name + rough coordinates
-      const seen = new Set()
-      const unique = places.filter(p => {
-        const key = `${p.name.toLowerCase()}-${p.lat.toFixed(3)}-${p.lng.toFixed(3)}`
-        if (seen.has(key)) return false
-        seen.add(key)
-        return true
-      })
-
-      // Strictly filter to places strictly within the requested effectiveRadius
-      // and sort strictly from shortest distance to largest distance
-      const inRadius = unique
-        .filter((p) => typeof p.distanceKm === 'number' && !isNaN(p.distanceKm) && p.distanceKm <= effectiveRadius)
-        .sort((a, b) => a.distanceKm - b.distanceKm)
-
-      setResults(inRadius)
-      plotResults(inRadius)
+      const found = searchRes.places || []
+      setResults(found)
+      plotResults(found)
       addToHistory(term.trim())
       incrementSearchCount()
 
-      if (inRadius.length === 0) {
-        setSearchError(`No places found within ${effectiveRadius} km. Try increasing the search radius or exploring another category.`)
+      if (searchRes.aiInterpretation) {
+        setAiEngine(searchRes.aiInterpretation.engine || 'Keyadi AI')
+        setAiRefinements(searchRes.aiInterpretation.refinements || [])
+        setAiDescription(searchRes.aiInterpretation.description)
+      }
+
+      if (found.length === 0) {
+        setSearchError(`No places found matching "${term.trim()}". Try expanding your search radius or exploring another category.`)
+        setSearchNotice(null)
+      } else if (searchRes.isExpanded) {
+        setSearchNotice(`Showing ${found.length} places nearby (expanded to ${searchRes.effectiveRadius} km)`)
+        setSearchError(null)
       } else {
+        setSearchNotice(null)
         setSearchError(null)
       }
 
-      if (aiResultObj) {
-        setAiDescription(`${aiResultObj.description} — found ${inRadius.length} place${inRadius.length !== 1 ? 's' : ''} within ${effectiveRadius}km`)
+      if (searchRes.aiInterpretation && found.length > 0) {
+        setAiDescription(`${searchRes.aiInterpretation.description} — found ${found.length} place${found.length !== 1 ? 's' : ''}`)
       }
 
-      // ── Grounded RAG Synthesis Phase ──
-      if (aiEnabled && inRadius.length > 0) {
+      // Grounded RAG Synthesis Phase
+      if (aiEnabled && found.length > 0) {
         setRagSynthesizing(true)
-        synthesizeWithRAG(term.trim(), inRadius, origin, settings.units)
+        synthesizeWithRAG(term.trim(), found, origin, settings.units)
           .then((ragRes) => {
             if (ragRes) {
               setRagSummary(ragRes.ragSummary || '')
@@ -689,25 +599,25 @@ export default function Dashboard() {
     } catch (err) {
       setResults([])
       if (err?.name !== 'AbortError') {
-        setSearchError(`Search failed: ${err?.message || 'unknown error'}`)
+        setSearchError(`Search notice: ${err?.message || 'Unable to load places'}`)
       }
+    } finally {
+      setLoading(false)
+      setAiThinking(false)
     }
-
-    setLoading(false)
-    setAiThinking(false)
   }
 
   // ── Category quick search ──
-  const runCategorySearch = (category, targetRadius = null) => {
+  const runCategorySearch = async (category, targetRadius = null) => {
     const effectiveRadius = typeof targetRadius === 'number' ? targetRadius : radiusKm
     const origin = (settings.searchMode === 'auto' && myLocation) ? myLocation : center
-    const query = buildTagOverpassQuery(category.tags, origin, effectiveRadius)
     setKeyword(category.label)
     setLoading(true)
     setSearchError(null)
+    setSearchNotice(null)
     setSelectedPlace(null)
     setAiEngine('Category Preset')
-    setAiDescription(`Searching for ${category.label} within ${effectiveRadius}km…`)
+    setAiDescription(`Searching for ${category.label}…`)
     setAiRefinements([])
     setPlaceAddress('')
     setRagSummary('')
@@ -719,57 +629,53 @@ export default function Dashboard() {
     const controller = new AbortController()
     abortRef.current = controller
 
-    fetchOverpass(query, controller.signal, category.label, origin, effectiveRadius)
-      .then((places) => {
-        places.forEach((p) => {
-          p.distanceKm = haversineDistance(origin.lat, origin.lng, p.lat, p.lng)
-        })
-        const seen = new Set()
-        const unique = places.filter(p => {
-          const key = `${p.name.toLowerCase()}-${p.lat.toFixed(3)}-${p.lng.toFixed(3)}`
-          if (seen.has(key)) return false
-          seen.add(key)
-          return true
-        })
-
-        // Strictly filter to places strictly within the requested effectiveRadius
-        // and sort strictly from shortest distance to largest distance
-        const inRadius = unique
-          .filter((p) => typeof p.distanceKm === 'number' && !isNaN(p.distanceKm) && p.distanceKm <= effectiveRadius)
-          .sort((a, b) => a.distanceKm - b.distanceKm)
-
-        setResults(inRadius)
-        plotResults(inRadius)
-        incrementSearchCount()
-
-        if (inRadius.length === 0) {
-          setSearchError(`No ${category.label} found within ${effectiveRadius} km. Try increasing the search radius.`)
-        } else {
-          setSearchError(null)
-        }
-        setAiDescription(`${category.label} — found ${inRadius.length} place${inRadius.length !== 1 ? 's' : ''} within ${effectiveRadius}km`)
-
-        if (inRadius.length > 0) {
-          setRagSynthesizing(true)
-          synthesizeWithRAG(category.label, inRadius, origin, settings.units)
-            .then((ragRes) => {
-              if (ragRes) {
-                setRagSummary(ragRes.ragSummary || '')
-                setPlaceBadges(ragRes.badges || {})
-                setRagFollowUps(ragRes.followUps || [])
-              }
-            })
-            .catch(() => {})
-            .finally(() => setRagSynthesizing(false))
-        }
+    try {
+      const searchRes = await searchPlacesReliable({
+        term: category.label,
+        center: origin,
+        radiusKm: effectiveRadius,
+        mapboxToken: mapboxgl.accessToken || '',
+        signal: controller.signal,
       })
-      .catch((err) => {
-        setResults([])
-        if (err?.name !== 'AbortError') {
-          setSearchError(`Search failed: ${err?.message || 'unknown error'}`)
-        }
-      })
-      .finally(() => setLoading(false))
+
+      const found = searchRes.places || []
+      setResults(found)
+      plotResults(found)
+      incrementSearchCount()
+
+      if (found.length === 0) {
+        setSearchError(`No ${category.label} found within ${effectiveRadius} km. Try increasing the search radius.`)
+        setSearchNotice(null)
+      } else if (searchRes.isExpanded) {
+        setSearchNotice(`Showing ${found.length} ${category.label} nearby (expanded to ${searchRes.effectiveRadius} km)`)
+        setSearchError(null)
+      } else {
+        setSearchNotice(null)
+        setSearchError(null)
+      }
+      setAiDescription(`${category.label} — found ${found.length} place${found.length !== 1 ? 's' : ''}`)
+
+      if (aiEnabled && found.length > 0) {
+        setRagSynthesizing(true)
+        synthesizeWithRAG(category.label, found, origin, settings.units)
+          .then((ragRes) => {
+            if (ragRes) {
+              setRagSummary(ragRes.ragSummary || '')
+              setPlaceBadges(ragRes.badges || {})
+              setRagFollowUps(ragRes.followUps || [])
+            }
+          })
+          .catch(() => {})
+          .finally(() => setRagSynthesizing(false))
+      }
+    } catch (err) {
+      setResults([])
+      if (err?.name !== 'AbortError') {
+        setSearchError(`Search notice: ${err?.message || 'Unable to load places'}`)
+      }
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleAskPlace = async (q) => {
@@ -944,12 +850,17 @@ export default function Dashboard() {
     setSelectedPlace(place)
     setPlaceSheetMinimized(false)
     setPlaceAnswer('')
+    if (place.address || place.addressSnippet) {
+      setPlaceAddress(place.address || place.addressSnippet)
+    }
     try {
       if (typeof place.lng === 'number' && typeof place.lat === 'number' && !isNaN(place.lng) && !isNaN(place.lat)) {
         mapRef.current?.flyTo({ center: [place.lng, place.lat], zoom: 15, essential: true })
       }
       fetchRoutesFor(place)
-      reverseGeocode(place.lat, place.lng)
+      if (!place.address) {
+        reverseGeocode(place.lat, place.lng)
+      }
     } catch (err) {
       console.error('selectPlace error:', err)
     }
@@ -1380,30 +1291,72 @@ export default function Dashboard() {
                     </div>
                   )}
 
-                  {/* Results header & list */}
+                  {/* Results header & notice */}
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: inkFaint }}>
                       Results ({results.length})
                     </span>
-                    {loading && <button onClick={cancelSearch} className="text-xs text-red-400">Cancel</button>}
+                    {loading && (
+                      <button onClick={cancelSearch} className="text-xs text-red-400 hover:opacity-80">
+                        Cancel
+                      </button>
+                    )}
                   </div>
 
+                  {searchNotice && results.length > 0 && (
+                    <div
+                      className="mb-2.5 px-3 py-1.5 rounded-xl text-[11px] font-medium flex items-center gap-1.5"
+                      style={{ backgroundColor: 'rgba(232,163,61,0.12)', color: amber, border: `1px solid ${amber}33` }}
+                    >
+                      <span>📍</span>
+                      <span>{searchNotice}</span>
+                    </div>
+                  )}
+
+                  {loading && (
+                    <div className="flex flex-col items-center justify-center py-8 gap-2">
+                      <span className="h-6 w-6 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+                      <p className="text-xs font-medium" style={{ color: amber }}>Finding verified places nearby…</p>
+                    </div>
+                  )}
+
                   {results.length === 0 && !loading && (
-                    <p className="text-xs text-center py-6" style={{ color: inkFaint }}>
-                      No places to display. Search above to explore.
-                    </p>
+                    <div className="text-center py-7 px-4 rounded-2xl border mb-3" style={{ backgroundColor: cardBg, borderColor: hairline }}>
+                      <div className="mx-auto w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: 'rgba(232,163,61,0.1)' }}>
+                        <SearchIcon size={18} color={amber} />
+                      </div>
+                      <p className="text-xs font-semibold mb-1" style={{ color: ink }}>
+                        {keyword.trim() ? `No places found for "${keyword}"` : 'No places to display'}
+                      </p>
+                      <p className="text-[11px] mb-3 leading-relaxed" style={{ color: inkMuted }}>
+                        {searchError || 'Try searching for a category above, a brand name, or expanding your search distance.'}
+                      </p>
+                      {keyword.trim() && radiusKm < 20 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRadiusKm(20)
+                            runSearch(keyword.trim(), 20)
+                          }}
+                          className="px-3.5 py-1.5 rounded-full text-xs font-semibold transition hover:scale-105"
+                          style={{ backgroundColor: amber, color: '#100e0b' }}
+                        >
+                          Expand Distance to 20 km
+                        </button>
+                      )}
+                    </div>
                   )}
 
                   <ul className="space-y-2 mb-4">
                     {results.map((place, i) => {
                       const dist = place.distanceKm
-                      const distLabel = settings.units === 'mi'
-                        ? `${(dist * 0.621371).toFixed(1)} mi`
-                        : `${dist.toFixed(1)} km`
+                      const distLabel = typeof dist === 'number'
+                        ? (settings.units === 'mi' ? `${(dist * 0.621371).toFixed(1)} mi` : `${dist.toFixed(1)} km`)
+                        : ''
                       const isSelected = selectedPlace?.name === place.name
 
                       return (
-                        <li key={i}>
+                        <li key={place.id || i}>
                           <div
                             onClick={() => selectPlace(place)}
                             className="rounded-2xl p-3 text-sm transition-all cursor-pointer hover:scale-[1.01]"
@@ -1413,9 +1366,9 @@ export default function Dashboard() {
                             }}
                           >
                             <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <p className="font-semibold text-sm" style={{ color: ink }}>{place.name}</p>
-                                <div className="flex items-center gap-1.5 mt-1">
+                              <div className="min-w-0">
+                                <p className="font-semibold text-sm truncate" style={{ color: ink }}>{place.name}</p>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-1">
                                   {typeBadge(place.type)}
                                   {placeBadges && placeBadges[place.name] && (
                                     <span
@@ -1427,13 +1380,28 @@ export default function Dashboard() {
                                   )}
                                 </div>
                               </div>
-                              <span
-                                className="shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-medium"
-                                style={{ backgroundColor: 'rgba(232,163,61,0.15)', color: amber }}
-                              >
-                                {distLabel}
-                              </span>
+                              {distLabel && (
+                                <span
+                                  className="shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-medium"
+                                  style={{ backgroundColor: 'rgba(232,163,61,0.15)', color: amber }}
+                                >
+                                  {distLabel}
+                                </span>
+                              )}
                             </div>
+
+                            {place.addressSnippet && (
+                              <p className="text-[11px] mt-1.5 truncate" style={{ color: inkMuted }}>
+                                📍 {place.addressSnippet}
+                              </p>
+                            )}
+
+                            {(place.phone || place.openingHours) && (
+                              <div className="flex items-center gap-3 mt-1 text-[10px]" style={{ color: inkFaint }}>
+                                {place.phone && <span>📞 {place.phone}</span>}
+                                {place.openingHours && <span>🕒 {place.openingHours}</span>}
+                              </div>
+                            )}
 
                             <div className="mt-2.5 flex items-center justify-between pt-2 border-t" style={{ borderColor: hairline }}>
                               <span className="text-[10px]" style={{ color: inkFaint }}>
