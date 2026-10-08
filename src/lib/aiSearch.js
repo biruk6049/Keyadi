@@ -77,15 +77,19 @@ export function buildRegexOverpassQuery(keyword, center, radiusKm) {
   return `[out:json][timeout:25][bbox:${bbox}];\n(\n  node["name"~"${safe}",i];\n  way["name"~"${safe}",i];\n);\nout center 120;`
 }
 
-// ── Built-in Semantic AI Engine ──────────────────────────────────────
+// ── Built-in Semantic AI Engine & Geospatial Taxonomy ───────────────
 
 const SEMANTIC_INTENTS = [
   {
+    key: 'lodging',
+    label: 'Guest House & Lodging',
+    targetCategories: ['guest_house', 'hotel', 'hostel', 'motel', 'chalet', 'lodging', 'apartment', 'bed_and_breakfast'],
+    incompatibleCategories: ['office', 'bank', 'finance', 'company', 'insurance', 'government', 'school', 'shop'],
     patterns: [
       /hotel/i, /motel/i, /hostel/i, /pension/i, /stay/i, /lodge/i, /lodging/i,
       /resort/i, /guest\s*house/i, /guesthouse/i, /inn/i, /accommodation/i,
       /b&b/i, /bed\s*and\s*breakfast/i, /dorm/i, /dormitory/i, /chalet/i, /room/i,
-      /ፔንሲዮን/i, /ሆቴል/i, /ማረፊያ/i,
+      /sleep/i, /overnight/i, /bed/i, /ፔንሲዮን/i, /ሆቴል/i, /ማረፊያ/i,
     ],
     tags: [
       ['tourism', 'guest_house'],
@@ -95,133 +99,323 @@ const SEMANTIC_INTENTS = [
       ['tourism', 'chalet'],
       ['amenity', 'guest_house'],
     ],
-    osmQueries: ['[guest_house]', '[hotel]', 'pension', 'guest house', '[hostel]'],
+    osmQueries: ['[guest_house]', '[hotel]', 'guest house', 'pension', '[hostel]', 'hotel'],
+    semanticKeywords: ['pension', 'guest house', 'hotel', 'lodging', 'room', 'hostel', 'stay', 'accommodation', 'bed'],
     description: 'Hotels, guest houses & pensions',
     refinements: ['Guest houses & pensions', 'Hotels & resorts', 'Budget lodging'],
   },
   {
-    patterns: [/cement/i, /rebar/i, /brick/i, /paint/i, /hardware/i, /timber/i, /lumber/i, /tile/i, /ceramic/i, /plumb/i, /pipe/i, /steel/i, /iron/i, /tool/i, /construction/i, /building material/i],
-    tags: [['shop', 'hardware'], ['shop', 'building_materials'], ['craft', 'plumber'], ['craft', 'carpenter']],
-    osmQueries: ['[hardware]', 'hardware', 'building materials'],
+    key: 'hardware',
+    label: 'Hardware & Construction Materials',
+    targetCategories: ['hardware', 'building_materials', 'doityourself', 'plumber', 'tools', 'paint'],
+    incompatibleCategories: ['office', 'bank', 'restaurant', 'hotel', 'cafe', 'hospital'],
+    patterns: [
+      /cement/i, /rebar/i, /brick/i, /paint/i, /hardware/i, /timber/i, /lumber/i,
+      /tile/i, /ceramic/i, /plumb/i, /pipe/i, /steel/i, /iron/i, /tool/i,
+      /construction/i, /building material/i, /ሲሚንቶ/i, /ብረት/i,
+    ],
+    tags: [
+      ['shop', 'hardware'],
+      ['shop', 'building_materials'],
+      ['shop', 'doityourself'],
+      ['craft', 'plumber'],
+      ['craft', 'carpenter'],
+    ],
+    osmQueries: ['[hardware]', '[building_materials]', 'hardware', 'building materials', 'cement'],
+    semanticKeywords: ['cement', 'hardware', 'building materials', 'tools', 'plumbing', 'steel', 'pipes', 'construction'],
     description: 'Hardware, building supplies & construction materials',
     refinements: ['Hardware stores', 'Building materials', 'Tile & ceramic specialists', 'Plumbing suppliers'],
   },
   {
-    patterns: [/coffee/i, /cafe/i, /café/i, /espresso/i, /latte/i, /cappuccino/i, /macchiato/i, /roaster/i, /tea/i, /ቡና/i, /ካፌ/i],
-    tags: [['amenity', 'cafe'], ['amenity', 'coffee_shop']],
-    osmQueries: ['[cafe]', 'cafe', 'coffee'],
+    key: 'cafe',
+    label: 'Café & Coffee Shop',
+    targetCategories: ['cafe', 'coffee_shop', 'coffee', 'tea'],
+    incompatibleCategories: ['hardware', 'car_repair', 'hospital', 'bank'],
+    patterns: [
+      /coffee/i, /cafe/i, /café/i, /espresso/i, /latte/i, /cappuccino/i, /macchiato/i,
+      /roaster/i, /tea/i, /ቡና/i, /ካፌ/i,
+    ],
+    tags: [
+      ['amenity', 'cafe'],
+      ['amenity', 'coffee_shop'],
+    ],
+    osmQueries: ['[cafe]', 'cafe', 'coffee', 'coffee shop'],
+    semanticKeywords: ['coffee', 'cafe', 'espresso', 'macchiato', 'tea', 'latte', 'roaster'],
     description: 'Cafés, espresso bars & coffee roasters',
     refinements: ['Cafés with seating', 'Specialty coffee', 'Bakeries & cafés'],
   },
   {
-    patterns: [/food/i, /eat/i, /restaurant/i, /dinner/i, /lunch/i, /breakfast/i, /brunch/i, /pizza/i, /burger/i, /fast food/i, /shawarma/i, /grill/i, /bbq/i, /sushi/i, /dine/i, /ምግብ/i, /ሬስቶራንት/i],
-    tags: [['amenity', 'restaurant'], ['amenity', 'cafe'], ['amenity', 'fast_food'], ['amenity', 'food_court'], ['shop', 'bakery'], ['shop', 'pastry'], ['amenity', 'bar']],
-    osmQueries: ['[restaurant]', '[fast_food]', 'restaurant', 'food'],
+    key: 'food',
+    label: 'Restaurants & Dining',
+    targetCategories: ['restaurant', 'fast_food', 'food_court', 'cafe', 'bakery'],
+    incompatibleCategories: ['hardware', 'car_repair', 'bank', 'hospital', 'fuel'],
+    patterns: [
+      /food/i, /eat/i, /restaurant/i, /dinner/i, /lunch/i, /breakfast/i, /brunch/i,
+      /pizza/i, /burger/i, /fast food/i, /shawarma/i, /grill/i, /bbq/i, /sushi/i,
+      /dine/i, /dining/i, /meal/i, /hungry/i, /ምግብ/i, /ሬስቶራንት/i,
+    ],
+    tags: [
+      ['amenity', 'restaurant'],
+      ['amenity', 'fast_food'],
+      ['amenity', 'cafe'],
+      ['amenity', 'food_court'],
+      ['shop', 'bakery'],
+    ],
+    osmQueries: ['[restaurant]', '[fast_food]', 'restaurant', 'food', 'fast food'],
+    semanticKeywords: ['restaurant', 'food', 'eat', 'dinner', 'lunch', 'breakfast', 'fast food', 'dining'],
     description: 'Restaurants, cafés & dining spots',
     refinements: ['Restaurants & fine dining', 'Cafés & breakfast', 'Fast food & casual eats', 'Bakeries & pastries'],
   },
   {
-    patterns: [/pharmacy/i, /medicine/i, /drug/i, /chemist/i, /prescription/i, /pills/i, /medical store/i, /drugstore/i, /ፋርማሲ/i, /መድሃኒት/i],
-    tags: [['amenity', 'pharmacy'], ['healthcare', 'pharmacy']],
-    osmQueries: ['[pharmacy]', 'pharmacy', 'chemist'],
+    key: 'pharmacy',
+    label: 'Pharmacy & Drugstore',
+    targetCategories: ['pharmacy', 'chemist', 'drugstore', 'healthcare'],
+    incompatibleCategories: ['restaurant', 'bar', 'hotel', 'hardware'],
+    patterns: [
+      /pharmacy/i, /medicine/i, /drug/i, /chemist/i, /prescription/i, /pills/i,
+      /medical store/i, /drugstore/i, /ፋርማሲ/i, /መድሃኒት/i,
+    ],
+    tags: [
+      ['amenity', 'pharmacy'],
+      ['healthcare', 'pharmacy'],
+    ],
+    osmQueries: ['[pharmacy]', 'pharmacy', 'chemist', 'drugstore'],
+    semanticKeywords: ['pharmacy', 'medicine', 'prescription', 'chemist', 'drugstore', 'pills'],
     description: 'Pharmacies & dispensaries',
     refinements: ['24-hour pharmacies', 'Hospital pharmacies', 'Health clinics'],
   },
   {
-    patterns: [/gas/i, /fuel/i, /petrol/i, /diesel/i, /station/i, /refuel/i, /ነዳጅ/i],
-    tags: [['amenity', 'fuel']],
-    osmQueries: ['[fuel]', 'gas station', 'petrol station'],
+    key: 'fuel',
+    label: 'Gas & Fuel Station',
+    targetCategories: ['fuel', 'gas_station'],
+    incompatibleCategories: ['restaurant', 'hotel', 'school', 'hospital'],
+    patterns: [
+      /gas/i, /fuel/i, /petrol/i, /diesel/i, /station/i, /refuel/i, /ነዳጅ/i,
+    ],
+    tags: [
+      ['amenity', 'fuel'],
+    ],
+    osmQueries: ['[fuel]', 'gas station', 'petrol station', 'fuel'],
+    semanticKeywords: ['gas', 'fuel', 'petrol', 'diesel', 'service station'],
     description: 'Gas & fuel service stations',
     refinements: ['24-hour gas stations', 'Fuel stations with car wash', 'Service areas'],
   },
   {
-    patterns: [/supermarket/i, /grocery/i, /market/i, /bazaar/i, /mall/i, /shopping/i, /hypermarket/i, /convenience/i, /ሱፐርማርኬት/i, /ገበያ/i],
-    tags: [['shop', 'supermarket'], ['shop', 'convenience'], ['shop', 'mall']],
-    osmQueries: ['[supermarket]', '[convenience]', 'supermarket', 'grocery'],
+    key: 'supermarket',
+    label: 'Supermarkets & Groceries',
+    targetCategories: ['supermarket', 'convenience', 'grocery', 'mall', 'department_store'],
+    incompatibleCategories: ['fuel', 'hospital', 'school', 'hotel'],
+    patterns: [
+      /supermarket/i, /grocery/i, /market/i, /bazaar/i, /mall/i, /shopping/i,
+      /hypermarket/i, /convenience/i, /ሱፐርማርኬት/i, /ገበያ/i,
+    ],
+    tags: [
+      ['shop', 'supermarket'],
+      ['shop', 'convenience'],
+      ['shop', 'mall'],
+    ],
+    osmQueries: ['[supermarket]', '[convenience]', 'supermarket', 'grocery', 'market'],
+    semanticKeywords: ['supermarket', 'grocery', 'convenience', 'market', 'mall', 'shopping'],
     description: 'Supermarkets, grocery stores & markets',
     refinements: ['Neighborhood supermarkets', 'Shopping malls', 'Convenience stores'],
   },
   {
-    patterns: [/hospital/i, /clinic/i, /doctor/i, /dentist/i, /emergency/i, /health/i, /physician/i, /ሕክምና/i, /ክሊኒክ/i, /ሆስፒታል/i],
-    tags: [['amenity', 'hospital'], ['amenity', 'clinic'], ['amenity', 'doctors']],
-    osmQueries: ['[hospital]', '[clinic]', 'hospital', 'clinic'],
+    key: 'hospital',
+    label: 'Hospitals & Medical Clinics',
+    targetCategories: ['hospital', 'clinic', 'doctors', 'dentist'],
+    incompatibleCategories: ['restaurant', 'bar', 'hotel', 'hardware'],
+    patterns: [
+      /hospital/i, /clinic/i, /doctor/i, /dentist/i, /emergency/i, /health/i,
+      /physician/i, /ሕክምና/i, /ክሊኒክ/i, /ሆስፒታል/i,
+    ],
+    tags: [
+      ['amenity', 'hospital'],
+      ['amenity', 'clinic'],
+      ['amenity', 'doctors'],
+    ],
+    osmQueries: ['[hospital]', '[clinic]', 'hospital', 'clinic', 'doctors'],
+    semanticKeywords: ['hospital', 'clinic', 'doctor', 'medical', 'emergency', 'health'],
     description: 'Hospitals, medical clinics & doctors',
     refinements: ['Emergency hospitals', 'Dental clinics', 'Specialized medical centers'],
   },
   {
-    patterns: [/atm/i, /bank/i, /cash/i, /withdraw/i, /money/i, /forex/i, /ባንክ/i],
-    tags: [['amenity', 'atm'], ['amenity', 'bank']],
+    key: 'atm',
+    label: 'Banks & ATMs',
+    targetCategories: ['atm', 'bank', 'bureau_de_change'],
+    incompatibleCategories: ['hotel', 'restaurant', 'hospital', 'hardware'],
+    patterns: [
+      /atm/i, /bank/i, /cash/i, /withdraw/i, /money/i, /forex/i, /ባንክ/i,
+    ],
+    tags: [
+      ['amenity', 'atm'],
+      ['amenity', 'bank'],
+    ],
     osmQueries: ['[atm]', '[bank]', 'bank', 'atm'],
+    semanticKeywords: ['atm', 'bank', 'cash', 'withdraw', 'forex', 'money'],
     description: 'Banks & ATM cash dispensers',
     refinements: ['24/7 ATMs', 'Commercial bank branches', 'Currency exchange'],
   },
   {
-    patterns: [/mechanic/i, /car repair/i, /auto/i, /tyre/i, /tire/i, /oil change/i, /garage/i, /puncture/i, /vehicle repair/i],
-    tags: [['shop', 'car_repair'], ['craft', 'mechanic']],
-    osmQueries: ['[car_repair]', 'mechanic', 'car repair'],
+    key: 'mechanic',
+    label: 'Auto Repair & Mechanics',
+    targetCategories: ['car_repair', 'mechanic', 'car_parts', 'tyres'],
+    incompatibleCategories: ['restaurant', 'hospital', 'hotel', 'cafe'],
+    patterns: [
+      /mechanic/i, /car repair/i, /auto/i, /tyre/i, /tire/i, /oil change/i,
+      /garage/i, /puncture/i, /vehicle repair/i,
+    ],
+    tags: [
+      ['shop', 'car_repair'],
+      ['craft', 'mechanic'],
+    ],
+    osmQueries: ['[car_repair]', 'mechanic', 'car repair', 'auto repair'],
+    semanticKeywords: ['mechanic', 'car repair', 'garage', 'tire', 'puncture', 'auto workshop'],
     description: 'Automotive workshops & repair garages',
     refinements: ['Tire & wheel repair', 'Engine diagnostics', 'Auto spare parts'],
   },
   {
-    patterns: [/gym/i, /fitness/i, /workout/i, /weights/i, /bodybuilding/i, /crossfit/i, /swimming/i, /pool/i],
-    tags: [['leisure', 'fitness_centre'], ['leisure', 'sports_centre']],
-    osmQueries: ['[fitness_centre]', '[sports_centre]', 'gym', 'fitness'],
+    key: 'gym',
+    label: 'Fitness & Sports Centers',
+    targetCategories: ['fitness_centre', 'sports_centre', 'gym'],
+    incompatibleCategories: ['hospital', 'bank', 'hardware'],
+    patterns: [
+      /gym/i, /fitness/i, /workout/i, /weights/i, /bodybuilding/i, /crossfit/i,
+      /swimming/i, /pool/i,
+    ],
+    tags: [
+      ['leisure', 'fitness_centre'],
+      ['leisure', 'sports_centre'],
+    ],
+    osmQueries: ['[fitness_centre]', '[sports_centre]', 'gym', 'fitness center'],
+    semanticKeywords: ['gym', 'fitness', 'workout', 'sports center', 'training', 'weights'],
     description: 'Gyms, fitness centers & athletics',
     refinements: ['Fitness centers with gym equipment', 'Swimming pools', 'Sports clubs'],
   },
   {
-    patterns: [/bakery/i, /bake/i, /bread/i, /pastry/i, /cake/i, /croissant/i, /patisserie/i, /ዳቦ/i],
-    tags: [['shop', 'bakery']],
+    key: 'bakery',
+    label: 'Bakeries & Pastry Shops',
+    targetCategories: ['bakery', 'pastry'],
+    incompatibleCategories: ['car_repair', 'hardware', 'bank'],
+    patterns: [
+      /bakery/i, /bake/i, /bread/i, /pastry/i, /cake/i, /croissant/i, /patisserie/i, /ዳቦ/i,
+    ],
+    tags: [
+      ['shop', 'bakery'],
+    ],
     osmQueries: ['[bakery]', 'bakery', 'pastry'],
+    semanticKeywords: ['bakery', 'pastry', 'bread', 'cake', 'croissant', 'patisserie'],
     description: 'Bakeries & pastry shops',
     refinements: ['Fresh bread bakeries', 'Cake shops', 'Cafés with pastries'],
   },
   {
-    patterns: [/church/i, /mosque/i, /cathedral/i, /temple/i, /worship/i, /prayer/i, /ቤተክርስቲያን/i, /መስጊድ/i],
-    tags: [['amenity', 'place_of_worship']],
+    key: 'worship',
+    label: 'Places of Worship',
+    targetCategories: ['place_of_worship', 'church', 'mosque'],
+    incompatibleCategories: ['bar', 'nightclub'],
+    patterns: [
+      /church/i, /mosque/i, /cathedral/i, /temple/i, /worship/i, /prayer/i, /ቤተክርስቲያን/i, /መስጊድ/i,
+    ],
+    tags: [
+      ['amenity', 'place_of_worship'],
+    ],
     osmQueries: ['[place_of_worship]', 'church', 'mosque'],
+    semanticKeywords: ['church', 'mosque', 'temple', 'place of worship', 'cathedral'],
     description: 'Churches, mosques & places of worship',
     refinements: ['Churches & cathedrals', 'Mosques', 'Historic religious sites'],
   },
   {
-    patterns: [/park/i, /garden/i, /nature/i, /walk/i, /forest/i, /recreation/i],
-    tags: [['leisure', 'park'], ['leisure', 'garden']],
-    osmQueries: ['[park]', '[garden]', 'park'],
+    key: 'park',
+    label: 'Parks & Recreation',
+    targetCategories: ['park', 'garden', 'nature_reserve'],
+    incompatibleCategories: ['office', 'car_repair', 'bank'],
+    patterns: [
+      /park/i, /garden/i, /nature/i, /walk/i, /forest/i, /recreation/i,
+    ],
+    tags: [
+      ['leisure', 'park'],
+      ['leisure', 'garden'],
+    ],
+    osmQueries: ['[park]', '[garden]', 'park', 'public garden'],
+    semanticKeywords: ['park', 'garden', 'green space', 'nature', 'recreation'],
     description: 'Public parks & recreational gardens',
     refinements: ['Public city parks', 'Botanical gardens', 'Walking trails'],
   },
   {
-    patterns: [/bar/i, /pub/i, /beer/i, /wine/i, /cocktail/i, /nightclub/i, /club/i, /lounge/i],
-    tags: [['amenity', 'bar'], ['amenity', 'pub'], ['amenity', 'nightclub']],
+    key: 'bar',
+    label: 'Bars & Nightlife',
+    targetCategories: ['bar', 'pub', 'nightclub', 'lounge'],
+    incompatibleCategories: ['school', 'hospital', 'church', 'mosque'],
+    patterns: [
+      /bar/i, /pub/i, /beer/i, /wine/i, /cocktail/i, /nightclub/i, /club/i, /lounge/i,
+    ],
+    tags: [
+      ['amenity', 'bar'],
+      ['amenity', 'pub'],
+      ['amenity', 'nightclub'],
+    ],
     osmQueries: ['[bar]', '[pub]', 'bar', 'pub', 'lounge'],
+    semanticKeywords: ['bar', 'pub', 'lounge', 'nightclub', 'drinks', 'beer', 'cocktails'],
     description: 'Bars, lounges & nightlife',
     refinements: ['Cocktail lounges', 'Pubs & bars', 'Late-night clubs'],
   },
   {
-    patterns: [/school/i, /university/i, /college/i, /academy/i, /education/i, /library/i, /ትምህርት/i],
-    tags: [['amenity', 'school'], ['amenity', 'university'], ['amenity', 'college'], ['amenity', 'library']],
+    key: 'school',
+    label: 'Schools & Education',
+    targetCategories: ['school', 'university', 'college', 'library'],
+    incompatibleCategories: ['bar', 'nightclub'],
+    patterns: [
+      /school/i, /university/i, /college/i, /academy/i, /education/i, /library/i, /ትምህርት/i,
+    ],
+    tags: [
+      ['amenity', 'school'],
+      ['amenity', 'university'],
+      ['amenity', 'college'],
+      ['amenity', 'library'],
+    ],
     osmQueries: ['[school]', '[university]', 'school', 'university'],
+    semanticKeywords: ['school', 'university', 'college', 'campus', 'library', 'education'],
     description: 'Schools, universities & educational campuses',
     refinements: ['Universities & colleges', 'High schools', 'Public libraries'],
   },
   {
-    patterns: [/salon/i, /barber/i, /haircut/i, /hair/i, /spa/i, /beauty/i, /massage/i],
-    tags: [['shop', 'hairdresser'], ['shop', 'beauty'], ['amenity', 'spa']],
+    key: 'salon',
+    label: 'Salons & Barbers',
+    targetCategories: ['hairdresser', 'beauty', 'spa'],
+    incompatibleCategories: ['hardware', 'car_repair', 'fuel'],
+    patterns: [
+      /salon/i, /barber/i, /haircut/i, /hair/i, /spa/i, /beauty/i, /massage/i,
+    ],
+    tags: [
+      ['shop', 'hairdresser'],
+      ['shop', 'beauty'],
+      ['amenity', 'spa'],
+    ],
     osmQueries: ['[hairdresser]', '[beauty]', 'salon', 'barber', 'spa'],
+    semanticKeywords: ['barber', 'salon', 'haircut', 'spa', 'beauty parlour', 'hairdresser'],
     description: 'Salons, barbers & beauty spas',
     refinements: ['Men\'s barber shops', 'Hair & beauty salons', 'Day spas'],
   },
   {
-    patterns: [/electronics/i, /phone/i, /laptop/i, /computer/i, /mobile/i, /screen repair/i],
-    tags: [['shop', 'electronics'], ['shop', 'mobile_phone']],
+    key: 'electronics',
+    label: 'Electronics & Gadgets',
+    targetCategories: ['electronics', 'mobile_phone'],
+    incompatibleCategories: ['food', 'restaurant', 'bakery'],
+    patterns: [
+      /electronics/i, /phone/i, /laptop/i, /computer/i, /mobile/i, /screen repair/i,
+    ],
+    tags: [
+      ['shop', 'electronics'],
+      ['shop', 'mobile_phone'],
+    ],
     osmQueries: ['[electronics]', '[mobile_phone]', 'electronics', 'phone repair'],
+    semanticKeywords: ['electronics', 'mobile phone', 'laptop', 'computer', 'accessories', 'phone repair'],
     description: 'Electronics & mobile phone shops',
     refinements: ['Smartphone repair', 'Computer electronics', 'Accessories'],
   },
 ]
 
 /**
- * Local Semantic parser: analyzes natural language and maps to OSM tags and query strategies.
+ * Local Semantic parser: analyzes natural language and maps to OSM tags, target categories, and query strategies.
  */
 export function interpretWithLocalAI(userQuery) {
   const query = userQuery.trim().toLowerCase()
@@ -241,9 +435,14 @@ export function interpretWithLocalAI(userQuery) {
       const nameFilter = nonKeywordWords.length > 0 ? nonKeywordWords.join(' ') : null
 
       return {
-        engine: 'Semantic AI (Built-in)',
+        engine: 'Semantic RAG Engine (Built-in)',
+        categoryKey: intent.key,
+        categoryLabel: intent.label,
+        targetCategories: intent.targetCategories || [],
+        incompatibleCategories: intent.incompatibleCategories || [],
         tags: intent.tags,
         osmQueries: intent.osmQueries || [],
+        semanticKeywords: intent.semanticKeywords || [],
         nameFilter: nameFilter,
         description: intent.description,
         refinements: intent.refinements,
@@ -251,12 +450,17 @@ export function interpretWithLocalAI(userQuery) {
     }
   }
 
-  // Fallback: If no specific intent matched, use word matching as broad shop/amenity search
+  // Fallback: If no specific intent matched, extract salient word
   const firstWord = cleaned.split(/\s+/)[0] || userQuery
   return {
-    engine: 'Semantic AI (Built-in)',
+    engine: 'Semantic RAG Engine (Built-in)',
+    categoryKey: 'general',
+    categoryLabel: `Places matching "${userQuery}"`,
+    targetCategories: [firstWord.toLowerCase()],
+    incompatibleCategories: [],
     tags: [['amenity', '*'], ['shop', '*']],
     osmQueries: [firstWord],
+    semanticKeywords: [firstWord],
     nameFilter: firstWord.length >= 2 ? firstWord : null,
     description: `Places matching "${userQuery}"`,
     refinements: ['Explore nearby shops', 'Cafés & restaurants', 'Services'],
@@ -348,18 +552,25 @@ async function callGemini(contents, systemPrompt = '', timeoutMs = 5000, maxAtte
 }
 
 const GEMINI_RETRIEVAL_PROMPT = `You are the Geospatial RAG Intelligence Interpreter for Keyadi OpenStreetMap engine.
-The user enters a natural query (e.g. "where can I buy cement", "quiet coffee with wifi", "late night pharmacy").
+The user enters a natural query (e.g. "pension", "where can I buy cement", "quiet coffee with wifi", "cheap hotel", "late night pharmacy").
+Analyze the query's semantic intent and map it to OpenStreetMap categorization taxonomies.
+
 Return a strict JSON object with:
-1. "tags": array of [key, value] pairs of OpenStreetMap tags (amenity, shop, tourism, leisure, craft, healthcare). Use "*" for wildcard value.
-2. "nameFilter": string to filter by name if a specific brand or place name is mentioned, else null.
-3. "description": concise 4-8 word summary of the query intent.
-4. "refinements": array of 2-3 short suggestions the user can tap.
+1. "primaryCategory": Clean title of the primary place category (e.g. "Guest House & Lodging", "Hardware & Construction", "Café & Coffee").
+2. "targetCategories": Array of lowercase OpenStreetMap types to retrieve (e.g. ["guest_house", "hotel", "hostel", "motel"]).
+3. "incompatibleCategories": Array of categories to reject or penalize (e.g. ["office", "bank", "finance", "company", "insurance", "government"]).
+4. "tags": Array of [key, value] pairs of OpenStreetMap tags (e.g. [["tourism", "guest_house"], ["tourism", "hotel"]]). Use "*" for wildcard value.
+5. "osmQueries": Array of 3-4 OpenStreetMap search queries, prioritizing bracketed tags (e.g. ["[guest_house]", "[hotel]", "guest house", "hotel"]).
+6. "semanticKeywords": Array of 3-5 related semantic keywords (e.g. ["lodging", "room", "stay", "accommodation", "sleep"]).
+7. "nameFilter": String brand/venue name if a specific brand is mentioned (e.g. "Hilton", "Total"), else null.
+8. "description": Concise 4-8 word summary of the semantic intent.
+9. "refinements": Array of 2-3 short suggestions the user can tap.
 
 Only output valid raw JSON without markdown code blocks.`
 
 /**
- * RAG Phase 1: Semantic Intent & Query Expansion.
- * Determines the optimal OSM tags and spatial filters using Gemini,
+ * RAG Phase 1: Semantic Intent & Taxonomy Categorization.
+ * Determines the optimal target categories, OSM tags, and spatial queries using Gemini,
  * falling back seamlessly to local semantic patterns if offline.
  */
 export async function interpretWithRAG(userQuery) {
@@ -370,16 +581,22 @@ export async function interpretWithRAG(userQuery) {
       const parsed = await callGemini(
         `Query: "${userQuery}"`,
         GEMINI_RETRIEVAL_PROMPT,
-        3500,
+        4000,
         2
       )
 
-      if (parsed && Array.isArray(parsed.tags) && parsed.tags.length > 0) {
+      if (parsed && (Array.isArray(parsed.tags) || Array.isArray(parsed.targetCategories))) {
         return {
-          engine: 'Keyadi AI',
-          tags: parsed.tags,
+          engine: 'Keyadi RAG (Gemini)',
+          categoryKey: parsed.categoryKey || (parsed.targetCategories?.[0] || 'general'),
+          categoryLabel: parsed.primaryCategory || 'Categorized Places',
+          targetCategories: Array.isArray(parsed.targetCategories) ? parsed.targetCategories : [],
+          incompatibleCategories: Array.isArray(parsed.incompatibleCategories) ? parsed.incompatibleCategories : [],
+          tags: Array.isArray(parsed.tags) ? parsed.tags : [],
+          osmQueries: Array.isArray(parsed.osmQueries) ? parsed.osmQueries : [],
+          semanticKeywords: Array.isArray(parsed.semanticKeywords) ? parsed.semanticKeywords : [],
           nameFilter: parsed.nameFilter || null,
-          description: parsed.description || 'AI interpreted search',
+          description: parsed.description || `Categorized search for "${userQuery}"`,
           refinements: Array.isArray(parsed.refinements) ? parsed.refinements.slice(0, 3) : [],
         }
       }
@@ -388,11 +605,11 @@ export async function interpretWithRAG(userQuery) {
     }
   }
 
-  // Resilient fallback
+  // Resilient fallback to local semantic taxonomy
   const local = interpretWithLocalAI(userQuery)
   return {
     ...local,
-    engine: 'Keyadi AI',
+    engine: 'Semantic RAG Engine (Built-in)',
   }
 }
 
@@ -400,8 +617,8 @@ export async function interpretWithRAG(userQuery) {
 export const interpretWithAI = interpretWithRAG
 
 /**
- * RAG Phase 2: Grounded Synthesis over Retrieved Places.
- * Passes the user's original query together with the actual retrieved places
+ * RAG Phase 2: Grounded Synthesis over Retrieved Categorized Places.
+ * Passes the user's original query together with the actual retrieved categorized places
  * to Gemini to produce zero-hallucination grounded insights and custom place badges.
  */
 export async function synthesizeWithRAG(userQuery, retrievedPlaces, userLocation, units = 'km') {
@@ -413,10 +630,11 @@ export async function synthesizeWithRAG(userQuery, retrievedPlaces, userLocation
     }
   }
 
-  // Prepare top candidate records for grounding (max 10 places to stay fast & focused)
+  // Prepare top candidate records with categorized data for grounding
   const topPlaces = retrievedPlaces.slice(0, 10).map((p) => ({
     name: p.name,
-    type: p.type || 'place',
+    category: p.matchedCategory || p.type || 'place',
+    semanticScore: `${p.semanticScore || 85}%`,
     distance: `${p.distanceKm?.toFixed(2) || '?'} ${units}`,
     openingHours: p.openingHours || 'Not specified',
     phone: p.phone ? 'Yes' : 'No',
@@ -424,14 +642,14 @@ export async function synthesizeWithRAG(userQuery, retrievedPlaces, userLocation
   }))
 
   const prompt = `User Query: "${userQuery}"
-Retrieved real-world geospatial database records:
+Retrieved real-world geospatial database records (categorized and semantically ranked):
 ${JSON.stringify(topPlaces, null, 2)}
 
 Task: Grounded Retrieval-Augmented Generation (RAG).
-Synthesize the retrieved places relative to the user's query. Do NOT invent places not in the data.
+Synthesize the retrieved places relative to the user's query intent. Do NOT invent places not in the data.
 Return a strict JSON object with:
-1. "ragSummary": A 2-sentence grounded insight highlighting the best options based strictly on the retrieved records.
-2. "badges": Object mapping place name to a short 2-3 word highlight badge (e.g. "Closest (350m)", "Top Pick", "Open Late", "Has Website").
+1. "ragSummary": A 2-sentence grounded insight highlighting the best options based strictly on their categorized information and proximity.
+2. "badges": Object mapping place name to a short 2-3 word highlight badge (e.g. "★ Guest House", "★ Top Pick", "★ Open Late", "★ Closest (350m)").
 3. "followUps": Array of 2-3 short natural follow-up queries.`
 
   const apiKey = getGeminiKey()
@@ -450,25 +668,27 @@ Return a strict JSON object with:
     }
   }
 
-  // Local Grounding Fallback: Deterministic synthesis based on actual data
+  // Local Grounding Fallback: Deterministic synthesis based on actual categorized data
   const closest = retrievedPlaces[0]
   const hasHours = retrievedPlaces.find((p) => p.openingHours)
   const count = retrievedPlaces.length
 
   const closestDist = closest?.distanceKm ? `${closest.distanceKm.toFixed(1)} ${units}` : 'nearby'
-  let summary = `Found ${count} verified location${count > 1 ? 's' : ''}. `
+  let summary = `Retrieved ${count} categorized location${count > 1 ? 's' : ''} matching your query. `
   if (closest) {
-    summary += `Closest is ${closest.name} (${closestDist}). `
+    summary += `Top pick is ${closest.name} (${closest.matchedCategory || closest.type}, ${closestDist}). `
   }
   if (hasHours && hasHours.name !== closest?.name) {
     summary += `${hasHours.name} has posted hours (${hasHours.openingHours}).`
   }
 
   const badges = {}
-  if (closest) badges[closest.name] = 'Closest Match'
+  if (closest) {
+    badges[closest.name] = closest.matchedCategory ? `★ ${closest.matchedCategory}` : '★ Top Pick'
+  }
   if (hasHours && hasHours.name !== closest?.name) badges[hasHours.name] = 'Verified Hours'
   if (retrievedPlaces[1] && !badges[retrievedPlaces[1].name]) {
-    badges[retrievedPlaces[1].name] = 'Popular Option'
+    badges[retrievedPlaces[1].name] = retrievedPlaces[1].matchedCategory ? `★ ${retrievedPlaces[1].matchedCategory}` : 'Popular Option'
   }
 
   return {
@@ -671,11 +891,138 @@ const searchCache = new Map()
 const SEARCH_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 /**
- * High-Reliability Multi-Engine Place Search:
- * - Comprehensively translates categories like "pension", "hotel", "cafe" into both
- *   OSM bracketed tags (e.g. [guest_house], [hotel]) and textual variants.
- * - Queries OpenStreetMap Nominatim with strict bounding box.
+ * RAG Phase 3: Semantic Relevance Scoring & Categorical Alignment Engine.
+ * Evaluates each retrieved place candidate against the semantic intent:
+ * - Categorical Alignment: Does place.rawOsmType / place.type match targetCategories?
+ * - Incompatibility Penalty: Rejects or penalizes places matching incompatibleCategories (e.g. offices or banks when seeking lodging).
+ * - Semantic Lexical Alignment: Matches place name and tags against query semantic keywords.
+ * - Verified Metadata Bonus: Rewards venues with confirmed opening hours, phone, and website.
+ * - Spatial Proximity Score: Gives closer venues within the strict radius a natural boost.
+ */
+export function scoreSemanticRelevance(place, ragIntent, rawQuery, radiusKm = 5) {
+  let catScore = 0.5 // Default neutral
+  let semScore = 0.5
+  let metaScore = 0.0
+
+  const placeType = (place.type || '').toLowerCase()
+  const rawOsmType = (place.rawOsmType || '').toLowerCase()
+  const rawOsmClass = (place.rawOsmClass || '').toLowerCase()
+  const placeName = (place.name || '').toLowerCase()
+  const queryClean = (rawQuery || '').toLowerCase()
+
+  // 1. Categorical Alignment Score (Weight: 50%)
+  if (ragIntent?.targetCategories && ragIntent.targetCategories.length > 0) {
+    const targets = ragIntent.targetCategories.map((c) => c.toLowerCase())
+    const incompatibles = (ragIntent.incompatibleCategories || []).map((c) => c.toLowerCase())
+
+    // Check if place is in an incompatible class (e.g. office or bank when looking for lodging)
+    const isIncompatible = incompatibles.some((inc) =>
+      rawOsmClass === inc || rawOsmClass.includes(inc) || rawOsmType.includes(inc) || placeType.includes(inc)
+    )
+
+    if (isIncompatible) {
+      catScore = 0.05 // Heavily penalize
+    } else {
+      // Exact type match (e.g. rawOsmType is 'guest_house' or 'hotel')
+      const exactTypeMatch = targets.some((t) =>
+        rawOsmType === t ||
+        placeType.replace(/\s+/g, '_') === t ||
+        placeType === t
+      )
+      // Partial type match
+      const partialTypeMatch = targets.some((t) =>
+        rawOsmType.includes(t) || t.includes(rawOsmType) || placeType.includes(t) || t.includes(placeType)
+      )
+      // OSM class match (e.g. tourism, amenity, shop)
+      const classMatch = (ragIntent.tags || []).some(([k, v]) =>
+        k === rawOsmClass && (v === '*' || v === rawOsmType)
+      )
+
+      if (exactTypeMatch) {
+        catScore = 1.0
+      } else if (classMatch) {
+        catScore = 0.9
+      } else if (partialTypeMatch) {
+        catScore = 0.8
+      } else {
+        // Place category did not match target categories
+        catScore = 0.25
+      }
+    }
+  }
+
+  // 2. Semantic & Lexical Match (Weight: 25%)
+  let matchedTerms = 0
+  const keywords = Array.from(new Set([
+    ...(ragIntent?.semanticKeywords || []),
+    ...queryClean.split(/\s+/).filter((w) => w.length > 2),
+  ]))
+
+  if (keywords.length > 0) {
+    keywords.forEach((k) => {
+      const kw = k.toLowerCase()
+      if (placeName.includes(kw) || placeType.includes(kw) || rawOsmType.includes(kw)) {
+        matchedTerms++
+      }
+    })
+    semScore = Math.min(1.0, 0.4 + (matchedTerms / Math.max(1, keywords.length)) * 0.6)
+  }
+
+  // Specific brand / name filter bonus or penalty
+  if (ragIntent?.nameFilter) {
+    const nf = ragIntent.nameFilter.toLowerCase()
+    if (placeName.includes(nf)) {
+      semScore = Math.min(1.0, semScore + 0.35)
+    } else {
+      semScore = Math.max(0.1, semScore - 0.2)
+    }
+  }
+
+  // 3. Metadata Richness Bonus (Weight: 10%)
+  if (place.openingHours) metaScore += 0.4
+  if (place.phone) metaScore += 0.35
+  if (place.website) metaScore += 0.15
+  if (place.addressSnippet) metaScore += 0.1
+  metaScore = Math.min(1.0, metaScore)
+
+  // 4. Spatial Proximity Score (Weight: 15%)
+  const dist = typeof place.distanceKm === 'number' ? place.distanceKm : radiusKm
+  const distScore = Math.max(0, Math.min(1, 1 - (dist / Math.max(0.1, radiusKm))))
+
+  // Composite RAG Relevance Score (0.0 to 1.0)
+  const composite = (0.50 * catScore) + (0.25 * semScore) + (0.15 * distScore) + (0.10 * metaScore)
+  const percentage = Math.max(10, Math.min(99, Math.round(composite * 100)))
+
+  // Grounded RAG Rationale
+  let ragReason = ''
+  if (catScore >= 0.8) {
+    ragReason = `Categorized as verified ${place.type || 'place'} matching ${ragIntent?.categoryLabel || 'category'}`
+  } else if (semScore >= 0.7) {
+    ragReason = `High semantic relevance to "${rawQuery}"`
+  } else {
+    ragReason = `Nearby ${place.type || 'place'} within ${radiusKm} km standard`
+  }
+
+  return {
+    score: composite,
+    percentage,
+    catScore,
+    semScore,
+    metaScore,
+    distScore,
+    isCategoryMatch: catScore >= 0.7,
+    matchedCategory: place.type,
+    ragReason,
+  }
+}
+
+/**
+ * High-Reliability Geospatial RAG Search:
+ * - Leverages RAG architecture to interpret natural language queries into categorized taxonomies.
+ * - Queries OpenStreetMap & Mapbox for categorized POIs within strict bounding box.
+ * - Scores candidates using Semantic Relevance & Categorical Alignment Engine.
  * - STRICTLY ENFORCES the chosen radius standard (never returns out-of-range places).
+ * - Re-ranks places based on categorical alignment and semantic relevance.
  */
 export async function searchPlacesReliable({
   term,
@@ -688,18 +1035,18 @@ export async function searchPlacesReliable({
   const unaccented = trimmed.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   if (!trimmed) return { places: [], isExpanded: false, effectiveRadius: radiusKm, aiInterpretation: null }
 
-  const cacheKey = `${unaccented.toLowerCase()}-${center.lat.toFixed(3)}-${center.lng.toFixed(3)}-${radiusKm}`
+  const cacheKey = `rag-${unaccented.toLowerCase()}-${center.lat.toFixed(3)}-${center.lng.toFixed(3)}-${radiusKm}`
   const cached = searchCache.get(cacheKey)
   if (cached && Date.now() - cached.ts < SEARCH_CACHE_TTL && Array.isArray(cached.places)) {
     return cached
   }
 
-  // 1. Semantic intent interpretation
-  const ai = interpretWithLocalAI(unaccented)
+  // 1. RAG Phase 1: Semantic Intent & Taxonomy Categorization
+  const ragIntent = await interpretWithRAG(unaccented)
   const categoryQueries = new Set()
 
-  if (ai?.osmQueries && Array.isArray(ai.osmQueries)) {
-    ai.osmQueries.forEach((q) => categoryQueries.add(q))
+  if (ragIntent?.osmQueries && Array.isArray(ragIntent.osmQueries)) {
+    ragIntent.osmQueries.forEach((q) => categoryQueries.add(q))
   }
 
   for (const preset of CATEGORY_PRESETS) {
@@ -715,22 +1062,19 @@ export async function searchPlacesReliable({
   }
 
   // Build the prioritized query terms
-  // Always include the exact user term first
-  const queryTerms = [trimmed]
-  if (unaccented.toLowerCase() !== trimmed.toLowerCase()) {
-    queryTerms.push(unaccented)
-  }
-
-  // Add the category/tag queries
+  // Prioritize bracketed category queries first so Nominatim returns real categorized POIs
+  const queryTerms = []
   for (const cq of categoryQueries) {
-    if (!queryTerms.includes(cq)) {
-      queryTerms.push(cq)
-    }
+    if (!queryTerms.includes(cq)) queryTerms.push(cq)
   }
-
-  // If user mentioned a brand or specific name filter, include it
-  if (ai?.nameFilter && !queryTerms.includes(ai.nameFilter)) {
-    queryTerms.push(ai.nameFilter)
+  if (ragIntent?.nameFilter && !queryTerms.includes(ragIntent.nameFilter)) {
+    queryTerms.push(ragIntent.nameFilter)
+  }
+  if (!queryTerms.includes(trimmed)) {
+    queryTerms.push(trimmed)
+  }
+  if (unaccented.toLowerCase() !== trimmed.toLowerCase() && !queryTerms.includes(unaccented)) {
+    queryTerms.push(unaccented)
   }
 
   // Cap to top 4 queries to maintain speed
@@ -747,7 +1091,6 @@ export async function searchPlacesReliable({
   const viewboxParam = `${west},${north},${east},${south}`
 
   let rawPlaces = []
-
   const mapboxBbox = `${west},${south},${east},${north}`
 
   const fetchNominatim = async (q, vb, bounded = true) => {
@@ -831,9 +1174,6 @@ export async function searchPlacesReliable({
     return true
   })
 
-  // Sort strictly from closest to furthest
-  unique.sort((a, b) => a.distanceKm - b.distanceKm)
-
   // ── STRICT RADIUS ENFORCEMENT ──
   // Never show places beyond the user's selected radius standard (e.g. 5 km).
   const strictlyWithinRadius = unique.filter((p) => p.distanceKm <= radiusKm)
@@ -842,11 +1182,44 @@ export async function searchPlacesReliable({
     ? { name: unique[0].name, distanceKm: unique[0].distanceKm }
     : null
 
+  // ── RAG Phase 3: Semantic Relevance Scoring & Categorical Re-Ranking ──
+  const scoredPlaces = strictlyWithinRadius.map((place) => {
+    const rel = scoreSemanticRelevance(place, ragIntent, trimmed, radiusKm)
+    return {
+      ...place,
+      semanticScore: rel.percentage,
+      categoryMatch: rel.isCategoryMatch,
+      matchedCategory: rel.matchedCategory,
+      ragReason: rel.ragReason,
+      rawRelevance: rel.score,
+      catScore: rel.catScore,
+      semScore: rel.semScore,
+    }
+  })
+
+  // Filter out completely incompatible categories if target categories were identified
+  // (e.g. an office or insurance named "Pension" when seeking lodging)
+  const prunedPlaces = (ragIntent?.targetCategories && ragIntent.targetCategories.length > 0)
+    ? scoredPlaces.filter((p) => p.catScore > 0.1 || p.rawRelevance >= 0.45)
+    : scoredPlaces
+
+  const finalCandidates = prunedPlaces.length > 0 ? prunedPlaces : scoredPlaces
+
+  // Sort primarily by Semantic Relevance descending!
+  // If relevance is very close (within 0.08), sort by proximity ascending
+  finalCandidates.sort((a, b) => {
+    const diff = b.rawRelevance - a.rawRelevance
+    if (Math.abs(diff) > 0.08) {
+      return diff
+    }
+    return a.distanceKm - b.distanceKm
+  })
+
   const resultObj = {
-    places: strictlyWithinRadius,
+    places: finalCandidates,
     isExpanded: false,
     effectiveRadius: radiusKm,
-    aiInterpretation: ai,
+    aiInterpretation: ragIntent,
     nearestOutside,
   }
 

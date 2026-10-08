@@ -682,7 +682,8 @@ export default function Dashboard() {
       }
 
       if (searchRes.aiInterpretation && found.length > 0) {
-        setAiDescription(`${searchRes.aiInterpretation.description} — found ${found.length} place${found.length !== 1 ? 's' : ''} within ${effectiveRadius} km`)
+        const cat = searchRes.aiInterpretation.categoryLabel ? ` (${searchRes.aiInterpretation.categoryLabel})` : ''
+        setAiDescription(`${searchRes.aiInterpretation.description}${cat} — retrieved ${found.length} verified place${found.length !== 1 ? 's' : ''} strictly within ${effectiveRadius} km`)
       }
 
       // Grounded RAG Synthesis Phase
@@ -1494,6 +1495,19 @@ export default function Dashboard() {
                                 <p className="font-semibold text-sm truncate" style={{ color: ink }}>{place.name}</p>
                                 <div className="flex flex-wrap items-center gap-1.5 mt-1">
                                   {typeBadge(place.type)}
+                                  {typeof place.semanticScore === 'number' && (
+                                    <span
+                                      className="rounded-full px-2 py-0.5 text-[9px] font-semibold"
+                                      style={{
+                                        backgroundColor: place.semanticScore >= 80 ? 'rgba(45,212,191,0.15)' : 'rgba(232,163,61,0.15)',
+                                        color: place.semanticScore >= 80 ? '#2dd4bf' : amber,
+                                        border: `1px solid ${place.semanticScore >= 80 ? 'rgba(45,212,191,0.35)' : amber + '35'}`,
+                                      }}
+                                      title={place.ragReason || 'RAG Semantic Match'}
+                                    >
+                                      ★ {place.semanticScore}% Match
+                                    </span>
+                                  )}
                                   {placeBadges && placeBadges[place.name] && (
                                     <span
                                       className="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase"
@@ -1755,11 +1769,42 @@ export default function Dashboard() {
             </div>
 
             {/* Address */}
-            <div className="mb-3 flex items-start gap-1.5 text-xs leading-relaxed" style={{ color: inkMuted }}>
+            <div className="mb-2.5 flex items-start gap-1.5 text-xs leading-relaxed" style={{ color: inkMuted }}>
               <MapPinIcon size={13} color={amber} className="mt-0.5 shrink-0" />
               <span className="truncate">
                 {placeAddressLoading ? 'Loading address…' : (placeAddress || `${selectedPlace.lat.toFixed(4)}, ${selectedPlace.lng.toFixed(4)}`)}
               </span>
+            </div>
+
+            {/* RAG Categorized Semantic Information */}
+            <div
+              className="mb-3 rounded-2xl p-2.5 text-xs flex flex-col gap-1 border"
+              style={{
+                backgroundColor: isDark ? 'rgba(45,212,191,0.06)' : 'rgba(45,212,191,0.04)',
+                borderColor: 'rgba(45,212,191,0.25)',
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 font-semibold text-[11px]" style={{ color: '#2dd4bf' }}>
+                  <SparklesIcon size={12} color="#2dd4bf" />
+                  <span>RAG Semantic Categorization</span>
+                </span>
+                {typeof selectedPlace.semanticScore === 'number' && (
+                  <span className="rounded-full px-2 py-0.5 text-[9px] font-bold" style={{ backgroundColor: 'rgba(45,212,191,0.15)', color: '#2dd4bf' }}>
+                    {selectedPlace.semanticScore}% Match
+                  </span>
+                )}
+              </div>
+              <div className="text-[11px] leading-relaxed" style={{ color: inkMuted }}>
+                <span className="font-medium" style={{ color: ink }}>Categorized as: </span>
+                <span className="font-semibold" style={{ color: amber }}>{selectedPlace.matchedCategory || selectedPlace.type || 'Verified Place'}</span>
+                {selectedPlace.rawOsmType && <span className="opacity-75"> ({selectedPlace.rawOsmClass || 'osm'}:{selectedPlace.rawOsmType})</span>}
+              </div>
+              {selectedPlace.ragReason && (
+                <p className="text-[10px] leading-relaxed" style={{ color: inkFaint }}>
+                  {selectedPlace.ragReason}
+                </p>
+              )}
             </div>
 
             {/* Three Travel Mode Pills (Car: Amber, Walk: Cyan, Bike: Teal) */}
