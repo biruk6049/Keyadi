@@ -49,6 +49,34 @@ const escapeHtml = (str) => {
   }[m]))
 }
 
+function createCircleGeoJSON(centerPoint, radiusInKm, points = 64) {
+  if (!centerPoint || typeof centerPoint.lat !== 'number' || typeof centerPoint.lng !== 'number') return null
+  const coords = []
+  const distanceX = radiusInKm / (111.32 * Math.cos((centerPoint.lat * Math.PI) / 180))
+  const distanceY = radiusInKm / 111.32
+
+  for (let i = 0; i < points; i++) {
+    const theta = (i / points) * (2 * Math.PI)
+    const x = distanceX * Math.cos(theta)
+    const y = distanceY * Math.sin(theta)
+    coords.push([centerPoint.lng + x, centerPoint.lat + y])
+  }
+  coords.push(coords[0])
+
+  return {
+    type: 'FeatureCollection',
+    features: [
+      {
+        type: 'Feature',
+        geometry: {
+          type: 'Polygon',
+          coordinates: [coords],
+        },
+      },
+    ],
+  }
+}
+
 const RADIUS_OPTIONS_KM = [1, 3, 5, 10, 20]
 const PLACEHOLDER_TERMS = ['best coffee shops', 'where to buy cement', 'pharmacy near me', 'plumber', 'hotel with wifi']
 
@@ -190,6 +218,7 @@ export default function Dashboard() {
   const watchIdRef = useRef(null)
   const hasCenteredRef = useRef(false)
   const searchInputRef = useRef(null)
+  const mapCenterRef = useRef(null)
 
   const [keyword, setKeyword] = useState('')
   const [placeholderIdx, setPlaceholderIdx] = useState(0)
@@ -275,6 +304,65 @@ export default function Dashboard() {
     })
   }
 
+  const getSearchOrigin = () => {
+    if (settings.searchMode === 'custom') {
+      return { lat: settings.defaultLat, lng: settings.defaultLng }
+    }
+    if (myLocation) {
+      return myLocation
+    }
+    return center
+  }
+
+  const updateRadiusCircle = (originPoint = null, rKm = null) => {
+    const map = mapRef.current
+    if (!map) return
+    try {
+      const activeOrigin = originPoint || getSearchOrigin()
+      const activeRadius = typeof rKm === 'number' ? rKm : radiusKm
+      const geojson = createCircleGeoJSON(activeOrigin, activeRadius)
+      if (!geojson) return
+
+      const src = map.getSource('search-radius')
+      if (!src) {
+        map.addSource('search-radius', {
+          type: 'geojson',
+          data: geojson,
+        })
+      } else {
+        src.setData(geojson)
+      }
+
+      if (!map.getLayer('search-radius-fill')) {
+        map.addLayer({
+          id: 'search-radius-fill',
+          type: 'fill',
+          source: 'search-radius',
+          paint: {
+            'fill-color': '#e8a33d',
+            'fill-opacity': 0.05,
+          },
+        })
+      }
+
+      if (!map.getLayer('search-radius-stroke')) {
+        map.addLayer({
+          id: 'search-radius-stroke',
+          type: 'line',
+          source: 'search-radius',
+          paint: {
+            'line-color': '#e8a33d',
+            'line-width': 1.5,
+            'line-opacity': 0.45,
+            'line-dasharray': [3, 2],
+          },
+        })
+      }
+    } catch (err) {
+      console.warn('updateRadiusCircle notice:', err.message)
+    }
+  }
+
   // Initialize map once
   useEffect(() => {
     if (mapRef.current) return
@@ -288,13 +376,26 @@ export default function Dashboard() {
       attributionControl: false,
     })
 
+    mapRef.current.on('moveend', () => {
+      const c = mapRef.current?.getCenter()
+      if (c) {
+        mapCenterRef.current = { lat: c.lat, lng: c.lng }
+      }
+    })
+
     mapRef.current.on('load', () => {
       ensureRouteLayer()
+      updateRadiusCircle()
     })
     mapRef.current.on('style.load', () => {
       ensureRouteLayer()
+      updateRadiusCircle()
     })
   }, [])
+
+  useEffect(() => {
+    updateRadiusCircle(getSearchOrigin(), radiusKm)
+  }, [radiusKm, center, myLocation, settings.searchMode, settings.defaultLat, settings.defaultLng])
 
   useEffect(() => {
     if (!mapRef.current) return
@@ -486,7 +587,7 @@ export default function Dashboard() {
       bounds.extend([place.lng, place.lat])
     })
 
-    const origin = (settings.searchMode === 'auto' && myLocation) ? myLocation : center
+    const origin = getSearchOrigin()
     if (origin && typeof origin.lng === 'number' && typeof origin.lat === 'number') {
       bounds.extend([origin.lng, origin.lat])
     }
@@ -543,7 +644,8 @@ export default function Dashboard() {
     abortRef.current = controller
 
     try {
-      const origin = (settings.searchMode === 'auto' && myLocation) ? myLocation : center
+      const origin = getSearchOrigin()
+      updateRadiusCircle(origin, effectiveRadius)
       setAiThinking(true)
 
       const searchRes = await searchPlacesReliable({
@@ -568,18 +670,19 @@ export default function Dashboard() {
       }
 
       if (found.length === 0) {
-        setSearchError(`No places found matching "${term.trim()}". Try expanding your search radius or exploring another category.`)
+        if (searchRes.nearestOutside) {
+          setSearchError(`No places found within ${effectiveRadius} km. The closest matching place is "${searchRes.nearestOutside.name}" (${searchRes.nearestOutside.distanceKm.toFixed(1)} km away).`)
+        } else {
+          setSearchError(`No places found matching "${term.trim()}" within ${effectiveRadius} km. Try expanding your search distance or exploring another category.`)
+        }
         setSearchNotice(null)
-      } else if (searchRes.isExpanded) {
-        setSearchNotice(`Showing ${found.length} places nearby (expanded to ${searchRes.effectiveRadius} km)`)
-        setSearchError(null)
       } else {
-        setSearchNotice(null)
+        setSearchNotice(`Showing ${found.length} verified place${found.length !== 1 ? 's' : ''} strictly within ${effectiveRadius} km`)
         setSearchError(null)
       }
 
       if (searchRes.aiInterpretation && found.length > 0) {
-        setAiDescription(`${searchRes.aiInterpretation.description} — found ${found.length} place${found.length !== 1 ? 's' : ''}`)
+        setAiDescription(`${searchRes.aiInterpretation.description} — found ${found.length} place${found.length !== 1 ? 's' : ''} within ${effectiveRadius} km`)
       }
 
       // Grounded RAG Synthesis Phase
@@ -610,14 +713,15 @@ export default function Dashboard() {
   // ── Category quick search ──
   const runCategorySearch = async (category, targetRadius = null) => {
     const effectiveRadius = typeof targetRadius === 'number' ? targetRadius : radiusKm
-    const origin = (settings.searchMode === 'auto' && myLocation) ? myLocation : center
+    const origin = getSearchOrigin()
+    updateRadiusCircle(origin, effectiveRadius)
     setKeyword(category.label)
     setLoading(true)
     setSearchError(null)
     setSearchNotice(null)
     setSelectedPlace(null)
     setAiEngine('Category Preset')
-    setAiDescription(`Searching for ${category.label}…`)
+    setAiDescription(`Searching for ${category.label} within ${effectiveRadius} km…`)
     setAiRefinements([])
     setPlaceAddress('')
     setRagSummary('')
@@ -644,16 +748,17 @@ export default function Dashboard() {
       incrementSearchCount()
 
       if (found.length === 0) {
-        setSearchError(`No ${category.label} found within ${effectiveRadius} km. Try increasing the search radius.`)
+        if (searchRes.nearestOutside) {
+          setSearchError(`No ${category.label} found within ${effectiveRadius} km. Nearest match is "${searchRes.nearestOutside.name}" (${searchRes.nearestOutside.distanceKm.toFixed(1)} km away).`)
+        } else {
+          setSearchError(`No ${category.label} found within ${effectiveRadius} km. Try increasing the search radius.`)
+        }
         setSearchNotice(null)
-      } else if (searchRes.isExpanded) {
-        setSearchNotice(`Showing ${found.length} ${category.label} nearby (expanded to ${searchRes.effectiveRadius} km)`)
-        setSearchError(null)
       } else {
-        setSearchNotice(null)
+        setSearchNotice(`Showing ${found.length} verified ${category.label} strictly within ${effectiveRadius} km`)
         setSearchError(null)
       }
-      setAiDescription(`${category.label} — found ${found.length} place${found.length !== 1 ? 's' : ''}`)
+      setAiDescription(`${category.label} — found ${found.length} place${found.length !== 1 ? 's' : ''} within ${effectiveRadius} km`)
 
       if (aiEnabled && found.length > 0) {
         setRagSynthesizing(true)
@@ -1228,6 +1333,10 @@ export default function Dashboard() {
                         </button>
                       ))}
                     </div>
+                    <p className="text-[10px] mt-1.5 truncate flex items-center gap-1" style={{ color: inkFaint }}>
+                      <span style={{ color: amber }}>📍</span>
+                      <span>Strict {radiusKm} km standard from {settings.searchMode === 'custom' ? (settings.defaultLocationLabel || 'Saved Point') : (myLocation ? 'Your Location' : 'Map View')}</span>
+                    </p>
                   </div>
                   
                   {aiThinking && (
@@ -1332,17 +1441,32 @@ export default function Dashboard() {
                         {searchError || 'Try searching for a category above, a brand name, or expanding your search distance.'}
                       </p>
                       {keyword.trim() && radiusKm < 20 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setRadiusKm(20)
-                            runSearch(keyword.trim(), 20)
-                          }}
-                          className="px-3.5 py-1.5 rounded-full text-xs font-semibold transition hover:scale-105"
-                          style={{ backgroundColor: amber, color: '#100e0b' }}
-                        >
-                          Expand Distance to 20 km
-                        </button>
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          {radiusKm < 10 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRadiusKm(10)
+                                runSearch(keyword.trim(), 10)
+                              }}
+                              className="px-3.5 py-1.5 rounded-full text-xs font-semibold transition hover:scale-105"
+                              style={{ backgroundColor: 'rgba(232,163,61,0.15)', color: amber, border: `1px solid ${amber}55` }}
+                            >
+                              Expand to 10 km
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRadiusKm(20)
+                              runSearch(keyword.trim(), 20)
+                            }}
+                            className="px-3.5 py-1.5 rounded-full text-xs font-semibold transition hover:scale-105"
+                            style={{ backgroundColor: amber, color: '#100e0b' }}
+                          >
+                            Expand to 20 km
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}

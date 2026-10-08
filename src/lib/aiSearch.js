@@ -10,19 +10,19 @@
 
 // ── Category presets (used by quick-pick chips) ──────────────────────
 export const CATEGORY_PRESETS = [
-  { key: 'food',        label: 'Food',        iconKey: 'food',        tags: [['amenity', 'restaurant'], ['amenity', 'cafe'], ['amenity', 'fast_food'], ['amenity', 'food_court'], ['shop', 'bakery'], ['shop', 'pastry']], keywords: ['restaurant', 'cafe', 'food', 'bakery'] },
-  { key: 'cafe',        label: 'Café',        iconKey: 'cafe',        tags: [['amenity', 'cafe']], keywords: ['cafe', 'coffee'] },
-  { key: 'gas',         label: 'Fuel',        iconKey: 'gas',         tags: [['amenity', 'fuel']], keywords: ['fuel', 'gas station', 'petrol'] },
-  { key: 'pharmacy',    label: 'Pharmacy',    iconKey: 'pharmacy',    tags: [['amenity', 'pharmacy'], ['healthcare', 'pharmacy']], keywords: ['pharmacy', 'chemist', 'drugstore'] },
-  { key: 'shop',        label: 'Shops',       iconKey: 'shop',        tags: [['shop', '*']], keywords: ['shop', 'store', 'market'] },
-  { key: 'atm',         label: 'ATM',         iconKey: 'atm',         tags: [['amenity', 'atm'], ['amenity', 'bank']], keywords: ['atm', 'bank'] },
-  { key: 'parking',     label: 'Parking',     iconKey: 'parking',     tags: [['amenity', 'parking']], keywords: ['parking'] },
-  { key: 'hotel',       label: 'Hotels',      iconKey: 'hotel',       tags: [['tourism', 'hotel'], ['tourism', 'guest_house'], ['tourism', 'hostel']], keywords: ['hotel', 'guest house', 'lodging'] },
-  { key: 'hospital',    label: 'Medical',     iconKey: 'hospital',    tags: [['amenity', 'hospital'], ['amenity', 'clinic'], ['amenity', 'doctors']], keywords: ['hospital', 'clinic', 'medical'] },
-  { key: 'supermarket', label: 'Supermarket', iconKey: 'supermarket', tags: [['shop', 'supermarket'], ['shop', 'convenience'], ['shop', 'mall']], keywords: ['supermarket', 'grocery', 'mall'] },
-  { key: 'hardware',    label: 'Hardware',    iconKey: 'hardware',    tags: [['shop', 'hardware'], ['shop', 'building_materials'], ['craft', 'plumber'], ['craft', 'carpenter']], keywords: ['hardware', 'building materials', 'cement', 'tools'] },
-  { key: 'school',      label: 'Education',   iconKey: 'school',      tags: [['amenity', 'school'], ['amenity', 'university'], ['amenity', 'college']], keywords: ['school', 'university', 'college'] },
-  { key: 'worship',     label: 'Worship',     iconKey: 'worship',     tags: [['amenity', 'place_of_worship']], keywords: ['church', 'mosque', 'worship'] },
+  { key: 'food',        label: 'Food',        iconKey: 'food',        tags: [['amenity', 'restaurant'], ['amenity', 'cafe'], ['amenity', 'fast_food'], ['amenity', 'food_court'], ['shop', 'bakery'], ['shop', 'pastry']], keywords: ['restaurant', 'cafe', 'food', 'bakery'], osmQueries: ['[restaurant]', '[fast_food]', '[cafe]', 'restaurant', 'food'] },
+  { key: 'cafe',        label: 'Café',        iconKey: 'cafe',        tags: [['amenity', 'cafe']], keywords: ['cafe', 'coffee'], osmQueries: ['[cafe]', 'cafe', 'coffee'] },
+  { key: 'gas',         label: 'Fuel',        iconKey: 'gas',         tags: [['amenity', 'fuel']], keywords: ['fuel', 'gas station', 'petrol'], osmQueries: ['[fuel]', 'gas station', 'fuel'] },
+  { key: 'pharmacy',    label: 'Pharmacy',    iconKey: 'pharmacy',    tags: [['amenity', 'pharmacy'], ['healthcare', 'pharmacy']], keywords: ['pharmacy', 'chemist', 'drugstore'], osmQueries: ['[pharmacy]', 'pharmacy', 'chemist'] },
+  { key: 'shop',        label: 'Shops',       iconKey: 'shop',        tags: [['shop', '*']], keywords: ['shop', 'store', 'market'], osmQueries: ['[supermarket]', 'shop', 'store'] },
+  { key: 'atm',         label: 'ATM',         iconKey: 'atm',         tags: [['amenity', 'atm'], ['amenity', 'bank']], keywords: ['atm', 'bank'], osmQueries: ['[atm]', '[bank]', 'atm', 'bank'] },
+  { key: 'parking',     label: 'Parking',     iconKey: 'parking',     tags: [['amenity', 'parking']], keywords: ['parking'], osmQueries: ['[parking]', 'parking'] },
+  { key: 'hotel',       label: 'Hotels',      iconKey: 'hotel',       tags: [['tourism', 'hotel'], ['tourism', 'guest_house'], ['tourism', 'hostel'], ['tourism', 'motel']], keywords: ['hotel', 'guest house', 'lodging', 'pension', 'hostel', 'resort'], osmQueries: ['[guest_house]', '[hotel]', 'pension', 'guest house', '[hostel]'] },
+  { key: 'hospital',    label: 'Medical',     iconKey: 'hospital',    tags: [['amenity', 'hospital'], ['amenity', 'clinic'], ['amenity', 'doctors']], keywords: ['hospital', 'clinic', 'medical'], osmQueries: ['[hospital]', '[clinic]', 'hospital', 'clinic'] },
+  { key: 'supermarket', label: 'Supermarket', iconKey: 'supermarket', tags: [['shop', 'supermarket'], ['shop', 'convenience'], ['shop', 'mall']], keywords: ['supermarket', 'grocery', 'mall'], osmQueries: ['[supermarket]', '[convenience]', 'supermarket'] },
+  { key: 'hardware',    label: 'Hardware',    iconKey: 'hardware',    tags: [['shop', 'hardware'], ['shop', 'building_materials'], ['craft', 'plumber'], ['craft', 'carpenter']], keywords: ['hardware', 'building materials', 'cement', 'tools'], osmQueries: ['[hardware]', 'hardware', 'building materials'] },
+  { key: 'school',      label: 'Education',   iconKey: 'school',      tags: [['amenity', 'school'], ['amenity', 'university'], ['amenity', 'college']], keywords: ['school', 'university', 'college'], osmQueries: ['[school]', '[university]', 'school'] },
+  { key: 'worship',     label: 'Worship',     iconKey: 'worship',     tags: [['amenity', 'place_of_worship']], keywords: ['church', 'mosque', 'worship'], osmQueries: ['[place_of_worship]', 'church', 'mosque'] },
 ]
 
 // ── Overpass query builders ──────────────────────────────────────────
@@ -81,117 +81,147 @@ export function buildRegexOverpassQuery(keyword, center, radiusKm) {
 
 const SEMANTIC_INTENTS = [
   {
+    patterns: [
+      /hotel/i, /motel/i, /hostel/i, /pension/i, /stay/i, /lodge/i, /lodging/i,
+      /resort/i, /guest\s*house/i, /guesthouse/i, /inn/i, /accommodation/i,
+      /b&b/i, /bed\s*and\s*breakfast/i, /dorm/i, /dormitory/i, /chalet/i, /room/i,
+      /ፔንሲዮን/i, /ሆቴል/i, /ማረፊያ/i,
+    ],
+    tags: [
+      ['tourism', 'guest_house'],
+      ['tourism', 'hotel'],
+      ['tourism', 'hostel'],
+      ['tourism', 'motel'],
+      ['tourism', 'chalet'],
+      ['amenity', 'guest_house'],
+    ],
+    osmQueries: ['[guest_house]', '[hotel]', 'pension', 'guest house', '[hostel]'],
+    description: 'Hotels, guest houses & pensions',
+    refinements: ['Guest houses & pensions', 'Hotels & resorts', 'Budget lodging'],
+  },
+  {
     patterns: [/cement/i, /rebar/i, /brick/i, /paint/i, /hardware/i, /timber/i, /lumber/i, /tile/i, /ceramic/i, /plumb/i, /pipe/i, /steel/i, /iron/i, /tool/i, /construction/i, /building material/i],
     tags: [['shop', 'hardware'], ['shop', 'building_materials'], ['craft', 'plumber'], ['craft', 'carpenter']],
+    osmQueries: ['[hardware]', 'hardware', 'building materials'],
     description: 'Hardware, building supplies & construction materials',
     refinements: ['Hardware stores', 'Building materials', 'Tile & ceramic specialists', 'Plumbing suppliers'],
   },
   {
-    patterns: [/coffee/i, /cafe/i, /café/i, /espresso/i, /latte/i, /cappuccino/i, /macchiato/i, /roaster/i, /tea/i],
+    patterns: [/coffee/i, /cafe/i, /café/i, /espresso/i, /latte/i, /cappuccino/i, /macchiato/i, /roaster/i, /tea/i, /ቡና/i, /ካፌ/i],
     tags: [['amenity', 'cafe'], ['amenity', 'coffee_shop']],
+    osmQueries: ['[cafe]', 'cafe', 'coffee'],
     description: 'Cafés, espresso bars & coffee roasters',
     refinements: ['Cafés with seating', 'Specialty coffee', 'Bakeries & cafés'],
   },
   {
-    patterns: [/food/i, /eat/i, /restaurant/i, /dinner/i, /lunch/i, /breakfast/i, /brunch/i, /pizza/i, /burger/i, /fast food/i, /shawarma/i, /grill/i, /bbq/i, /sushi/i, /dine/i],
+    patterns: [/food/i, /eat/i, /restaurant/i, /dinner/i, /lunch/i, /breakfast/i, /brunch/i, /pizza/i, /burger/i, /fast food/i, /shawarma/i, /grill/i, /bbq/i, /sushi/i, /dine/i, /ምግብ/i, /ሬስቶራንት/i],
     tags: [['amenity', 'restaurant'], ['amenity', 'cafe'], ['amenity', 'fast_food'], ['amenity', 'food_court'], ['shop', 'bakery'], ['shop', 'pastry'], ['amenity', 'bar']],
+    osmQueries: ['[restaurant]', '[fast_food]', 'restaurant', 'food'],
     description: 'Restaurants, cafés & dining spots',
     refinements: ['Restaurants & fine dining', 'Cafés & breakfast', 'Fast food & casual eats', 'Bakeries & pastries'],
   },
   {
-    patterns: [/pharmacy/i, /medicine/i, /drug/i, /chemist/i, /prescription/i, /pills/i, /medical store/i],
+    patterns: [/pharmacy/i, /medicine/i, /drug/i, /chemist/i, /prescription/i, /pills/i, /medical store/i, /drugstore/i, /ፋርማሲ/i, /መድሃኒት/i],
     tags: [['amenity', 'pharmacy'], ['healthcare', 'pharmacy']],
+    osmQueries: ['[pharmacy]', 'pharmacy', 'chemist'],
     description: 'Pharmacies & dispensaries',
     refinements: ['24-hour pharmacies', 'Hospital pharmacies', 'Health clinics'],
   },
   {
-    patterns: [/gas/i, /fuel/i, /petrol/i, /diesel/i, /station/i, /refuel/i],
+    patterns: [/gas/i, /fuel/i, /petrol/i, /diesel/i, /station/i, /refuel/i, /ነዳጅ/i],
     tags: [['amenity', 'fuel']],
+    osmQueries: ['[fuel]', 'gas station', 'petrol station'],
     description: 'Gas & fuel service stations',
     refinements: ['24-hour gas stations', 'Fuel stations with car wash', 'Service areas'],
   },
   {
-    patterns: [/hotel/i, /motel/i, /hostel/i, /stay/i, /lodge/i, /resort/i, /guest house/i, /guesthouse/i, /inn/i, /accommodation/i],
-    tags: [['tourism', 'hotel'], ['tourism', 'guest_house'], ['tourism', 'hostel']],
-    description: 'Hotels, guest houses & lodging',
-    refinements: ['Boutique hotels', 'Budget guest houses', 'Resorts & suites'],
-  },
-  {
-    patterns: [/supermarket/i, /grocery/i, /market/i, /bazaar/i, /mall/i, /shopping/i, /hypermarket/i, /convenience/i],
+    patterns: [/supermarket/i, /grocery/i, /market/i, /bazaar/i, /mall/i, /shopping/i, /hypermarket/i, /convenience/i, /ሱፐርማርኬት/i, /ገበያ/i],
     tags: [['shop', 'supermarket'], ['shop', 'convenience'], ['shop', 'mall']],
+    osmQueries: ['[supermarket]', '[convenience]', 'supermarket', 'grocery'],
     description: 'Supermarkets, grocery stores & markets',
     refinements: ['Neighborhood supermarkets', 'Shopping malls', 'Convenience stores'],
   },
   {
-    patterns: [/hospital/i, /clinic/i, /doctor/i, /dentist/i, /emergency/i, /health/i, /physician/i],
+    patterns: [/hospital/i, /clinic/i, /doctor/i, /dentist/i, /emergency/i, /health/i, /physician/i, /ሕክምና/i, /ክሊኒክ/i, /ሆስፒታል/i],
     tags: [['amenity', 'hospital'], ['amenity', 'clinic'], ['amenity', 'doctors']],
+    osmQueries: ['[hospital]', '[clinic]', 'hospital', 'clinic'],
     description: 'Hospitals, medical clinics & doctors',
     refinements: ['Emergency hospitals', 'Dental clinics', 'Specialized medical centers'],
   },
   {
-    patterns: [/atm/i, /bank/i, /cash/i, /withdraw/i, /money/i, /forex/i],
+    patterns: [/atm/i, /bank/i, /cash/i, /withdraw/i, /money/i, /forex/i, /ባንክ/i],
     tags: [['amenity', 'atm'], ['amenity', 'bank']],
+    osmQueries: ['[atm]', '[bank]', 'bank', 'atm'],
     description: 'Banks & ATM cash dispensers',
     refinements: ['24/7 ATMs', 'Commercial bank branches', 'Currency exchange'],
   },
   {
     patterns: [/mechanic/i, /car repair/i, /auto/i, /tyre/i, /tire/i, /oil change/i, /garage/i, /puncture/i, /vehicle repair/i],
     tags: [['shop', 'car_repair'], ['craft', 'mechanic']],
+    osmQueries: ['[car_repair]', 'mechanic', 'car repair'],
     description: 'Automotive workshops & repair garages',
     refinements: ['Tire & wheel repair', 'Engine diagnostics', 'Auto spare parts'],
   },
   {
     patterns: [/gym/i, /fitness/i, /workout/i, /weights/i, /bodybuilding/i, /crossfit/i, /swimming/i, /pool/i],
     tags: [['leisure', 'fitness_centre'], ['leisure', 'sports_centre']],
+    osmQueries: ['[fitness_centre]', '[sports_centre]', 'gym', 'fitness'],
     description: 'Gyms, fitness centers & athletics',
     refinements: ['Fitness centers with gym equipment', 'Swimming pools', 'Sports clubs'],
   },
   {
-    patterns: [/bakery/i, /bake/i, /bread/i, /pastry/i, /cake/i, /croissant/i, /patisserie/i],
+    patterns: [/bakery/i, /bake/i, /bread/i, /pastry/i, /cake/i, /croissant/i, /patisserie/i, /ዳቦ/i],
     tags: [['shop', 'bakery']],
+    osmQueries: ['[bakery]', 'bakery', 'pastry'],
     description: 'Bakeries & pastry shops',
     refinements: ['Fresh bread bakeries', 'Cake shops', 'Cafés with pastries'],
   },
   {
-    patterns: [/church/i, /mosque/i, /cathedral/i, /temple/i, /worship/i, /prayer/i],
+    patterns: [/church/i, /mosque/i, /cathedral/i, /temple/i, /worship/i, /prayer/i, /ቤተክርስቲያን/i, /መስጊድ/i],
     tags: [['amenity', 'place_of_worship']],
+    osmQueries: ['[place_of_worship]', 'church', 'mosque'],
     description: 'Churches, mosques & places of worship',
     refinements: ['Churches & cathedrals', 'Mosques', 'Historic religious sites'],
   },
   {
     patterns: [/park/i, /garden/i, /nature/i, /walk/i, /forest/i, /recreation/i],
     tags: [['leisure', 'park'], ['leisure', 'garden']],
+    osmQueries: ['[park]', '[garden]', 'park'],
     description: 'Public parks & recreational gardens',
     refinements: ['Public city parks', 'Botanical gardens', 'Walking trails'],
   },
   {
     patterns: [/bar/i, /pub/i, /beer/i, /wine/i, /cocktail/i, /nightclub/i, /club/i, /lounge/i],
     tags: [['amenity', 'bar'], ['amenity', 'pub'], ['amenity', 'nightclub']],
+    osmQueries: ['[bar]', '[pub]', 'bar', 'pub', 'lounge'],
     description: 'Bars, lounges & nightlife',
     refinements: ['Cocktail lounges', 'Pubs & bars', 'Late-night clubs'],
   },
   {
-    patterns: [/school/i, /university/i, /college/i, /academy/i, /education/i, /library/i],
+    patterns: [/school/i, /university/i, /college/i, /academy/i, /education/i, /library/i, /ትምህርት/i],
     tags: [['amenity', 'school'], ['amenity', 'university'], ['amenity', 'college'], ['amenity', 'library']],
+    osmQueries: ['[school]', '[university]', 'school', 'university'],
     description: 'Schools, universities & educational campuses',
     refinements: ['Universities & colleges', 'High schools', 'Public libraries'],
   },
   {
     patterns: [/salon/i, /barber/i, /haircut/i, /hair/i, /spa/i, /beauty/i, /massage/i],
     tags: [['shop', 'hairdresser'], ['shop', 'beauty'], ['amenity', 'spa']],
+    osmQueries: ['[hairdresser]', '[beauty]', 'salon', 'barber', 'spa'],
     description: 'Salons, barbers & beauty spas',
     refinements: ['Men\'s barber shops', 'Hair & beauty salons', 'Day spas'],
   },
   {
     patterns: [/electronics/i, /phone/i, /laptop/i, /computer/i, /mobile/i, /screen repair/i],
     tags: [['shop', 'electronics'], ['shop', 'mobile_phone']],
+    osmQueries: ['[electronics]', '[mobile_phone]', 'electronics', 'phone repair'],
     description: 'Electronics & mobile phone shops',
     refinements: ['Smartphone repair', 'Computer electronics', 'Accessories'],
   },
 ]
 
 /**
- * Local Semantic parser: analyzes natural language and maps to OSM tags.
+ * Local Semantic parser: analyzes natural language and maps to OSM tags and query strategies.
  */
 export function interpretWithLocalAI(userQuery) {
   const query = userQuery.trim().toLowerCase()
@@ -205,7 +235,7 @@ export function interpretWithLocalAI(userQuery) {
   for (const intent of SEMANTIC_INTENTS) {
     const matched = intent.patterns.some((pattern) => pattern.test(query) || pattern.test(cleaned))
     if (matched) {
-      // Check if there is an additional brand/name (e.g., "Kaldi's coffee", "Shell gas")
+      // Check if there is an additional brand/name (e.g., "Kaldi's coffee", "Shell gas", "Hilton hotel")
       const words = cleaned.split(/\s+/).filter(w => w.length > 2)
       const nonKeywordWords = words.filter(w => !intent.patterns.some(p => p.test(w)))
       const nameFilter = nonKeywordWords.length > 0 ? nonKeywordWords.join(' ') : null
@@ -213,6 +243,7 @@ export function interpretWithLocalAI(userQuery) {
       return {
         engine: 'Semantic AI (Built-in)',
         tags: intent.tags,
+        osmQueries: intent.osmQueries || [],
         nameFilter: nameFilter,
         description: intent.description,
         refinements: intent.refinements,
@@ -225,6 +256,7 @@ export function interpretWithLocalAI(userQuery) {
   return {
     engine: 'Semantic AI (Built-in)',
     tags: [['amenity', '*'], ['shop', '*']],
+    osmQueries: [firstWord],
     nameFilter: firstWord.length >= 2 ? firstWord : null,
     description: `Places matching "${userQuery}"`,
     refinements: ['Explore nearby shops', 'Cafés & restaurants', 'Services'],
@@ -543,12 +575,52 @@ function formatAddressSnippet(displayName) {
   return parts.slice(1, 4).join(', ')
 }
 
+function formatPlaceType(rawType, rawClass, extra = {}) {
+  const t = (rawType || '').toLowerCase().trim()
+  const c = (rawClass || '').toLowerCase().trim()
+
+  if (t === 'guest_house' || t === 'pension' || extra?.tourism === 'guest_house') return 'Guest House'
+  if (t === 'hotel' || extra?.tourism === 'hotel') return 'Hotel'
+  if (t === 'hostel' || extra?.tourism === 'hostel') return 'Hostel'
+  if (t === 'motel' || extra?.tourism === 'motel') return 'Motel'
+  if (t === 'chalet') return 'Chalet / Lodge'
+  if (t === 'apartment' || t === 'serviced_apartment') return 'Apartment'
+  if (t === 'restaurant') return 'Restaurant'
+  if (t === 'fast_food') return 'Fast Food'
+  if (t === 'cafe' || t === 'coffee_shop' || t === 'coffee') return 'Café'
+  if (t === 'bar' || t === 'pub') return 'Bar & Lounge'
+  if (t === 'nightclub') return 'Nightclub'
+  if (t === 'pharmacy') return 'Pharmacy'
+  if (t === 'hospital') return 'Hospital'
+  if (t === 'clinic') return 'Clinic'
+  if (t === 'doctors') return 'Doctor'
+  if (t === 'dentist') return 'Dentist'
+  if (t === 'supermarket') return 'Supermarket'
+  if (t === 'convenience') return 'Convenience Store'
+  if (t === 'bakery') return 'Bakery'
+  if (t === 'pastry') return 'Pastry Shop'
+  if (t === 'fuel') return 'Gas Station'
+  if (t === 'bank') return 'Bank'
+  if (t === 'atm') return 'ATM'
+  if (t === 'school') return 'School'
+  if (t === 'university') return 'University'
+  if (t === 'college') return 'College'
+  if (t === 'place_of_worship') return 'Place of Worship'
+  if (t === 'hardware') return 'Hardware Store'
+  if (t === 'car_repair') return 'Auto Repair'
+  if (t === 'fitness_centre' || t === 'sports_centre') return 'Gym & Fitness'
+
+  if (t) return t.replace(/_/g, ' ')
+  if (c) return c.replace(/_/g, ' ')
+  return 'Place'
+}
+
 function normalizeOsmItem(item, queryFallback) {
   const lat = parseFloat(item.lat)
   const lng = parseFloat(item.lon)
   const rawName = item.name || (item.display_name ? item.display_name.split(',')[0].trim() : queryFallback)
   const extra = item.extratags || {}
-  const type = item.type || item.class || 'place'
+  const type = formatPlaceType(item.type, item.class, extra)
   const address = item.display_name || ''
   const phone = extra.phone || extra['contact:phone'] || ''
   const website = extra.website || extra['contact:website'] || ''
@@ -561,6 +633,8 @@ function normalizeOsmItem(item, queryFallback) {
     lat,
     lng,
     type,
+    rawOsmType: item.type,
+    rawOsmClass: item.class,
     address,
     addressSnippet: formatAddressSnippet(item.display_name),
     phone,
@@ -575,7 +649,7 @@ function normalizeMapboxItem(f, queryFallback) {
   const [lng, lat] = f.center || []
   const name = f.text || (f.place_name ? f.place_name.split(',')[0].trim() : queryFallback)
   const address = f.place_name || ''
-  const type = f.place_type?.[0] || 'place'
+  const type = formatPlaceType(f.place_type?.[0] || 'place', 'place')
 
   return {
     id: `mb-${f.id || Math.random()}`,
@@ -598,9 +672,10 @@ const SEARCH_CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 /**
  * High-Reliability Multi-Engine Place Search:
- * Queries OpenStreetMap Nominatim with viewbox boundary & semantic expansion,
- * backed by Mapbox Geocoding and intelligent radius expansion.
- * Guarantees actual, verified places are returned without silent failures.
+ * - Comprehensively translates categories like "pension", "hotel", "cafe" into both
+ *   OSM bracketed tags (e.g. [guest_house], [hotel]) and textual variants.
+ * - Queries OpenStreetMap Nominatim with strict bounding box.
+ * - STRICTLY ENFORCES the chosen radius standard (never returns out-of-range places).
  */
 export async function searchPlacesReliable({
   term,
@@ -615,19 +690,16 @@ export async function searchPlacesReliable({
 
   const cacheKey = `${unaccented.toLowerCase()}-${center.lat.toFixed(3)}-${center.lng.toFixed(3)}-${radiusKm}`
   const cached = searchCache.get(cacheKey)
-  if (cached && Date.now() - cached.ts < SEARCH_CACHE_TTL && cached.places?.length > 0) {
+  if (cached && Date.now() - cached.ts < SEARCH_CACHE_TTL && Array.isArray(cached.places)) {
     return cached
   }
 
   // 1. Semantic intent interpretation
   const ai = interpretWithLocalAI(unaccented)
-  const keywordsToTry = new Set([trimmed, unaccented, unaccented.toLowerCase()])
+  const categoryQueries = new Set()
 
-  if (ai.tags && Array.isArray(ai.tags)) {
-    for (const [k, v] of ai.tags) {
-      if (v && v !== '*') keywordsToTry.add(v.replace(/_/g, ' '))
-      else if (k) keywordsToTry.add(k.replace(/_/g, ' '))
-    }
+  if (ai?.osmQueries && Array.isArray(ai.osmQueries)) {
+    ai.osmQueries.forEach((q) => categoryQueries.add(q))
   }
 
   for (const preset of CATEGORY_PRESETS) {
@@ -637,26 +709,34 @@ export async function searchPlacesReliable({
       preset.key === trimmed.toLowerCase() ||
       preset.key === unaccented.toLowerCase()
     ) {
-      preset.keywords?.forEach((k) => keywordsToTry.add(k))
+      if (preset.osmQueries) preset.osmQueries.forEach((q) => categoryQueries.add(q))
+      preset.keywords?.forEach((k) => categoryQueries.add(k))
     }
   }
 
-  if (/cafe|coffee/i.test(unaccented)) {
-    keywordsToTry.add('cafe')
-    keywordsToTry.add('coffee')
-  }
-  if (/pharmacy|chemist|drug|medicine/i.test(unaccented)) {
-    keywordsToTry.add('pharmacy')
-    keywordsToTry.add('clinic')
-  }
-  if (/food|restaurant|eat/i.test(unaccented)) {
-    keywordsToTry.add('restaurant')
-    keywordsToTry.add('cafe')
+  // Build the prioritized query terms
+  // Always include the exact user term first
+  const queryTerms = [trimmed]
+  if (unaccented.toLowerCase() !== trimmed.toLowerCase()) {
+    queryTerms.push(unaccented)
   }
 
-  const queryTerms = [...keywordsToTry].slice(0, 4)
+  // Add the category/tag queries
+  for (const cq of categoryQueries) {
+    if (!queryTerms.includes(cq)) {
+      queryTerms.push(cq)
+    }
+  }
 
-  // 2. Viewbox computation for Nominatim
+  // If user mentioned a brand or specific name filter, include it
+  if (ai?.nameFilter && !queryTerms.includes(ai.nameFilter)) {
+    queryTerms.push(ai.nameFilter)
+  }
+
+  // Cap to top 4 queries to maintain speed
+  const activeQueries = queryTerms.slice(0, 4)
+
+  // 2. Viewbox computation for strict Nominatim spatial bounding
   const latDelta = radiusKm / 111.32
   const cosLat = Math.cos((center.lat * Math.PI) / 180)
   const lngDelta = radiusKm / (111.32 * Math.max(0.1, Math.abs(cosLat)))
@@ -666,25 +746,15 @@ export async function searchPlacesReliable({
   const east = Math.min(180, center.lng + lngDelta).toFixed(6)
   const viewboxParam = `${west},${north},${east},${south}`
 
-  // Expanded viewbox (25 km) for broader fallback
-  const expLatDelta = Math.max(25, radiusKm * 3) / 111.32
-  const expLngDelta = Math.max(25, radiusKm * 3) / (111.32 * Math.max(0.1, Math.abs(cosLat)))
-  const expSouth = Math.max(-90, center.lat - expLatDelta).toFixed(6)
-  const expWest = Math.max(-180, center.lng - expLngDelta).toFixed(6)
-  const expNorth = Math.min(90, center.lat + expLatDelta).toFixed(6)
-  const expEast = Math.min(180, center.lng + expLngDelta).toFixed(6)
-  const expViewboxParam = `${expWest},${expNorth},${expEast},${expSouth}`
-
   let rawPlaces = []
 
   const mapboxBbox = `${west},${south},${east},${north}`
-  const expMapboxBbox = `${expWest},${expSouth},${expEast},${expNorth}`
 
-  const fetchNominatim = async (q, vb, bounded) => {
+  const fetchNominatim = async (q, vb, bounded = true) => {
     const proxyBase = typeof window !== 'undefined' ? '' : 'http://localhost:5173'
     const endpoints = [
-      `${proxyBase}/api/nominatim/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&extratags=1&limit=25&viewbox=${vb}${bounded ? '&bounded=1' : ''}`,
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&extratags=1&limit=25&viewbox=${vb}${bounded ? '&bounded=1' : ''}`,
+      `${proxyBase}/api/nominatim/search?q=${encodeURIComponent(q)}&format=json&lat=${center.lat}&lon=${center.lng}&addressdetails=1&extratags=1&limit=25&viewbox=${vb}${bounded ? '&bounded=1' : ''}`,
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&lat=${center.lat}&lon=${center.lng}&addressdetails=1&extratags=1&limit=25&viewbox=${vb}${bounded ? '&bounded=1' : ''}`,
     ]
 
     for (const ep of endpoints) {
@@ -695,7 +765,7 @@ export async function searchPlacesReliable({
           headers['User-Agent'] = 'KeyadiPlaceTracker/2.0 (contact@keyadi.app)'
         }
         const res = await fetch(ep, {
-          signal: signal || AbortSignal.timeout(6000),
+          signal: signal || AbortSignal.timeout(4000),
           headers,
         })
         if (res.ok) {
@@ -706,7 +776,7 @@ export async function searchPlacesReliable({
           }
         }
       } catch {
-        // Continue to fallback endpoint
+        // Try fallback
       }
     }
     return []
@@ -717,7 +787,7 @@ export async function searchPlacesReliable({
     const bboxParam = bbox ? `&bbox=${bbox}` : ''
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?proximity=${center.lng},${center.lat}${bboxParam}&access_token=${mapboxToken}&limit=${limit}`
     try {
-      const res = await fetch(url, { signal: signal || AbortSignal.timeout(6000) })
+      const res = await fetch(url, { signal: signal || AbortSignal.timeout(4000) })
       if (res.ok) {
         const data = await res.json()
         return data.features || []
@@ -726,53 +796,25 @@ export async function searchPlacesReliable({
     return []
   }
 
-  // Phase A: Query bounded Nominatim viewbox for candidate terms
-  for (const q of queryTerms) {
+  // Query bounded Nominatim viewbox for candidate terms
+  for (const q of activeQueries) {
     if (signal?.aborted) break
     const osmItems = await fetchNominatim(q, viewboxParam, true)
     if (osmItems.length > 0) {
       rawPlaces.push(...osmItems.map((item) => normalizeOsmItem(item, q)))
-      if (rawPlaces.length >= 25) break
+      if (rawPlaces.length >= 35) break
     }
   }
 
-  // Phase B: Query Mapbox within local bbox for landmarks, districts, addresses
+  // Fallback to Mapbox within strict bounding box for named venues or landmarks
   if (!signal?.aborted && rawPlaces.length < 5) {
-    const mbItems = await fetchMapbox(trimmed, mapboxBbox, 5)
+    const mbItems = await fetchMapbox(trimmed, mapboxBbox, 10)
     if (mbItems.length > 0) {
       rawPlaces.push(...mbItems.map((item) => normalizeMapboxItem(item, trimmed)))
     }
   }
 
-  // Phase C: If 0 results within strict radius, search expanded viewbox
-  let isExpanded = false
-  let effectiveRadius = radiusKm
-
-  if (rawPlaces.length === 0 && !signal?.aborted) {
-    for (const q of queryTerms) {
-      const osmItems = await fetchNominatim(q, expViewboxParam, false)
-      if (osmItems.length > 0) {
-        rawPlaces.push(...osmItems.map((item) => normalizeOsmItem(item, q)))
-        isExpanded = true
-        break
-      }
-    }
-  }
-
-  // Phase D: If still 0, query Mapbox with expanded bbox, or global fallback for distant cities
-  if (rawPlaces.length === 0 && !signal?.aborted && mapboxToken) {
-    let mbItems = await fetchMapbox(trimmed, expMapboxBbox, 10)
-    if (mbItems.length === 0) {
-      // Global fallback for explicit distant cities/landmarks (e.g., "Paris", "New York", "Hawassa")
-      mbItems = await fetchMapbox(trimmed, null, 10)
-    }
-    if (mbItems.length > 0) {
-      rawPlaces.push(...mbItems.map((item) => normalizeMapboxItem(item, trimmed)))
-      isExpanded = true
-    }
-  }
-
-  // Normalize, calculate distance, and deduplicate
+  // Calculate distance strictly from the search origin
   const formatted = rawPlaces
     .map((p) => {
       const dist = haversineDistance(center.lat, center.lng, p.lat, p.lng)
@@ -780,45 +822,38 @@ export async function searchPlacesReliable({
     })
     .filter((p) => !isNaN(p.lat) && !isNaN(p.lng) && p.name)
 
+  // Deduplicate by normalized name + rough coordinate grid
   const seen = new Set()
   const unique = formatted.filter((p) => {
-    const key = `${p.name.toLowerCase()}-${p.lat.toFixed(3)}-${p.lng.toFixed(3)}`
+    const key = `${p.name.toLowerCase().replace(/[^a-z0-9]/g, '')}-${p.lat.toFixed(3)}-${p.lng.toFixed(3)}`
     if (seen.has(key)) return false
     seen.add(key)
     return true
   })
 
-  // Sort by shortest distance to furthest
+  // Sort strictly from closest to furthest
   unique.sort((a, b) => a.distanceKm - b.distanceKm)
 
-  // Prioritize places within the requested radius
-  const withinStrictRadius = unique.filter((p) => p.distanceKm <= radiusKm)
+  // ── STRICT RADIUS ENFORCEMENT ──
+  // Never show places beyond the user's selected radius standard (e.g. 5 km).
+  const strictlyWithinRadius = unique.filter((p) => p.distanceKm <= radiusKm)
 
-  let finalPlaces = []
-  if (withinStrictRadius.length > 0) {
-    finalPlaces = withinStrictRadius
-    isExpanded = false
-    effectiveRadius = radiusKm
-  } else if (unique.length > 0) {
-    // Found matches beyond current radius - keep them and mark expanded
-    finalPlaces = unique.slice(0, 25)
-    isExpanded = true
-    effectiveRadius = Math.ceil(finalPlaces[finalPlaces.length - 1].distanceKm)
-  }
+  const nearestOutside = unique.length > 0 && strictlyWithinRadius.length === 0
+    ? { name: unique[0].name, distanceKm: unique[0].distanceKm }
+    : null
 
   const resultObj = {
-    places: finalPlaces,
-    isExpanded,
-    effectiveRadius,
+    places: strictlyWithinRadius,
+    isExpanded: false,
+    effectiveRadius: radiusKm,
     aiInterpretation: ai,
+    nearestOutside,
   }
 
-  if (finalPlaces.length > 0) {
-    searchCache.set(cacheKey, { ...resultObj, ts: Date.now() })
-    if (searchCache.size > 50) {
-      const oldestKey = searchCache.keys().next().value
-      searchCache.delete(oldestKey)
-    }
+  searchCache.set(cacheKey, { ...resultObj, ts: Date.now() })
+  if (searchCache.size > 50) {
+    const oldestKey = searchCache.keys().next().value
+    searchCache.delete(oldestKey)
   }
 
   return resultObj
