@@ -29,7 +29,6 @@ import {
 import {
   CATEGORY_PRESETS,
   interpretWithAI,
-  synthesizeWithRAG,
   askPlaceRAG,
   buildAIOverpassQuery,
   buildTagOverpassQuery,
@@ -686,32 +685,18 @@ export default function Dashboard() {
         setAiDescription(`${searchRes.aiInterpretation.description}${cat} — retrieved ${found.length} verified place${found.length !== 1 ? 's' : ''} strictly within ${effectiveRadius} km`)
       }
 
-      // Grounded Intelligence Synthesis
-      if (searchRes.source === 'gemini') {
-        if (searchRes.aiInterpretation?.description) {
-          setRagSummary(searchRes.aiInterpretation.description)
-        }
-        if (Array.isArray(searchRes.aiInterpretation?.refinements)) {
-          setRagFollowUps(searchRes.aiInterpretation.refinements)
-        }
-        const badges = {}
-        found.forEach((p) => {
-          if (p.badge) badges[p.name] = p.badge
-        })
-        setPlaceBadges(badges)
-      } else if (aiEnabled && found.length > 0) {
-        setRagSynthesizing(true)
-        synthesizeWithRAG(term.trim(), found, origin, settings.units)
-          .then((ragRes) => {
-            if (ragRes) {
-              setRagSummary(ragRes.ragSummary || '')
-              setPlaceBadges(ragRes.badges || {})
-              setRagFollowUps(ragRes.followUps || [])
-            }
-          })
-          .catch((err) => console.warn('Synthesis error:', err))
-          .finally(() => setRagSynthesizing(false))
+      // Google Gemini Place Intelligence Insights
+      if (searchRes.aiInterpretation?.description) {
+        setRagSummary(searchRes.aiInterpretation.description)
       }
+      if (Array.isArray(searchRes.aiInterpretation?.refinements)) {
+        setRagFollowUps(searchRes.aiInterpretation.refinements)
+      }
+      const badges = {}
+      found.forEach((p) => {
+        if (p.badge) badges[p.name] = p.badge
+      })
+      setPlaceBadges(badges)
     } catch (err) {
       setResults([])
       if (err?.name !== 'AbortError') {
@@ -733,7 +718,7 @@ export default function Dashboard() {
     setSearchError(null)
     setSearchNotice(null)
     setSelectedPlace(null)
-    setAiEngine('Category Preset')
+    setAiEngine('Keyadi AI Insight')
     setAiDescription(`Searching for ${category.label} within ${effectiveRadius} km…`)
     setAiRefinements([])
     setPlaceAddress('')
@@ -773,31 +758,18 @@ export default function Dashboard() {
       }
       setAiDescription(`${category.label} — found ${found.length} place${found.length !== 1 ? 's' : ''} within ${effectiveRadius} km`)
 
-      if (searchRes.source === 'gemini') {
-        if (searchRes.aiInterpretation?.description) {
-          setRagSummary(searchRes.aiInterpretation.description)
-        }
-        if (Array.isArray(searchRes.aiInterpretation?.refinements)) {
-          setRagFollowUps(searchRes.aiInterpretation.refinements)
-        }
-        const badges = {}
-        found.forEach((p) => {
-          if (p.badge) badges[p.name] = p.badge
-        })
-        setPlaceBadges(badges)
-      } else if (aiEnabled && found.length > 0) {
-        setRagSynthesizing(true)
-        synthesizeWithRAG(category.label, found, origin, settings.units)
-          .then((ragRes) => {
-            if (ragRes) {
-              setRagSummary(ragRes.ragSummary || '')
-              setPlaceBadges(ragRes.badges || {})
-              setRagFollowUps(ragRes.followUps || [])
-            }
-          })
-          .catch(() => {})
-          .finally(() => setRagSynthesizing(false))
+      // Google Gemini Place Intelligence Insights
+      if (searchRes.aiInterpretation?.description) {
+        setRagSummary(searchRes.aiInterpretation.description)
       }
+      if (Array.isArray(searchRes.aiInterpretation?.refinements)) {
+        setRagFollowUps(searchRes.aiInterpretation.refinements)
+      }
+      const badges = {}
+      found.forEach((p) => {
+        if (p.badge) badges[p.name] = p.badge
+      })
+      setPlaceBadges(badges)
     } catch (err) {
       setResults([])
       if (err?.name !== 'AbortError') {
@@ -1800,7 +1772,7 @@ export default function Dashboard() {
               </span>
             </div>
 
-            {/* RAG Categorized Semantic Information */}
+            {/* Keyadi AI Categorized Insight */}
             <div
               className="mb-3 rounded-2xl p-2.5 text-xs flex flex-col gap-1 border"
               style={{
@@ -1811,7 +1783,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 font-semibold text-[11px]" style={{ color: '#2dd4bf' }}>
                   <SparklesIcon size={12} color="#2dd4bf" />
-                  <span>{selectedPlace.source === 'gemini' ? 'Keyadi AI Insight' : 'Keyadi Semantic Categorization'}</span>
+                  <span>Keyadi AI Insight</span>
                 </span>
                 {typeof selectedPlace.semanticScore === 'number' && (
                   <span className="rounded-full px-2 py-0.5 text-[9px] font-bold" style={{ backgroundColor: 'rgba(45,212,191,0.15)', color: '#2dd4bf' }}>

