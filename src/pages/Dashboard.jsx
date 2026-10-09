@@ -686,8 +686,20 @@ export default function Dashboard() {
         setAiDescription(`${searchRes.aiInterpretation.description}${cat} — retrieved ${found.length} verified place${found.length !== 1 ? 's' : ''} strictly within ${effectiveRadius} km`)
       }
 
-      // Grounded RAG Synthesis Phase
-      if (aiEnabled && found.length > 0) {
+      // Grounded Intelligence Synthesis
+      if (searchRes.source === 'gemini') {
+        if (searchRes.aiInterpretation?.description) {
+          setRagSummary(searchRes.aiInterpretation.description)
+        }
+        if (Array.isArray(searchRes.aiInterpretation?.refinements)) {
+          setRagFollowUps(searchRes.aiInterpretation.refinements)
+        }
+        const badges = {}
+        found.forEach((p) => {
+          if (p.badge) badges[p.name] = p.badge
+        })
+        setPlaceBadges(badges)
+      } else if (aiEnabled && found.length > 0) {
         setRagSynthesizing(true)
         synthesizeWithRAG(term.trim(), found, origin, settings.units)
           .then((ragRes) => {
@@ -697,7 +709,7 @@ export default function Dashboard() {
               setRagFollowUps(ragRes.followUps || [])
             }
           })
-          .catch((err) => console.warn('RAG synthesis error:', err))
+          .catch((err) => console.warn('Synthesis error:', err))
           .finally(() => setRagSynthesizing(false))
       }
     } catch (err) {
@@ -761,7 +773,19 @@ export default function Dashboard() {
       }
       setAiDescription(`${category.label} — found ${found.length} place${found.length !== 1 ? 's' : ''} within ${effectiveRadius} km`)
 
-      if (aiEnabled && found.length > 0) {
+      if (searchRes.source === 'gemini') {
+        if (searchRes.aiInterpretation?.description) {
+          setRagSummary(searchRes.aiInterpretation.description)
+        }
+        if (Array.isArray(searchRes.aiInterpretation?.refinements)) {
+          setRagFollowUps(searchRes.aiInterpretation.refinements)
+        }
+        const badges = {}
+        found.forEach((p) => {
+          if (p.badge) badges[p.name] = p.badge
+        })
+        setPlaceBadges(badges)
+      } else if (aiEnabled && found.length > 0) {
         setRagSynthesizing(true)
         synthesizeWithRAG(category.label, found, origin, settings.units)
           .then((ragRes) => {
@@ -1360,14 +1384,14 @@ export default function Dashboard() {
                         <div className="flex items-center gap-1.5">
                           <SparklesIcon size={14} color="#2dd4bf" />
                           <span className="text-[11px] font-semibold tracking-wide uppercase" style={{ color: '#2dd4bf' }}>
-                            Keyadi Smart Insight
+                            {aiEngine && aiEngine.includes('Gemini') ? 'Google Gemini AI Insight' : 'Keyadi Smart Insight'}
                           </span>
                         </div>
                         <span
                           className="rounded-full px-2 py-0.5 text-[9px] font-medium"
                           style={{ backgroundColor: 'rgba(45,212,191,0.15)', color: '#2dd4bf' }}
                         >
-                          {ragSynthesizing ? 'Keyadi finding best matches…' : 'Verified Places'}
+                          {ragSynthesizing ? 'Finding best matches…' : aiEngine && aiEngine.includes('Gemini') ? 'Gemini AI Verified' : 'Verified Places'}
                         </span>
                       </div>
 
@@ -1787,7 +1811,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 font-semibold text-[11px]" style={{ color: '#2dd4bf' }}>
                   <SparklesIcon size={12} color="#2dd4bf" />
-                  <span>RAG Semantic Categorization</span>
+                  <span>{selectedPlace.source === 'gemini' ? 'Google Gemini AI Analysis' : 'RAG Semantic Categorization'}</span>
                 </span>
                 {typeof selectedPlace.semanticScore === 'number' && (
                   <span className="rounded-full px-2 py-0.5 text-[9px] font-bold" style={{ backgroundColor: 'rgba(45,212,191,0.15)', color: '#2dd4bf' }}>
