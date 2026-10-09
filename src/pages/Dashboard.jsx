@@ -1384,14 +1384,14 @@ export default function Dashboard() {
                         <div className="flex items-center gap-1.5">
                           <SparklesIcon size={14} color="#2dd4bf" />
                           <span className="text-[11px] font-semibold tracking-wide uppercase" style={{ color: '#2dd4bf' }}>
-                            {aiEngine && aiEngine.includes('Gemini') ? 'Google Gemini AI Insight' : 'Keyadi Smart Insight'}
+                            Keyadi AI Insight
                           </span>
                         </div>
                         <span
                           className="rounded-full px-2 py-0.5 text-[9px] font-medium"
                           style={{ backgroundColor: 'rgba(45,212,191,0.15)', color: '#2dd4bf' }}
                         >
-                          {ragSynthesizing ? 'Finding best matches…' : aiEngine && aiEngine.includes('Gemini') ? 'Gemini AI Verified' : 'Verified Places'}
+                          {ragSynthesizing ? 'Finding best matches…' : 'Keyadi AI Verified'}
                         </span>
                       </div>
 
@@ -1811,7 +1811,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 font-semibold text-[11px]" style={{ color: '#2dd4bf' }}>
                   <SparklesIcon size={12} color="#2dd4bf" />
-                  <span>{selectedPlace.source === 'gemini' ? 'Google Gemini AI Analysis' : 'RAG Semantic Categorization'}</span>
+                  <span>{selectedPlace.source === 'gemini' ? 'Keyadi AI Insight' : 'Keyadi Semantic Categorization'}</span>
                 </span>
                 {typeof selectedPlace.semanticScore === 'number' && (
                   <span className="rounded-full px-2 py-0.5 text-[9px] font-bold" style={{ backgroundColor: 'rgba(45,212,191,0.15)', color: '#2dd4bf' }}>
