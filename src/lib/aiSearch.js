@@ -508,7 +508,7 @@ export async function getSearchAreaContext(center, mapboxToken = '') {
   try {
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${center.lat}&lon=${center.lng}&format=json`
     const res = await fetch(url, {
-      headers: { 'User-Agent': 'KeyadiPlaceTracker/2.0 (contact@keyadi.app)' },
+      headers: { 'User-Agent': 'KeyadiPlaceTracker/2026.1 (contact@keyadi.app)' },
       signal: AbortSignal.timeout(3000),
     })
     if (res.ok) {
@@ -663,7 +663,7 @@ async function queryNominatimPOI(query, center, viewboxParam, signal) {
     try {
       const headers = { Accept: 'application/json' }
       if (typeof window === 'undefined') {
-        headers['User-Agent'] = 'KeyadiPlaceTracker/2.0 (contact@keyadi.app)'
+        headers['User-Agent'] = 'KeyadiPlaceTracker/2026.1 (contact@keyadi.app)'
       }
       const res = await fetch(ep, {
         signal: signal || AbortSignal.timeout(4500),
@@ -884,7 +884,8 @@ export async function searchPlacesWithGemini({
     ? `${areaContext} (latitude ${center.lat.toFixed(5)}, longitude ${center.lng.toFixed(5)})`
     : `latitude ${center.lat.toFixed(5)}, longitude ${center.lng.toFixed(5)}`
 
-  const prompt = `You are Keyadi's Google Gemini Place Intelligence Engine.
+  const prompt = `You are Keyadi's Google Gemini Place Intelligence Engine (Year: 2026).
+Current Date: 2026-10-10. All information, place names, active venues, operating status, road layouts, and geographic coordinates must reflect verified 2026 real-world data. Exclude permanently closed or outdated historical venues.
 User query: "${term}"
 Search origin: ${locationDesc}
 Search radius: strictly within ${radiusKm} km.
@@ -892,13 +893,13 @@ Search radius: strictly within ${radiusKm} km.
 Task:
 1. Deeply understand the user query in its full geographic, cultural, and situational context, whether it is a single word (e.g. "pension", "fuel", "coffee"), a phrase ("cheap guest house", "fresh juice"), a practical question ("where can I buy cement for construction"), or a full sentence ("find me a quiet cafe with fast wifi").
 2. Accurately categorize the user intent into a clean, professional category title (e.g. "Guest Houses & Budget Pensions", "Hardware & Construction Materials", "Specialty Coffee & Cafés", "Pharmacies & Medical", "Supermarkets & Groceries", etc.).
-3. Identify and return the MOST RELEVANT, verified, real-world places that physically exist in this geographic area within the ${radiusKm} km radius.
+3. Identify and return the MOST RELEVANT, verified, real-world places that are actively open and operating in 2026 in this geographic area strictly within the ${radiusKm} km radius.
    - For lodging/pension queries, identify genuine guest houses, pensions, or budget hotels (NEVER administrative offices, corporate offices, or banks).
    - For construction/cement queries, identify genuine building material suppliers and hardware stores.
    - For food/drink queries, identify genuine restaurants, cafes, or bakeries.
-   - Provide realistic, accurate physical coordinates (lat, lng) strictly within ${radiusKm} km of the origin.
-   - Include realistic street/district addresses, verified opening hours (e.g. 24/7 or 08:00 - 22:00), contact phones if known, and star ratings (e.g. 4.2).
-   - In "description", give a concise 1-sentence explanation of why this place specifically matches the user's need.
+   - Provide realistic, accurate 2026 physical coordinates (lat, lng) strictly within ${radiusKm} km of the origin.
+   - Include 2026 verified street/district addresses, active opening hours (e.g. 24/7 or 08:00 - 22:00), active contact phones if known, and reliable star ratings (e.g. 4.2).
+   - In "description", give a concise 1-sentence explanation of why this place specifically matches the user's need in 2026.
 
 Output strict JSON only with no markdown formatting:
 {

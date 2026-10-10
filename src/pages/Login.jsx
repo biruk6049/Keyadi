@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useSettings } from '../context/SettingsContext'
 import PageBackground from '../components/PageBackground'
@@ -7,14 +7,23 @@ import { SparklesIcon } from '../components/Icons'
 import KeyadiLogo from '../components/KeyadiLogo'
 
 export default function Login() {
-  const { signInWithEmail } = useAuth()
+  const { user, signInWithEmail } = useAuth()
   const { settings } = useSettings()
   const isDark = true
   const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      const from = location.state?.from?.pathname || '/dashboard'
+      navigate(from, { replace: true })
+    }
+  }, [user, navigate, location])
 
   const ink = '#f3f1ec'
   const inkMuted = 'rgba(243,241,236,0.65)'
@@ -33,7 +42,8 @@ export default function Login() {
       setError(error.message)
       return
     }
-    navigate('/dashboard')
+    const from = location.state?.from?.pathname || '/dashboard'
+    navigate(from, { replace: true })
   }
 
   return (
@@ -68,8 +78,18 @@ export default function Login() {
             Welcome back
           </h1>
           <p className="text-sm mb-6 leading-relaxed" style={{ color: inkMuted }}>
-            Sign in to access your saved places, custom searches, and live directions.
+            Sign in to access your live map, smart search, and saved places.
           </p>
+
+          {location.state?.from && !error && (
+            <div
+              className="mb-5 flex items-center gap-2 rounded-2xl p-3.5 text-xs font-medium"
+              style={{ backgroundColor: 'rgba(232, 163, 61, 0.12)', color: amber, border: `1px solid ${amber}44` }}
+            >
+              <SparklesIcon size={14} color={amber} />
+              <span>Authentication required: Please sign in or create an account to access the map.</span>
+            </div>
+          )}
 
           {error && (
             <div
@@ -122,16 +142,11 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t text-center text-xs space-y-2.5" style={{ borderColor: hairline, color: inkMuted }}>
+          <div className="mt-6 pt-5 border-t text-center text-xs" style={{ borderColor: hairline, color: inkMuted }}>
             <div>
               Don't have an account?{' '}
               <Link to="/signup" className="font-bold text-amber-400 hover:underline">
                 Create one for free
-              </Link>
-            </div>
-            <div>
-              <Link to="/dashboard" className="text-white/60 hover:text-white transition font-medium">
-                Explore map as guest →
               </Link>
             </div>
           </div>

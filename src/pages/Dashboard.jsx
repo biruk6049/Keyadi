@@ -242,6 +242,8 @@ export default function Dashboard() {
   const [center, setCenter] = useState({ lat: settings.defaultLat, lng: settings.defaultLng })
   const [myLocation, setMyLocation] = useState(null)
   const [locationStatus, setLocationStatus] = useState('idle')
+  const [locationErrorMsg, setLocationErrorMsg] = useState(null)
+  const [mapLoaded, setMapLoaded] = useState(false)
   const [saveStatus, setSaveStatus] = useState('idle')
   const [saveError, setSaveError] = useState(null)
   const [copiedIdx, setCopiedIdx] = useState(null)
@@ -383,12 +385,20 @@ export default function Dashboard() {
     })
 
     mapRef.current.on('load', () => {
+      setMapLoaded(true)
       ensureRouteLayer()
       updateRadiusCircle()
     })
     mapRef.current.on('style.load', () => {
       ensureRouteLayer()
       updateRadiusCircle()
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove()
+        userMarkerRef.current = null
+      }
+      if (myLocation) {
+        updateUserMarker(myLocation.lat, myLocation.lng, myLocation.accuracy)
+      }
     })
   }, [])
 
@@ -428,75 +438,182 @@ export default function Dashboard() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  // Geolocation tracking
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setLocationStatus('unsupported')
-      return
-    }
-    setLocationStatus('requesting')
+  // ── High-Precision Geolocation System ──────────────────────────────
 
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords
-        setLocationStatus('granted')
-        setMyLocation({ lat: latitude, lng: longitude })
-        updateUserMarker(latitude, longitude)
-
-        if (!hasCenteredRef.current && settings.searchMode !== 'custom') {
-          hasCenteredRef.current = true
-          setCenter({ lat: latitude, lng: longitude })
-          mapRef.current?.setCenter([longitude, latitude])
-        }
-      },
-      (err) => {
-        console.error('Geolocation error:', err)
-        setLocationStatus('denied')
-      },
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
-    )
-
-    return () => {
-      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current)
-    }
-  }, [])
-
-  const updateUserMarker = (lat, lng) => {
+  const updateUserMarker = (lat, lng, accuracy = null) => {
     if (!mapRef.current) return
     if (!userMarkerRef.current) {
-      const el = document.createElement('div')
-      el.className = 'keyadi-user-dot'
-      userMarkerRef.current = new mapboxgl.Marker({ element: el }).setLngLat([lng, lat]).addTo(mapRef.current)
+      const container = document.createElement('div')
+      container.className = 'keyadi-user-location-marker'
+      container.setAttribute('role', 'img')
+      container.setAttribute('aria-label', 'Your Live Location')
+      container.innerHTML = `
+        <div class="keyadi-user-radar-ring"></div>
+        <div class="keyadi-user-radar-ring-delayed"></div>
+        <div class="keyadi-user-core-dot">
+          <div class="keyadi-user-inner-white"></div>
+        </div>
+      `
+
+      const popup = new mapboxgl.Popup({
+        offset: 18,
+        closeButton: false,
+        className: 'keyadi-user-popup',
+        closeOnClick: false,
+      }).setHTML(`
+        <div style="padding: 5px 11px; font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 700; color: #100e0b; background: #e8a33d; border-radius: 9999px; box-shadow: 0 4px 14px rgba(0,0,0,0.35); text-align: center; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
+          <span>📍</span>
+          <span>You Are Here</span>
+        </div>
+      `)
+
+      userMarkerRef.current = new mapboxgl.Marker({ element: container, anchor: 'center' })
+        .setLngLat([lng, lat])
+        .setPopup(popup)
+        .addTo(mapRef.current)
+
+      container.addEventListener('mouseenter', () => {
+        if (!userMarkerRef.current?.getPopup()?.isOpen()) {
+          userMarkerRef.current?.togglePopup()
+        }
+      })
+      container.addEventListener('mouseleave', () => {
+        if (userMarkerRef.current?.getPopup()?.isOpen()) {
+          userMarkerRef.current?.togglePopup()
+        }
+      })
     } else {
       userMarkerRef.current.setLngLat([lng, lat])
     }
   }
 
-  const requestLocation = () => {
-    setLocationStatus('requesting')
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords
-        setLocationStatus('granted')
-        setMyLocation({ lat: latitude, lng: longitude })
-        hasCenteredRef.current = true
-        if (settings.searchMode !== 'custom') {
-          setCenter({ lat: latitude, lng: longitude })
-          mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 14 })
-        }
-        updateUserMarker(latitude, longitude)
-      },
-      () => setLocationStatus('denied'),
-      { enableHighAccuracy: true }
-    )
+  // Reactive marker synchronization: ensures marker is mounted once map is ready and location is known
+  useEffect(() => {
+    if (!mapLoaded || !mapRef.current || !myLocation) return
+    updateUserMarker(myLocation.lat, myLocation.lng, myLocation.accuracy)
+  }, [mapLoaded, myLocation])
+
+  const handleLocationSuccess = (pos) => {
+    const { latitude, longitude, accuracy } = pos.coords
+    setLocationStatus('granted')
+    setLocationErrorMsg(null)
+    setMyLocation({ lat: latitude, lng: longitude, accuracy })
+
+    if (mapRef.current) {
+      updateUserMarker(latitude, longitude, accuracy)
+    }
+
+    if (!hasCenteredRef.current && settings.searchMode !== 'custom') {
+      hasCenteredRef.current = true
+      setCenter({ lat: latitude, lng: longitude })
+      mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 14, essential: true })
+    }
   }
 
-  const recenterOnMe = () => {
-    if (locationStatus !== 'granted' || !myLocation) {
-      requestLocation()
+  const handleLocationError = (err) => {
+    console.warn('Geolocation error:', err)
+    if (err.code === 1) { // PERMISSION_DENIED
+      setLocationStatus('denied')
+      setLocationErrorMsg('Location access is denied in your browser settings. Please allow location access in your browser to display your current position on the map.')
+    } else if (err.code === 2) { // POSITION_UNAVAILABLE
+      setLocationStatus('unavailable')
+      setLocationErrorMsg('Current geographic position is unavailable. Please check your device location settings or network.')
+    } else if (err.code === 3) { // TIMEOUT
+      setLocationStatus('timeout')
+      setLocationErrorMsg('Location detection timed out. Click below to retry.')
+    } else {
+      setLocationStatus('error')
+      setLocationErrorMsg(err.message || 'Unable to retrieve your current location.')
+    }
+  }
+
+  const startWatchingLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('unsupported')
+      setLocationErrorMsg('Geolocation is not supported by your browser.')
       return
     }
-    mapRef.current?.flyTo({ center: [myLocation.lng, myLocation.lat], zoom: 14 })
+
+    setLocationStatus('requesting')
+    setLocationErrorMsg(null)
+
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
+    }
+
+    let resolved = false
+
+    // Two-tier strategy: fallback to low accuracy (Wi-Fi/IP network positioning) if GPS hardware times out
+    const fallbackLowAccuracy = () => {
+      if (resolved) return
+      console.warn('Geolocation: High accuracy unavailable or timed out. Falling back to network positioning.')
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          resolved = true
+          handleLocationSuccess(pos)
+        },
+        (err) => {
+          handleLocationError(err)
+        },
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
+      )
+    }
+
+    const timer = setTimeout(() => {
+      if (!resolved) {
+        fallbackLowAccuracy()
+      }
+    }, 6500)
+
+    try {
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          clearTimeout(timer)
+          resolved = true
+          handleLocationSuccess(pos)
+        },
+        (err) => {
+          clearTimeout(timer)
+          if (err.code === 1) {
+            // Explicit denial from user
+            handleLocationError(err)
+          } else {
+            // Hardware timeout / unavailable -> fallback
+            fallbackLowAccuracy()
+          }
+        },
+        { enableHighAccuracy: true, timeout: 7000, maximumAge: 10000 }
+      )
+    } catch {
+      clearTimeout(timer)
+      fallbackLowAccuracy()
+    }
+  }
+
+  useEffect(() => {
+    startWatchingLocation()
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current)
+      }
+    }
+  }, [])
+
+  const recenterOnMe = () => {
+    if (locationStatus === 'granted' && myLocation) {
+      mapRef.current?.flyTo({ center: [myLocation.lng, myLocation.lat], zoom: 15, essential: true })
+      if (userMarkerRef.current) {
+        userMarkerRef.current.togglePopup()
+        setTimeout(() => {
+          if (userMarkerRef.current?.getPopup()?.isOpen()) {
+            userMarkerRef.current.togglePopup()
+          }
+        }, 3000)
+      }
+    } else {
+      startWatchingLocation()
+    }
   }
 
   useEffect(() => {
@@ -1144,6 +1261,58 @@ export default function Dashboard() {
               </button>
             ))}
           </div>
+
+          {/* ── Geolocation Status & Permission Alert Banner ── */}
+          {locationStatus === 'requesting' && (
+            <div
+              className="mt-2.5 mx-auto w-fit flex items-center gap-2 rounded-full px-4 py-1.5 shadow-2xl backdrop-blur-2xl border text-xs animate-in fade-in duration-300"
+              style={{
+                backgroundColor: isDark ? 'rgba(18, 16, 13, 0.90)' : 'rgba(255, 255, 255, 0.94)',
+                borderColor: 'rgba(232, 163, 61, 0.4)',
+                color: ink,
+              }}
+            >
+              <span className="h-3 w-3 rounded-full border-2 border-amber-400 border-t-transparent animate-spin shrink-0" />
+              <span style={{ color: amber }} className="font-semibold">Acquiring your geographic location…</span>
+            </div>
+          )}
+
+          {(locationStatus === 'denied' || locationStatus === 'unavailable' || locationStatus === 'timeout') && locationErrorMsg && (
+            <div
+              className="mt-2.5 mx-auto max-w-lg flex items-center justify-between gap-3 rounded-2xl p-2.5 px-3.5 shadow-2xl backdrop-blur-2xl border text-xs animate-in slide-in-from-top-2 duration-300"
+              style={{
+                backgroundColor: isDark ? 'rgba(28, 16, 16, 0.94)' : 'rgba(255, 245, 245, 0.97)',
+                borderColor: 'rgba(239, 68, 68, 0.45)',
+                color: ink,
+              }}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-sm shrink-0">⚠️</span>
+                <p className="text-[11px] leading-tight font-medium" style={{ color: isDark ? '#fca5a5' : '#b91c1c' }}>
+                  {locationErrorMsg}
+                </p>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={startWatchingLocation}
+                  className="rounded-full px-3 py-1 text-[11px] font-bold shadow-md transition hover:scale-105"
+                  style={{ backgroundColor: amber, color: '#100e0b' }}
+                >
+                  Retry
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocationErrorMsg(null)}
+                  className="h-6 w-6 rounded-full flex items-center justify-center text-xs opacity-60 hover:opacity-100 transition"
+                  style={{ color: ink }}
+                  title="Dismiss alert"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Top-Right Floating Controls ── */}
@@ -1168,24 +1337,25 @@ export default function Dashboard() {
             </IconButton>
           </Link>
 
-          {user ? (
-            <div className="hidden sm:inline-flex">
-              <IconButton title="Sign out" isDark={isDark} onClick={signOut}>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M16 17l5-5-5-5M21 12H9" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </IconButton>
-            </div>
-          ) : (
-            <Link
-              to="/login"
-              className="hidden sm:inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition hover:scale-105 shadow-md"
-              style={{ backgroundColor: amber, color: '#100e0b' }}
+          <div className="hidden sm:inline-flex items-center gap-2">
+            <span
+              className="text-xs font-semibold px-2.5 py-1 rounded-full border truncate max-w-[130px]"
+              style={{
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+                borderColor: hairline,
+                color: inkMuted,
+              }}
+              title={user?.email || 'Authenticated User'}
             >
-              Sign In
-            </Link>
-          )}
+              {user?.email ? user.email.split('@')[0] : 'Member'}
+            </span>
+            <IconButton title="Sign out" isDark={isDark} onClick={signOut}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M16 17l5-5-5-5M21 12H9" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </IconButton>
+          </div>
         </div>
 
         {/* ── Floating Left Glassmorphic Sidebar (Desktop) / Interactive Bottom Sheet (Mobile) ── */}
@@ -1947,14 +2117,25 @@ export default function Dashboard() {
           {/* Recenter location */}
           <button
             onClick={recenterOnMe}
-            title="Center on my location"
-            className="flex h-10 w-10 items-center justify-center rounded-2xl border shadow-lg backdrop-blur-xl transition hover:scale-105"
-            style={{ borderColor: hairline, backgroundColor: isDark ? 'rgba(18, 16, 13, 0.8)' : 'rgba(255,255,255,0.85)', color: ink }}
+            title={locationStatus === 'granted' ? 'Center on my live location' : 'Request live geographic location'}
+            className="relative flex h-10 w-10 items-center justify-center rounded-2xl border shadow-lg backdrop-blur-xl transition hover:scale-105"
+            style={{
+              borderColor: locationStatus === 'granted' ? 'rgba(232, 163, 61, 0.45)' : hairline,
+              backgroundColor: isDark ? 'rgba(18, 16, 13, 0.85)' : 'rgba(255,255,255,0.85)',
+              color: locationStatus === 'granted' ? amber : ink,
+            }}
           >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M12 2v3M12 19v3M2 12h3M19 12h3" strokeLinecap="round" />
-            </svg>
+            {locationStatus === 'requesting' ? (
+              <span className="h-4 w-4 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+            ) : (
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3" strokeLinecap="round" />
+              </svg>
+            )}
+            {locationStatus === 'granted' && (
+              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-[#0e0d0b]" />
+            )}
           </button>
         </div>
 

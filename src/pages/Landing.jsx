@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { useSettings } from '../context/SettingsContext'
 import AuraBackground from '../components/AuraBackground'
 import KeyadiLogo from '../components/KeyadiLogo'
@@ -176,6 +177,7 @@ function useTypewriter(words, { typeSpeed = 65, deleteSpeed = 35, pause = 1600 }
 }
 
 export default function Landing() {
+  const { user } = useAuth()
   const { settings } = useSettings()
   const isDark = true
   const scanText = useTypewriter(SCAN_TERMS)
@@ -351,21 +353,35 @@ export default function Landing() {
                 <span className="whitespace-nowrap">Get App</span>
               </button>
 
-              <Link
-                to="/login"
-                className="hidden sm:inline-block rounded-full px-3.5 py-2 text-xs font-semibold transition hover:opacity-80 whitespace-nowrap"
-                style={{ color: ink }}
-              >
-                Sign in
-              </Link>
-              <Link
-                to="/signup"
-                className="hidden sm:flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-transform hover:scale-105 shadow-md whitespace-nowrap"
-                style={{ backgroundColor: amber, color: '#100e0b' }}
-              >
-                <SparklesIcon size={12} color="#100e0b" />
-                <span className="whitespace-nowrap">Create Account</span>
-              </Link>
+              {user ? (
+                <Link
+                  to="/dashboard"
+                  className="hidden sm:flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-transform hover:scale-105 shadow-md whitespace-nowrap"
+                  style={{ backgroundColor: amber, color: '#100e0b' }}
+                >
+                  <SearchIcon size={12} color="#100e0b" />
+                  <span className="whitespace-nowrap">Open Live Map</span>
+                  <span>→</span>
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="hidden sm:inline-block rounded-full px-3.5 py-2 text-xs font-semibold transition hover:opacity-80 whitespace-nowrap"
+                    style={{ color: ink }}
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="hidden sm:flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-transform hover:scale-105 shadow-md whitespace-nowrap"
+                    style={{ backgroundColor: amber, color: '#100e0b' }}
+                  >
+                    <SparklesIcon size={12} color="#100e0b" />
+                    <span className="whitespace-nowrap">Create Account</span>
+                  </Link>
+                </>
+              )}
 
               {/* Mobile hamburger button */}
               <button
@@ -448,21 +464,38 @@ export default function Landing() {
                   </svg>
                   <span>Get the App</span>
                 </button>
-                <Link
-                  to="/login"
-                  className="px-3 py-2 rounded-xl text-center text-xs font-semibold hover:bg-white/5 transition"
-                  style={{ color: ink }}
-                >
-                  Sign in
-                </Link>
-                <Link
-                  to="/signup"
-                  className="px-4 py-2.5 rounded-xl text-center text-xs font-bold shadow-md transition hover:opacity-90 flex items-center justify-center gap-1.5"
-                  style={{ backgroundColor: amber, color: '#100e0b' }}
-                >
-                  <SparklesIcon size={12} color="#100e0b" />
-                  <span>Create Account</span>
-                </Link>
+                {user ? (
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="px-4 py-2.5 rounded-xl text-center text-xs font-bold shadow-md transition hover:opacity-90 flex items-center justify-center gap-1.5"
+                    style={{ backgroundColor: amber, color: '#100e0b' }}
+                  >
+                    <SearchIcon size={12} color="#100e0b" />
+                    <span>Open Live Map</span>
+                    <span>→</span>
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      to="/login"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="px-3 py-2 rounded-xl text-center text-xs font-semibold hover:bg-white/5 transition"
+                      style={{ color: ink }}
+                    >
+                      Sign in
+                    </Link>
+                    <Link
+                      to="/signup"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="px-4 py-2.5 rounded-xl text-center text-xs font-bold shadow-md transition hover:opacity-90 flex items-center justify-center gap-1.5"
+                      style={{ backgroundColor: amber, color: '#100e0b' }}
+                    >
+                      <SparklesIcon size={12} color="#100e0b" />
+                      <span>Create Account</span>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -532,7 +565,7 @@ export default function Landing() {
           {/* Hero CTAs */}
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              to="/signup"
+              to={user ? '/dashboard' : '/signup'}
               className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-full px-8 py-3.5 text-sm font-bold shadow-xl transition-all hover:scale-105"
               style={{
                 backgroundColor: amber,
@@ -540,12 +573,12 @@ export default function Landing() {
                 boxShadow: '0 4px 24px rgba(232, 163, 61, 0.35)',
               }}
             >
-              <span>Create Account Free</span>
+              <span>{user ? 'Open Live Map' : 'Create Account Free'}</span>
               <span>→</span>
             </Link>
 
             <Link
-              to="/dashboard"
+              to={user ? '/dashboard' : '/login'}
               className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold backdrop-blur-xl border transition-all hover:scale-105"
               style={{
                 backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
@@ -554,7 +587,7 @@ export default function Landing() {
               }}
             >
               <SearchIcon size={15} color={amber} />
-              <span>Explore Live Map</span>
+              <span>{user ? 'Explore Live Map' : 'Sign in to Explore Map'}</span>
             </Link>
           </div>
         </section>
@@ -1216,9 +1249,14 @@ export default function Landing() {
                 <a href="#directions" className="hover:text-amber-400 transition">Directions</a>
                 <a href="#faq" className="hover:text-amber-400 transition">FAQ</a>
                 <a href="#contact" className="hover:text-amber-400 transition">Contact</a>
-                <Link to="/login" className="hover:text-amber-400 transition">Sign in</Link>
-                <Link to="/signup" className="hover:text-amber-400 transition font-medium text-amber-400">Create account</Link>
-                <Link to="/dashboard" className="hover:text-amber-400 transition">Map</Link>
+                {user ? (
+                  <Link to="/dashboard" className="hover:text-amber-400 transition font-medium text-amber-400">Live Map</Link>
+                ) : (
+                  <>
+                    <Link to="/login" className="hover:text-amber-400 transition">Sign in</Link>
+                    <Link to="/signup" className="hover:text-amber-400 transition font-medium text-amber-400">Create account</Link>
+                  </>
+                )}
               </div>
             </div>
 

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { isNativePlatform } from './lib/platform'
 import AppLoadingScreen from './components/AppLoadingScreen'
+import ProtectedRoute from './components/ProtectedRoute'
 import Landing from './pages/Landing'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
@@ -13,8 +14,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 /**
  * Intelligent Root Route:
  * - Application Version (Capacitor Android/iOS, installed PWA, standalone):
- *   Bypasses the marketing landing page completely and opens the interactive
- *   map dashboard directly, giving users an immediate premium app experience.
+ *   If signed in, opens the dashboard directly; if unauthenticated, redirects to login.
  * - Web Version:
  *   If the user is already authenticated, routes straight to the dashboard.
  *   If the visitor is new, displays the landing page.
@@ -27,9 +27,9 @@ function RootRoute() {
     return <AppLoadingScreen />
   }
 
-  // Application Version: Never show the landing page
+  // Application Version: Requires authentication
   if (isApp) {
-    return <Dashboard />
+    return user ? <Dashboard /> : <Navigate to="/login" replace />
   }
 
   // Web Version: Signed-in users go straight to the app
@@ -52,9 +52,32 @@ export default function App() {
         <Route path="/terms" element={<LegalPages />} />
         <Route path="/cookies" element={<LegalPages />} />
         <Route path="/refund" element={<LegalPages />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/app" element={<Dashboard />} />
-        <Route path="/settings" element={<Settings />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/app"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
+        {/* Wildcard catch-all: redirect unknown routes to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </ErrorBoundary>
   )

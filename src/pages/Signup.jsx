@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useSettings } from '../context/SettingsContext'
@@ -7,7 +7,7 @@ import { SparklesIcon } from '../components/Icons'
 import KeyadiLogo from '../components/KeyadiLogo'
 
 export default function Signup() {
-  const { signUpWithEmail } = useAuth()
+  const { user, signUpWithEmail } = useAuth()
   const { settings } = useSettings()
   const isDark = true
   const navigate = useNavigate()
@@ -18,6 +18,13 @@ export default function Signup() {
   const [confirmSent, setConfirmSent] = useState(false)
   const [agreeTerms, setAgreeTerms] = useState(false)
   const [agreeAge, setAgreeAge] = useState(false)
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [user, navigate])
 
   const ink = '#f3f1ec'
   const inkMuted = 'rgba(243,241,236,0.65)'
@@ -205,16 +212,11 @@ export default function Signup() {
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t text-center text-xs space-y-2.5" style={{ borderColor: hairline, color: inkMuted }}>
+          <div className="mt-6 pt-5 border-t text-center text-xs" style={{ borderColor: hairline, color: inkMuted }}>
             <div>
               Already have an account?{' '}
               <Link to="/login" className="font-bold text-amber-400 hover:underline">
                 Sign in here
-              </Link>
-            </div>
-            <div>
-              <Link to="/dashboard" className="text-white/60 hover:text-white transition font-medium">
-                Explore map as guest →
               </Link>
             </div>
           </div>
