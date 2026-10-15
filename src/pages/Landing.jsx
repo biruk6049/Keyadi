@@ -1,10 +1,20 @@
 import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useSettings } from '../context/SettingsContext'
-import AuraBackground from '../components/AuraBackground'
 import KeyadiLogo from '../components/KeyadiLogo'
 import GetAppModal from '../components/GetAppModal'
+import Landing3DBackground from '../components/landing/Landing3DBackground'
+import {
+  KineticTitle,
+  KineticWordRotator,
+  KineticBadge,
+  ScrollRevealHeading,
+} from '../components/landing/KineticTypography'
+import TiltCard3D from '../components/landing/TiltCard3D'
+import InteractiveMap3DShowcase from '../components/landing/InteractiveMap3DShowcase'
+import InteractiveDemoTerminal from '../components/landing/InteractiveDemoTerminal'
 import {
   SparklesIcon,
   SearchIcon,
@@ -18,15 +28,9 @@ import {
   CheckCircleIcon,
   SendIcon,
   PhoneIcon,
+  GlobeIcon,
+  NavigationIcon,
 } from '../components/Icons'
-
-const SCAN_TERMS = [
-  'Quiet cafe with fast wifi',
-  'Pharmacy open right now',
-  'Artisan bakery near Bole',
-  'Hotel with mountain view',
-  'Hardware store with cement',
-]
 
 const QUERY_CHIPS = [
   { label: 'Quiet Cafes', icon: 'cafe', query: 'Quiet specialty cafe with outdoor seating' },
@@ -74,12 +78,12 @@ const TRUSTED_COMPANIES = [
     name: 'Google Maps',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="#4285F4"/>
-        <path d="M12 2C9.79 2 7.8 2.89 6.34 4.34L12 10V2z" fill="#EA4335"/>
-        <path d="M17.66 4.34C16.2 2.89 14.21 2 12 2v8l5.66-5.66z" fill="#FBBC04"/>
-        <path d="M12 10l-5.66-5.66C4.89 5.8 4 7.79 4 10c0 5.25 7 12 8 12V10z" fill="#34A853"/>
-        <circle cx="12" cy="10" r="3.2" fill="#FFFFFF"/>
-        <circle cx="12" cy="10" r="1.8" fill="#1A73E8"/>
+        <path d="M12 2C7.58 2 4 5.58 4 10c0 5.25 7 12 8 12s8-6.75 8-12c0-4.42-3.58-8-8-8z" fill="#4285F4" />
+        <path d="M12 2C9.79 2 7.8 2.89 6.34 4.34L12 10V2z" fill="#EA4335" />
+        <path d="M17.66 4.34C16.2 2.89 14.21 2 12 2v8l5.66-5.66z" fill="#FBBC04" />
+        <path d="M12 10l-5.66-5.66C4.89 5.8 4 7.79 4 10c0 5.25 7 12 8 12V10z" fill="#34A853" />
+        <circle cx="12" cy="10" r="3.2" fill="#FFFFFF" />
+        <circle cx="12" cy="10" r="1.8" fill="#1A73E8" />
       </svg>
     ),
   },
@@ -87,8 +91,8 @@ const TRUSTED_COMPANIES = [
     name: 'Mapbox',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="12" fill="#4264FB"/>
-        <path d="M12 4.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15zm-2.4 3.75v6.5h1.6v-3.7l1.7 3.7h1.4l1.7-3.7v3.7h1.6v-6.5h-1.8l-1.8 3.9-1.8-3.9H9.6z" fill="#FFFFFF"/>
+        <circle cx="12" cy="12" r="12" fill="#4264FB" />
+        <path d="M12 4.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15zm-2.4 3.75v6.5h1.6v-3.7l1.7 3.7h1.4l1.7-3.7v3.7h1.6v-6.5h-1.8l-1.8 3.9-1.8-3.9H9.6z" fill="#FFFFFF" />
       </svg>
     ),
   },
@@ -96,7 +100,7 @@ const TRUSTED_COMPANIES = [
     name: 'OpenStreetMap',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="#7EBC6F">
-        <path d="M17.915 2.502a1.86 1.86 0 0 0-.82.203L10.51 5.92 4.975 2.527a1.86 1.86 0 0 0-1.92.053 1.86 1.86 0 0 0-.895 1.58v14.414a1.86 1.86 0 0 0 .95 1.625l6.586 3.593c.3.16.635.244.97.244a1.86 1.86 0 0 0 .822-.203l6.586-3.215 5.534 3.393a1.86 1.86 0 0 0 1.92-.053 1.86 1.86 0 0 0 .895-1.58V5.978a1.86 1.86 0 0 0-.95-1.625L18.887 2.76a1.86 1.86 0 0 0-.972-.258zm-.62 3.033l3.35 1.634v11.385l-3.35-2.054V5.535zm-6.685 1.705l3.965-1.937v11.375l-3.965 1.937V7.24zm-6.685-1.7l3.35 2.054v11.385l-3.35-1.83V5.54z"/>
+        <path d="M17.915 2.502a1.86 1.86 0 0 0-.82.203L10.51 5.92 4.975 2.527a1.86 1.86 0 0 0-1.92.053 1.86 1.86 0 0 0-.895 1.58v14.414a1.86 1.86 0 0 0 .95 1.625l6.586 3.593c.3.16.635.244.97.244a1.86 1.86 0 0 0 .822-.203l6.586-3.215 5.534 3.393a1.86 1.86 0 0 0 1.92-.053 1.86 1.86 0 0 0 .895-1.58V5.978a1.86 1.86 0 0 0-.95-1.625L18.887 2.76a1.86 1.86 0 0 0-.972-.258zm-.62 3.033l3.35 1.634v11.385l-3.35-2.054V5.535zm-6.685 1.705l3.965-1.937v11.375l-3.965 1.937V7.24zm-6.685-1.7l3.35 2.054v11.385l-3.35-1.83V5.54z" />
       </svg>
     ),
   },
@@ -104,7 +108,7 @@ const TRUSTED_COMPANIES = [
     name: 'Supabase',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M13.35.53a1.5 1.5 0 0 0-2.3.24L.6 15.35a1.5 1.5 0 0 0 1.23 2.25h8.82L9.3 23.47a1.5 1.5 0 0 0 2.3-.24l10.45-14.58a1.5 1.5 0 0 0-1.23-2.25h-8.82L13.35.53z" fill="#3ECF8E"/>
+        <path d="M13.35.53a1.5 1.5 0 0 0-2.3.24L.6 15.35a1.5 1.5 0 0 0 1.23 2.25h8.82L9.3 23.47a1.5 1.5 0 0 0 2.3-.24l10.45-14.58a1.5 1.5 0 0 0-1.23-2.25h-8.82L13.35.53z" fill="#3ECF8E" />
       </svg>
     ),
   },
@@ -120,10 +124,10 @@ const TRUSTED_COMPANIES = [
     name: 'React',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <ellipse cx="12" cy="12" rx="10" ry="3.8" stroke="#61DAFB" strokeWidth="1.6" transform="rotate(30 12 12)"/>
-        <ellipse cx="12" cy="12" rx="10" ry="3.8" stroke="#61DAFB" strokeWidth="1.6" transform="rotate(90 12 12)"/>
-        <ellipse cx="12" cy="12" rx="10" ry="3.8" stroke="#61DAFB" strokeWidth="1.6" transform="rotate(150 12 12)"/>
-        <circle cx="12" cy="12" r="1.8" fill="#61DAFB"/>
+        <ellipse cx="12" cy="12" rx="10" ry="3.8" stroke="#61DAFB" strokeWidth="1.6" transform="rotate(30 12 12)" />
+        <ellipse cx="12" cy="12" rx="10" ry="3.8" stroke="#61DAFB" strokeWidth="1.6" transform="rotate(90 12 12)" />
+        <ellipse cx="12" cy="12" rx="10" ry="3.8" stroke="#61DAFB" strokeWidth="1.6" transform="rotate(150 12 12)" />
+        <circle cx="12" cy="12" r="1.8" fill="#61DAFB" />
       </svg>
     ),
   },
@@ -131,8 +135,8 @@ const TRUSTED_COMPANIES = [
     name: 'Vite',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <path d="M22 4L12 22 2 4l9.5 2.5L12 2l.5 4.5L22 4z" fill="#BD34FE"/>
-        <path d="M12 2l-1 4.5-9.5-2.5 10 18 2-9 4.5-.5L12 2z" fill="#FFDD35"/>
+        <path d="M22 4L12 22 2 4l9.5 2.5L12 2l.5 4.5L22 4z" fill="#BD34FE" />
+        <path d="M12 2l-1 4.5-9.5-2.5 10 18 2-9 4.5-.5L12 2z" fill="#FFDD35" />
       </svg>
     ),
   },
@@ -140,67 +144,17 @@ const TRUSTED_COMPANIES = [
     name: 'Tailwind CSS',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="#38BDF8">
-        <path d="M12.001 4.8c-3.2 0-5.2 1.6-6 4.8 1.2-.8 2.6-1.1 4.2-.9 1.8.3 3.1 1.6 4.5 3.1 2.3 2.3 5 5 10.5 5 3.2 0 5.2-1.6 6-4.8-1.2.8-2.6 1.1-4.2.9-1.8-.3-3.1-1.6-4.5-3.1-2.3-2.3-5-5-10.5-5zm-9.6 7.2c-3.2 0-5.2 1.6-6 4.8 1.2-.8 2.6-1.1 4.2-.9 1.8.3 3.1 1.6 4.5 3.1 2.3 2.3 5 5 10.5 5 3.2 0 5.2-1.6 6-4.8-1.2.8-2.6 1.1-4.2.9-1.8-.3-3.1-1.6-4.5-3.1-2.3-2.3-5-5-10.5-5z"/>
+        <path d="M12.001 4.8c-3.2 0-5.2 1.6-6 4.8 1.2-.8 2.6-1.1 4.2-.9 1.8.3 3.1 1.6 4.5 3.1 2.3 2.3 5 5 10.5 5 3.2 0 5.2-1.6 6-4.8-1.2.8-2.6 1.1-4.2.9-1.8-.3-3.1-1.6-4.5-3.1-2.3-2.3-5-5-10.5-5zm-9.6 7.2c-3.2 0-5.2 1.6-6 4.8 1.2-.8 2.6-1.1 4.2-.9 1.8.3 3.1 1.6 4.5 3.1 2.3 2.3 5 5 10.5 5 3.2 0 5.2-1.6 6-4.8-1.2.8-2.6 1.1-4.2.9-1.8-.3-3.1-1.6-4.5-3.1-2.3-2.3-5-5-10.5-5z" />
       </svg>
     ),
   },
 ]
 
-function useTypewriter(words, { typeSpeed = 65, deleteSpeed = 35, pause = 1600 } = {}) {
-  const [index, setIndex] = useState(0)
-  const [text, setText] = useState('')
-  const [deleting, setDeleting] = useState(false)
-
-  useEffect(() => {
-    const current = words[index % words.length]
-    let timeout
-
-    if (!deleting && text === current) {
-      timeout = setTimeout(() => setDeleting(true), pause)
-    } else if (deleting && text === '') {
-      setDeleting(false)
-      setIndex((i) => i + 1)
-    } else {
-      timeout = setTimeout(
-        () => {
-          setText((t) =>
-            deleting ? current.slice(0, t.length - 1) : current.slice(0, t.length + 1)
-          )
-        },
-        deleting ? deleteSpeed : typeSpeed
-      )
-    }
-    return () => clearTimeout(timeout)
-  }, [text, deleting, index, words, typeSpeed, deleteSpeed, pause])
-
-  return text
-}
-
 export default function Landing() {
   const { user } = useAuth()
   const { settings } = useSettings()
   const isDark = true
-  const scanText = useTypewriter(SCAN_TERMS)
   const [activeChip, setActiveChip] = useState(0)
-
-  // Scroll reveal state for trusted partners
-  const [partnersVisible, setPartnersVisible] = useState(false)
-  const partnersRef = useRef(null)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setPartnersVisible(true)
-        }
-      },
-      { threshold: 0.15 }
-    )
-    if (partnersRef.current) {
-      observer.observe(partnersRef.current)
-    }
-    return () => observer.disconnect()
-  }, [])
 
   // Navigation & Mobile menu state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -225,9 +179,9 @@ export default function Landing() {
   const ink = isDark ? '#f3f1ec' : '#100e0b'
   const inkMuted = isDark ? 'rgba(243,241,236,0.65)' : 'rgba(16,14,11,0.65)'
   const inkFaint = isDark ? 'rgba(243,241,236,0.40)' : 'rgba(16,14,11,0.45)'
-  const hairline = isDark ? 'rgba(243,241,236,0.12)' : 'rgba(16,14,11,0.10)'
-  const cardBg = isDark ? 'rgba(18, 16, 13, 0.75)' : 'rgba(255, 255, 255, 0.85)'
-  const inputBg = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.90)'
+  const hairline = 'rgba(243,241,236,0.12)'
+  const cardBg = 'rgba(18, 16, 13, 0.78)'
+  const inputBg = 'rgba(255, 255, 255, 0.04)'
   const amber = '#e8a33d'
 
   const handleContactSubmit = (e) => {
@@ -297,38 +251,49 @@ export default function Landing() {
 
   return (
     <div
-      className="relative min-h-screen overflow-x-hidden selection:bg-amber-500/20 selection:text-amber-400"
+      className="relative min-h-screen overflow-x-hidden selection:bg-amber-500/25 selection:text-amber-300"
       style={{
-        backgroundColor: isDark ? '#0e0d0b' : '#f8f7f4',
+        backgroundColor: '#0a0908',
         color: ink,
         fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
       }}
     >
-      <AuraBackground isDark={isDark} />
+      {/* ── 3D Reactive Three.js Geospatial Environment ── */}
+      <Landing3DBackground />
 
+      {/* Subtle radial vignette */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(10,9,8,0.75)_100%)]"
+      />
+
+      {/* Main Foreground Container */}
       <div className="relative z-10 flex min-h-screen flex-col">
-        {/* ── Top Floating Navigation Bar ── */}
-        <header className="sticky top-0 z-40 mx-auto w-full max-w-6xl px-3 py-3 sm:px-10 sm:py-5">
+        {/* ── Top Floating Navigation Island ── */}
+        <header className="sticky top-0 z-40 mx-auto w-full max-w-6xl px-4 py-3 sm:px-10 sm:py-5">
           <div
-            className="flex items-center justify-between rounded-full px-3.5 py-2 sm:px-5 sm:py-3 shadow-2xl backdrop-blur-2xl transition-all"
+            className="flex items-center justify-between rounded-full px-4 py-2.5 sm:px-6 sm:py-3.5 shadow-2xl backdrop-blur-3xl transition-all"
             style={{
-              backgroundColor: isDark ? 'rgba(14, 13, 11, 0.82)' : 'rgba(255, 255, 255, 0.88)',
+              backgroundColor: 'rgba(14, 12, 10, 0.85)',
               border: `1px solid ${hairline}`,
+              boxShadow: '0 10px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)',
             }}
           >
-            {/* Logo */}
-            <Link to="/" className="flex items-center gap-2 group shrink-0">
-              <KeyadiLogo size={32} />
-              <span className="text-base sm:text-lg font-bold tracking-tight" style={{ color: ink }}>
+            {/* Logo with 3D hover scale */}
+            <Link to="/" className="flex items-center gap-2.5 group shrink-0">
+              <div className="transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                <KeyadiLogo size={32} />
+              </div>
+              <span className="text-base sm:text-lg font-extrabold tracking-tight" style={{ color: ink }}>
                 Keyadi
               </span>
             </Link>
 
-            {/* Nav links */}
-            <nav className="hidden md:flex items-center gap-6 text-sm font-medium" style={{ color: inkMuted }}>
-              <a href="#features" className="transition-colors hover:text-amber-400">Features</a>
+            {/* Nav links with animated bottom indicator */}
+            <nav className="hidden md:flex items-center gap-7 text-sm font-semibold" style={{ color: inkMuted }}>
               <a href="#directions" className="transition-colors hover:text-amber-400">Directions</a>
-              <a href="#demo" className="transition-colors hover:text-amber-400">Live Demo</a>
+              <a href="#features" className="transition-colors hover:text-amber-400">Features</a>
+              <a href="#demo" className="transition-colors hover:text-amber-400">Live Terminal</a>
               <a href="#faq" className="transition-colors hover:text-amber-400">FAQ</a>
               <a href="#contact" className="transition-colors hover:text-amber-400">Contact</a>
             </nav>
@@ -367,7 +332,7 @@ export default function Landing() {
                 <>
                   <Link
                     to="/login"
-                    className="hidden sm:inline-block rounded-full px-3.5 py-2 text-xs font-semibold transition hover:opacity-80 whitespace-nowrap"
+                    className="hidden sm:inline-block rounded-full px-3.5 py-2 text-xs font-semibold transition hover:text-amber-300 whitespace-nowrap"
                     style={{ color: ink }}
                   >
                     Sign in
@@ -375,7 +340,11 @@ export default function Landing() {
                   <Link
                     to="/signup"
                     className="hidden sm:flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-transform hover:scale-105 shadow-md whitespace-nowrap"
-                    style={{ backgroundColor: amber, color: '#100e0b' }}
+                    style={{
+                      backgroundColor: amber,
+                      color: '#100e0b',
+                      boxShadow: '0 4px 16px rgba(232, 163, 61, 0.35)',
+                    }}
                   >
                     <SparklesIcon size={12} color="#100e0b" />
                     <span className="whitespace-nowrap">Create Account</span>
@@ -396,429 +365,340 @@ export default function Landing() {
           </div>
 
           {/* Mobile Menu Dropdown Drawer */}
-          {mobileMenuOpen && (
-            <div
-              className="mt-3 rounded-2xl p-4 md:hidden shadow-2xl backdrop-blur-2xl border flex flex-col gap-2.5 text-sm animate-in fade-in duration-200"
-              style={{
-                backgroundColor: isDark ? 'rgba(18, 16, 13, 0.95)' : 'rgba(255, 255, 255, 0.98)',
-                borderColor: hairline,
-              }}
-            >
-              <a
-                href="#features"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 rounded-xl hover:text-amber-400 hover:bg-white/5 transition"
-                style={{ color: ink }}
+          <AnimatePresence>
+            {mobileMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -15, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -15, scale: 0.96 }}
+                transition={{ duration: 0.2 }}
+                className="mt-3 rounded-2xl p-4 md:hidden shadow-2xl backdrop-blur-3xl border flex flex-col gap-2.5 text-sm"
+                style={{
+                  backgroundColor: 'rgba(16, 14, 11, 0.96)',
+                  borderColor: hairline,
+                }}
               >
-                Features
-              </a>
-              <a
-                href="#directions"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 rounded-xl hover:text-amber-400 hover:bg-white/5 transition"
-                style={{ color: ink }}
-              >
-                Directions
-              </a>
-              <a
-                href="#demo"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 rounded-xl hover:text-amber-400 hover:bg-white/5 transition"
-                style={{ color: ink }}
-              >
-                Live Demo
-              </a>
-              <a
-                href="#faq"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 rounded-xl hover:text-amber-400 hover:bg-white/5 transition"
-                style={{ color: ink }}
-              >
-                FAQ
-              </a>
-              <a
-                href="#contact"
-                onClick={() => setMobileMenuOpen(false)}
-                className="px-3 py-2 rounded-xl hover:text-amber-400 hover:bg-white/5 transition"
-                style={{ color: ink }}
-              >
-                Contact
-              </a>
-              <div className="pt-2 border-t flex flex-col gap-2" style={{ borderColor: hairline }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMobileMenuOpen(false)
-                    setGetAppOpen(true)
-                  }}
-                  className="px-4 py-2.5 rounded-xl text-center text-xs font-bold border shadow-md transition hover:scale-[1.02] flex items-center justify-center gap-2"
-                  style={{
-                    backgroundColor: 'rgba(232, 163, 61, 0.16)',
-                    color: amber,
-                    borderColor: 'rgba(232, 163, 61, 0.4)',
-                  }}
+                <a
+                  href="#directions"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-3 py-2 rounded-xl hover:text-amber-400 hover:bg-white/5 transition"
+                  style={{ color: ink }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
-                    <line x1="12" y1="18" x2="12.01" y2="18" />
-                  </svg>
-                  <span>Get the App</span>
-                </button>
-                {user ? (
-                  <Link
-                    to="/dashboard"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="px-4 py-2.5 rounded-xl text-center text-xs font-bold shadow-md transition hover:opacity-90 flex items-center justify-center gap-1.5"
-                    style={{ backgroundColor: amber, color: '#100e0b' }}
+                  Directions
+                </a>
+                <a
+                  href="#features"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-3 py-2 rounded-xl hover:text-amber-400 hover:bg-white/5 transition"
+                  style={{ color: ink }}
+                >
+                  Features
+                </a>
+                <a
+                  href="#demo"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-3 py-2 rounded-xl hover:text-amber-400 hover:bg-white/5 transition"
+                  style={{ color: ink }}
+                >
+                  Live Terminal
+                </a>
+                <a
+                  href="#faq"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-3 py-2 rounded-xl hover:text-amber-400 hover:bg-white/5 transition"
+                  style={{ color: ink }}
+                >
+                  FAQ
+                </a>
+                <a
+                  href="#contact"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="px-3 py-2 rounded-xl hover:text-amber-400 hover:bg-white/5 transition"
+                  style={{ color: ink }}
+                >
+                  Contact
+                </a>
+                <div className="pt-2 border-t flex flex-col gap-2" style={{ borderColor: hairline }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      setGetAppOpen(true)
+                    }}
+                    className="px-4 py-2.5 rounded-xl text-center text-xs font-bold border shadow-md transition hover:scale-[1.02] flex items-center justify-center gap-2"
+                    style={{
+                      backgroundColor: 'rgba(232, 163, 61, 0.16)',
+                      color: amber,
+                      borderColor: 'rgba(232, 163, 61, 0.4)',
+                    }}
                   >
-                    <SearchIcon size={12} color="#100e0b" />
-                    <span>Open Live Map</span>
-                    <span>→</span>
-                  </Link>
-                ) : (
-                  <>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                      <line x1="12" y1="18" x2="12.01" y2="18" />
+                    </svg>
+                    <span>Get the App</span>
+                  </button>
+                  {user ? (
                     <Link
-                      to="/login"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="px-3 py-2 rounded-xl text-center text-xs font-semibold hover:bg-white/5 transition"
-                      style={{ color: ink }}
-                    >
-                      Sign in
-                    </Link>
-                    <Link
-                      to="/signup"
+                      to="/dashboard"
                       onClick={() => setMobileMenuOpen(false)}
                       className="px-4 py-2.5 rounded-xl text-center text-xs font-bold shadow-md transition hover:opacity-90 flex items-center justify-center gap-1.5"
                       style={{ backgroundColor: amber, color: '#100e0b' }}
                     >
-                      <SparklesIcon size={12} color="#100e0b" />
-                      <span>Create Account</span>
+                      <SearchIcon size={12} color="#100e0b" />
+                      <span>Open Live Map</span>
+                      <span>→</span>
                     </Link>
-                  </>
-                )}
-              </div>
-            </div>
-          )}
+                  ) : (
+                    <>
+                      <Link
+                        to="/login"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="px-3 py-2 rounded-xl text-center text-xs font-semibold hover:bg-white/5 transition"
+                        style={{ color: ink }}
+                      >
+                        Sign in
+                      </Link>
+                      <Link
+                        to="/signup"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="px-4 py-2.5 rounded-xl text-center text-xs font-bold shadow-md transition hover:opacity-90 flex items-center justify-center gap-1.5"
+                        style={{ backgroundColor: amber, color: '#100e0b' }}
+                      >
+                        <SparklesIcon size={12} color="#100e0b" />
+                        <span>Create Account</span>
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </header>
 
-        {/* ── Hero Section ── */}
-        <section className="mx-auto max-w-6xl px-6 pt-10 pb-16 text-center sm:px-10 sm:pt-16">
-          {/* Badge */}
-          <div
-            className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold backdrop-blur-xl mb-6 shadow-md"
-            style={{
-              backgroundColor: 'rgba(232, 163, 61, 0.12)',
-              color: amber,
-              border: `1px solid ${amber}44`,
-            }}
-          >
-            <SparklesIcon size={13} color={amber} />
-            <span className="tracking-wide uppercase text-[11px]">Smart Place Search & Live Directions</span>
+        {/* ── Hero Section with Kinetic Motion Typography ── */}
+        <section className="mx-auto max-w-6xl px-6 pt-12 pb-16 text-center sm:px-10 sm:pt-20">
+          {/* Dynamic 3D Floating Badge */}
+          <div className="mb-6 flex justify-center">
+            <KineticBadge icon={SparklesIcon}>
+              Next-Gen Geospatial Intelligence · 3D Routing
+            </KineticBadge>
           </div>
 
-          {/* Main Title */}
-          <h1
-            className="mx-auto max-w-4xl text-4xl font-extrabold tracking-tight sm:text-6xl md:text-7xl leading-[1.08]"
-            style={{ color: ink }}
-          >
-            Explore Any City With{' '}
-            <span
-              className="bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-500 bg-clip-text text-transparent"
-              style={{
-                textShadow: '0 0 40px rgba(232, 163, 61, 0.25)',
-              }}
-            >
-              Smart Directions.
-            </span>
-          </h1>
+          {/* Kinetic Hero Headline */}
+          <div className="mx-auto max-w-4xl">
+            <KineticTitle
+              text="Explore Any City With"
+              className="text-4xl font-black tracking-tight sm:text-6xl md:text-7xl leading-[1.08] text-[#f3f1ec]"
+            />
+            <div className="mt-2 text-4xl font-black tracking-tight sm:text-6xl md:text-7xl leading-[1.08]">
+              <KineticWordRotator
+                words={[
+                  'Smart Directions.',
+                  'Zero Hallucinations.',
+                  'Multimodal Routes.',
+                  'Hyperlocal Precision.',
+                ]}
+              />
+            </div>
+          </div>
 
-          {/* Subtitle */}
-          <p
+          {/* Kinetic Subtitle */}
+          <motion.p
+            initial={{ opacity: 0, y: 25 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.8 }}
             className="mx-auto mt-6 max-w-2xl text-base sm:text-lg leading-relaxed"
             style={{ color: inkMuted }}
           >
-            Discover verified venues with natural language, compare side-by-side travel times for drive, walk, and cycle, and monitor places in real time.
-          </p>
+            Translate natural conversational intent into verified OpenStreetMap vectors.
+            Compare real-time side-by-side drive, walk, and cycle routes with illuminated 3D road telemetry.
+          </motion.p>
 
           {/* Dynamic Suggestion Chips */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-2.5">
-            <span className="text-xs font-semibold mr-1" style={{ color: inkFaint }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.7 }}
+            className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-2.5"
+          >
+            <span className="text-xs font-bold tracking-wide mr-1 uppercase text-[#e8a33d]/70">
               Try searching:
             </span>
             {QUERY_CHIPS.map((chip, idx) => (
               <button
                 key={chip.label}
                 onClick={() => setActiveChip(idx)}
-                className="group flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium backdrop-blur-md transition-all duration-200 hover:scale-105"
+                className="group flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold backdrop-blur-xl transition-all duration-200 hover:scale-105"
                 style={{
-                  backgroundColor: activeChip === idx ? 'rgba(232, 163, 61, 0.18)' : isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
-                  border: `1px solid ${activeChip === idx ? amber : hairline}`,
-                  color: activeChip === idx ? amber : inkMuted,
-                  boxShadow: activeChip === idx ? '0 0 14px rgba(232, 163, 61, 0.2)' : 'none',
+                  backgroundColor: activeChip === idx ? 'rgba(232, 163, 61, 0.22)' : 'rgba(255, 255, 255, 0.05)',
+                  border: `1px solid ${activeChip === idx ? amber : 'rgba(255, 255, 255, 0.1)'}`,
+                  color: activeChip === idx ? '#ffd166' : inkMuted,
+                  boxShadow: activeChip === idx ? '0 0 18px rgba(232, 163, 61, 0.3)' : 'none',
                 }}
               >
                 <span>{chip.label}</span>
               </button>
             ))}
-          </div>
+          </motion.div>
 
           {/* Hero CTAs */}
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.65, duration: 0.8 }}
+            className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
+          >
             <Link
               to={user ? '/dashboard' : '/signup'}
-              className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-full px-8 py-3.5 text-sm font-bold shadow-xl transition-all hover:scale-105"
+              className="group relative flex w-full sm:w-auto items-center justify-center gap-2.5 rounded-full px-9 py-4 text-sm font-extrabold shadow-2xl transition-all hover:scale-105 active:scale-95"
               style={{
                 backgroundColor: amber,
                 color: '#100e0b',
-                boxShadow: '0 4px 24px rgba(232, 163, 61, 0.35)',
+                boxShadow: '0 8px 30px rgba(232, 163, 61, 0.45)',
               }}
             >
-              <span>{user ? 'Open Live Map' : 'Create Account Free'}</span>
-              <span>→</span>
+              <span>{user ? 'Open Live Map Console' : 'Start Exploring Free'}</span>
+              <span className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
 
             <Link
               to={user ? '/dashboard' : '/login'}
-              className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold backdrop-blur-xl border transition-all hover:scale-105"
+              className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-full px-8 py-4 text-sm font-bold backdrop-blur-2xl border transition-all hover:scale-105 hover:bg-white/10"
               style={{
-                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
+                backgroundColor: 'rgba(255, 255, 255, 0.04)',
                 borderColor: hairline,
                 color: ink,
               }}
             >
               <SearchIcon size={15} color={amber} />
-              <span>{user ? 'Explore Live Map' : 'Sign in to Explore Map'}</span>
+              <span>{user ? 'Explore Live Cartography' : 'Sign In To Explore'}</span>
             </Link>
-          </div>
+          </motion.div>
         </section>
 
-        {/* ── 3D Perspective Hero Map Showcase ── */}
-        <section id="directions" className="mx-auto w-full max-w-6xl px-6 pb-20 sm:px-10">
-          <div className="relative mx-auto max-w-5xl [perspective:1400px]">
-            <div
-              className="relative overflow-hidden rounded-3xl border shadow-2xl backdrop-blur-2xl transition-all duration-700 [transform:rotateX(10deg)_scale(0.98)] hover:[transform:rotateX(2deg)_scale(1)]"
-              style={{
-                backgroundColor: isDark ? 'rgba(14, 13, 11, 0.92)' : 'rgba(255, 255, 255, 0.95)',
-                borderColor: hairline,
-                minHeight: '480px',
-              }}
-            >
-              {/* Fake Map Grid Texture & Ambient Glowing Elements */}
-              <div className="absolute inset-0 opacity-40 bg-[radial-gradient(#e8a33d_1px,transparent_1px)] [background-size:24px_24px]" />
-              
-              {/* Glowing Roads SVG */}
-              <svg className="absolute inset-0 h-full w-full opacity-60" preserveAspectRatio="none" viewBox="0 0 800 480">
-                <defs>
-                  <filter id="hero-glow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="6" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
-                <path d="M0,240 Q300,200 800,260" stroke="rgba(255,255,255,0.08)" strokeWidth="8" fill="none" />
-                <path d="M400,0 Q360,200 450,480" stroke="rgba(255,255,255,0.08)" strokeWidth="6" fill="none" />
-                <path d="M100,480 Q250,300 700,100" stroke="rgba(255,255,255,0.05)" strokeWidth="4" fill="none" />
-                <path
-                  d="M180,360 Q340,320 420,240 T650,180"
-                  stroke="#e8a33d"
-                  strokeWidth="8"
-                  strokeOpacity="0.4"
-                  filter="url(#hero-glow)"
-                />
-                <path
-                  d="M180,360 Q340,320 420,240 T650,180"
-                  stroke="#fbbf24"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                  strokeDasharray="8 6"
-                  fill="none"
-                />
-              </svg>
-
-              {/* Floating Realistic Marker Pins on Map */}
-              <div className="absolute top-[38%] left-[22%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center group cursor-pointer">
-                <div className="rounded-2xl px-3 py-1.5 shadow-xl text-xs font-bold border backdrop-blur-md flex items-center gap-1.5 mb-1.5 transition-transform group-hover:scale-110"
-                     style={{ backgroundColor: cardBg, borderColor: amber, color: amber }}>
-                  <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
-                  <span>Origin (Bole)</span>
-                </div>
-                <div className="h-4 w-4 rounded-full border-2 border-white shadow-lg flex items-center justify-center" style={{ backgroundColor: amber }}>
-                  <div className="h-1.5 w-1.5 rounded-full bg-white" />
-                </div>
-              </div>
-
-              <div className="absolute top-[37%] right-[18%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center group cursor-pointer">
-                <div className="rounded-2xl px-3 py-1.5 shadow-xl text-xs font-bold border backdrop-blur-md flex items-center gap-1.5 mb-1.5 transition-transform group-hover:scale-110"
-                     style={{ backgroundColor: cardBg, borderColor: '#38bdf8', color: '#38bdf8' }}>
-                  <span>Tomoca Specialty Coffee</span>
-                </div>
-                <div className="h-4 w-4 rounded-full border-2 border-white shadow-lg flex items-center justify-center bg-sky-400">
-                  <div className="h-1.5 w-1.5 rounded-full bg-white" />
-                </div>
-              </div>
-
-              {/* Glassmorphic Venue Preview Card Floating on Map */}
-              <div
-                className="absolute bottom-6 left-6 right-6 sm:left-auto sm:right-8 sm:w-96 rounded-3xl p-5 shadow-2xl backdrop-blur-2xl border transition-all hover:scale-[1.02]"
-                style={{
-                  backgroundColor: cardBg,
-                  borderColor: hairline,
-                }}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-400 mb-1">
-                      <SparklesIcon size={12} color={amber} />
-                      <span>98% Semantic Match</span>
-                    </div>
-                    <h4 className="text-base font-bold" style={{ color: ink }}>
-                      Tomoca Specialty Roastery
-                    </h4>
-                    <p className="text-xs mt-0.5" style={{ color: inkMuted }}>
-                      Wabi Shebelle Zone · Artisan Espresso & Fast Wi-Fi
-                    </p>
-                  </div>
-                  <div
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-                    style={{ backgroundColor: 'rgba(232, 163, 61, 0.15)', color: amber, border: `1px solid ${amber}44` }}
-                  >
-                    ★ 4.9
-                  </div>
-                </div>
-
-                {/* Multimodal Travel Time Metrics */}
-                <div className="mt-4 grid grid-cols-3 gap-2 border-t pt-3" style={{ borderColor: hairline }}>
-                  <div className="rounded-xl p-2 text-center" style={{ backgroundColor: 'rgba(232, 163, 61, 0.08)' }}>
-                    <div className="text-[10px] uppercase font-bold text-amber-400">Drive</div>
-                    <div className="text-xs font-bold mt-0.5" style={{ color: ink }}>7 mins</div>
-                    <div className="text-[10px]" style={{ color: inkFaint }}>3.2 km</div>
-                  </div>
-                  <div className="rounded-xl p-2 text-center" style={{ backgroundColor: 'rgba(56, 189, 248, 0.08)' }}>
-                    <div className="text-[10px] uppercase font-bold text-sky-400">Walk</div>
-                    <div className="text-xs font-bold mt-0.5" style={{ color: ink }}>22 mins</div>
-                    <div className="text-[10px]" style={{ color: inkFaint }}>2.1 km</div>
-                  </div>
-                  <div className="rounded-xl p-2 text-center" style={{ backgroundColor: 'rgba(45, 212, 191, 0.08)' }}>
-                    <div className="text-[10px] uppercase font-bold text-teal-400">Cycle</div>
-                    <div className="text-xs font-bold mt-0.5" style={{ color: ink }}>11 mins</div>
-                    <div className="text-[10px]" style={{ color: inkFaint }}>2.8 km</div>
-                  </div>
-                </div>
-
-                {/* Status Bar */}
-                <div className="mt-3 flex items-center justify-between text-[11px]" style={{ color: inkFaint }}>
-                  <span className="flex items-center gap-1.5">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                    <span className="text-emerald-400 font-medium">Open Now</span> · Closes 10:00 PM
-                  </span>
-                  <Link to="/dashboard" className="font-semibold text-amber-400 hover:underline">
-                    View Live Route →
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* ── 3D Interactive Hero Map Showcase ── */}
+        <section id="directions" className="mx-auto w-full max-w-6xl px-4 pb-24 sm:px-10">
+          <InteractiveMap3DShowcase user={user} isDark={isDark} />
         </section>
 
-        {/* ── Features Pillars Grid ── */}
-        <section id="features" className="mx-auto max-w-6xl px-6 py-20 sm:px-10 border-t" style={{ borderColor: hairline }}>
-          <div className="text-center max-w-2xl mx-auto mb-14">
-            <h2 className="text-xs font-bold uppercase tracking-widest" style={{ color: amber }}>
-              Architected For Local Intelligence
-            </h2>
-            <h3 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: ink }}>
-              Everything you need to navigate and discover with confidence.
-            </h3>
-          </div>
+        {/* ── 3D Features Pillars Grid (TiltCard3D) ── */}
+        <section id="features" className="mx-auto max-w-6xl px-6 py-20 sm:px-10 border-t border-white/10">
+          <ScrollRevealHeading
+            tag="Architected For Local Intelligence"
+            title="Everything You Need To Navigate With Precision"
+            subtitle="Engineered with deterministic GIS Overpass algorithms, multimodal routing engines, and privacy-first client execution."
+          />
 
-          <div className="grid gap-6 sm:grid-cols-3">
+          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
-                icon: <SparklesIcon size={20} color={amber} />,
-                title: 'Natural Place Search',
-                desc: 'Search naturally in plain words. Keyadi understands what you need and queries map data to find verified local spots.',
+                icon: <SparklesIcon size={22} color={amber} />,
+                title: 'Natural Conversational Search',
+                desc: 'Describe what you need in plain speech. Keyadi synthesizes natural queries into verified Overpass queries without AI hallucinated coordinates.',
+                badge: 'Verified Overpass QL',
+                color: '#e8a33d',
               },
               {
-                icon: <ClockIcon size={20} color="#38bdf8" />,
-                title: 'Live Travel Times',
-                desc: 'Real-time calculation of driving, walking, and cycling travel times with illuminated route lines rendered directly on the map.',
+                icon: <ClockIcon size={22} color="#38bdf8" />,
+                title: 'Multimodal Live Routing',
+                desc: 'Instant side-by-side computation of driving, walking, and cycling routes with illuminated vectors and real-time travel durations.',
+                badge: 'OSRM Multimodal',
+                color: '#38bdf8',
               },
               {
-                icon: <PinIcon size={20} color="#2dd4bf" />,
-                title: 'Saved Places & Spots',
-                desc: 'Save custom locations and favorite spots to quickly pull up directions and details whenever you need them.',
+                icon: <PinIcon size={22} color="#2dd4bf" />,
+                title: 'Real-Time Radar Trackers',
+                desc: 'Set continuous geographic radius buffers around any coordinate or live GPS location with custom alerts for new venue updates.',
+                badge: 'Geo-Radius Alerting',
+                color: '#2dd4bf',
+              },
+              {
+                icon: <GlobeIcon size={22} color="#a78bfa" />,
+                title: 'High-Res 3D & Vector Maps',
+                desc: 'Seamlessly switch between high-contrast dark vector street cartography and high-resolution satellite imagery in any quadrant.',
+                badge: 'Vector & Satellite',
+                color: '#a78bfa',
+              },
+              {
+                icon: <NavigationIcon size={22} color="#f43f5e" />,
+                title: 'Custom Origin Telemetry',
+                desc: 'Designate any custom coordinate origin or track your dynamic mobile location with millimeter GPS telemetry and proximity filters.',
+                badge: 'Live GPS Pinpoint',
+                color: '#f43f5e',
+              },
+              {
+                icon: <CheckCircleIcon size={22} color="#34d399" />,
+                title: 'Zero Tracking Privacy Guarantee',
+                desc: 'Your GPS calculations run exclusively in client-side memory. Your routes and location history are never sold, recorded, or profiled.',
+                badge: '100% Client-Side',
+                color: '#34d399',
               },
             ].map((feat, i) => (
-              <div
-                key={i}
-                className="group rounded-3xl p-6 transition-all hover:scale-[1.02] shadow-xl backdrop-blur-xl border"
-                style={{ backgroundColor: cardBg, borderColor: hairline }}
-              >
+              <TiltCard3D key={i} maxTilt={10}>
                 <div
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl mb-4 transition-transform group-hover:scale-110"
-                  style={{ backgroundColor: 'rgba(255,255,255,0.06)', border: `1px solid ${hairline}` }}
+                  className="group relative h-full rounded-3xl p-7 shadow-xl backdrop-blur-2xl border transition-all duration-300 [transform-style:preserve-3d]"
+                  style={{
+                    backgroundColor: cardBg,
+                    borderColor: 'rgba(255, 255, 255, 0.09)',
+                  }}
                 >
-                  {feat.icon}
+                  {/* Top row with icon & badge */}
+                  <div className="flex items-center justify-between mb-5 [transform:translateZ(25px)]">
+                    <div
+                      className="flex h-12 w-12 items-center justify-center rounded-2xl transition-transform group-hover:scale-110 shadow-lg border"
+                      style={{
+                        backgroundColor: feat.color + '18',
+                        borderColor: feat.color + '44',
+                      }}
+                    >
+                      {feat.icon}
+                    </div>
+                    <span
+                      className="rounded-full px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider border"
+                      style={{
+                        backgroundColor: feat.color + '15',
+                        borderColor: feat.color + '33',
+                        color: feat.color,
+                      }}
+                    >
+                      {feat.badge}
+                    </span>
+                  </div>
+
+                  {/* Title & Description with 3D Z-depth */}
+                  <h4
+                    className="text-lg font-extrabold mb-2 text-white group-hover:text-amber-400 transition-colors [transform:translateZ(30px)]"
+                  >
+                    {feat.title}
+                  </h4>
+                  <p
+                    className="text-sm leading-relaxed [transform:translateZ(20px)]"
+                    style={{ color: inkMuted }}
+                  >
+                    {feat.desc}
+                  </p>
                 </div>
-                <h4 className="text-lg font-bold mb-2" style={{ color: ink }}>
-                  {feat.title}
-                </h4>
-                <p className="text-sm leading-relaxed" style={{ color: inkMuted }}>
-                  {feat.desc}
-                </p>
-              </div>
+              </TiltCard3D>
             ))}
           </div>
         </section>
 
-        {/* ── Interactive Scanning Section ── */}
-        <section id="demo" className="mx-auto max-w-6xl px-6 py-16 sm:px-10">
-          <div
-            className="rounded-3xl p-8 sm:p-12 text-center border shadow-2xl backdrop-blur-2xl"
-            style={{ backgroundColor: cardBg, borderColor: hairline }}
-          >
-            <h3 className="text-2xl sm:text-3xl font-bold mb-3" style={{ color: ink }}>
-              Ready to explore your surroundings?
-            </h3>
-            <p className="text-sm sm:text-base max-w-xl mx-auto mb-8" style={{ color: inkMuted }}>
-              Keyadi is completely free to use. Test live local queries in seconds with instant geospatial synthesis.
-            </p>
-
-            {/* Live Typing Input Box */}
-            <div className="mx-auto max-w-md mb-8">
-              <div
-                className="flex items-center gap-3 rounded-2xl border px-4 py-3.5 shadow-lg backdrop-blur-xl"
-                style={{ borderColor: amber + '55', backgroundColor: isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.9)' }}
-              >
-                <SearchIcon size={16} color={amber} />
-                <span className="text-sm font-medium" style={{ color: ink }}>
-                  {scanText}
-                  <span className="keyadi-cursor ml-0.5" style={{ color: amber }}>|</span>
-                </span>
-              </div>
-            </div>
-
-            <Link
-              to="/signup"
-              className="inline-flex items-center gap-2 rounded-full px-8 py-3.5 text-sm font-bold shadow-xl transition-all hover:scale-105"
-              style={{ backgroundColor: amber, color: '#100e0b' }}
-            >
-              <span>Create Account Free</span>
-              <span>→</span>
-            </Link>
+        {/* ── Interactive Live Terminal Section ── */}
+        <section id="demo" className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-10">
+          <div className="mb-10 text-center">
+            <ScrollRevealHeading
+              tag="Live Geospatial Console"
+              title="Experience The Query Engine"
+              subtitle="Watch plain-English search terms compile instantly into deterministic OpenStreetMap Overpass queries."
+            />
           </div>
+          <InteractiveDemoTerminal isDark={isDark} user={user} />
         </section>
 
-        {/* ── Motionary Trusted Companies & Infrastructure ── */}
-        <section
-          ref={partnersRef}
-          className={`mx-auto w-full max-w-6xl px-6 pb-14 sm:px-10 transition-all duration-700 ease-out ${
-            partnersVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-8 scale-95'
-          }`}
-        >
-          <div className="text-center mb-6">
+        {/* ── Technology Stack Marquee ── */}
+        <section className="mx-auto w-full max-w-6xl px-6 pb-20 sm:px-10">
+          <div className="text-center mb-7">
             <span
               className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-bold uppercase tracking-wider mb-2.5 shadow-sm"
               style={{
@@ -830,39 +710,35 @@ export default function Landing() {
               <SparklesIcon size={12} color={amber} />
               <span>Technology Stack</span>
             </span>
-            <h4 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: ink }}>
+            <h4 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
               Powered By Leading Map & Cloud Technologies
             </h4>
-            <p className="mt-1 text-xs sm:text-sm" style={{ color: inkMuted }}>
-              Built with industry-standard mapping, database, and cloud platforms.
-            </p>
           </div>
 
           {/* Marquee Ticker Track with Gradient Edge Masks */}
           <div
-            className="relative overflow-hidden rounded-3xl border py-5 backdrop-blur-xl shadow-xl transition-all"
+            className="relative overflow-hidden rounded-3xl border py-5 backdrop-blur-2xl shadow-2xl"
             style={{
-              backgroundColor: isDark ? 'rgba(18, 16, 13, 0.65)' : 'rgba(255, 255, 255, 0.75)',
+              backgroundColor: 'rgba(18, 16, 13, 0.75)',
               borderColor: hairline,
               maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
               WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
             }}
           >
             <div className="animate-keyadi-marquee flex items-center gap-4">
-              {/* Double array for infinite seamless looping */}
               {[...TRUSTED_COMPANIES, ...TRUSTED_COMPANIES].map((comp, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-3 rounded-2xl px-4 py-2.5 border transition-all duration-200 hover:scale-105 hover:border-amber-500/40 group cursor-default shrink-0 shadow-sm"
+                  className="flex items-center gap-3 rounded-2xl px-5 py-3 border transition-all duration-200 hover:scale-105 hover:border-amber-500/40 group cursor-default shrink-0 shadow-sm"
                   style={{
-                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)',
+                    backgroundColor: 'rgba(255, 255, 255, 0.04)',
                     borderColor: hairline,
                   }}
                 >
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform">
                     {comp.icon}
                   </div>
-                  <span className="text-sm font-semibold tracking-tight whitespace-nowrap" style={{ color: ink }}>
+                  <span className="text-sm font-bold tracking-tight whitespace-nowrap text-white">
                     {comp.name}
                   </span>
                 </div>
@@ -872,30 +748,23 @@ export default function Landing() {
         </section>
 
         {/* ── Frequently Asked Questions (FAQ) Section ── */}
-        <section id="faq" className="mx-auto max-w-6xl px-6 py-16 sm:px-10 border-t" style={{ borderColor: hairline }}>
+        <section id="faq" className="mx-auto max-w-6xl px-6 py-20 sm:px-10 border-t border-white/10">
           <div className="text-center max-w-2xl mx-auto mb-10">
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider mb-3"
-              style={{ backgroundColor: 'rgba(232,163,61,0.12)', color: amber, border: `1px solid ${amber}33` }}
-            >
-              FAQ & Documentation
-            </span>
-            <h3 className="text-3xl font-extrabold tracking-tight sm:text-4xl" style={{ color: ink }}>
-              Frequently Asked Questions
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed" style={{ color: inkMuted }}>
-              Everything you need to know about Keyadi's geospatial AI, multi-modal routing, and privacy.
-            </p>
+            <ScrollRevealHeading
+              tag="Documentation & FAQ"
+              title="Frequently Asked Questions"
+              subtitle="Everything you need to know about Keyadi's geospatial AI, multi-modal routing, and privacy."
+            />
 
             {/* Filter Category Pills */}
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+            <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
               {['All', 'Product', 'Directions', 'Features', 'Pricing', 'Security'].map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setFaqFilter(cat)}
-                  className="rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all hover:scale-105"
+                  className="rounded-full px-4 py-1.5 text-xs font-bold transition-all hover:scale-105"
                   style={{
-                    backgroundColor: faqFilter === cat ? amber : isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+                    backgroundColor: faqFilter === cat ? amber : 'rgba(255,255,255,0.05)',
                     color: faqFilter === cat ? '#100e0b' : inkMuted,
                     border: `1px solid ${faqFilter === cat ? amber : hairline}`,
                   }}
@@ -913,16 +782,16 @@ export default function Landing() {
               return (
                 <div
                   key={idx}
-                  className="rounded-2xl border backdrop-blur-xl transition-all overflow-hidden"
+                  className="rounded-2xl border backdrop-blur-2xl transition-all overflow-hidden"
                   style={{
                     backgroundColor: cardBg,
                     borderColor: isOpen ? amber + '66' : hairline,
-                    boxShadow: isOpen ? '0 4px 20px rgba(232, 163, 61, 0.12)' : 'none',
+                    boxShadow: isOpen ? '0 8px 30px rgba(232, 163, 61, 0.15)' : 'none',
                   }}
                 >
                   <button
                     onClick={() => setOpenFaq(isOpen ? null : idx)}
-                    className="w-full px-5 py-4 text-left flex items-center justify-between gap-4 font-semibold text-sm sm:text-base transition-colors hover:text-amber-400"
+                    className="w-full px-6 py-4 text-left flex items-center justify-between gap-4 font-bold text-sm sm:text-base transition-colors hover:text-amber-400"
                     style={{ color: isOpen ? amber : ink }}
                   >
                     <span>{faq.q}</span>
@@ -936,17 +805,31 @@ export default function Landing() {
                       <ChevronDownIcon size={18} />
                     </span>
                   </button>
-                  {isOpen && (
-                    <div className="px-5 pb-5 pt-1 text-xs sm:text-sm leading-relaxed border-t" style={{ borderColor: hairline, color: inkMuted }}>
-                      <p>{faq.a}</p>
-                      <div className="mt-3 flex items-center gap-2">
-                        <span className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ backgroundColor: 'rgba(232,163,61,0.12)', color: amber }}>
-                          {faq.cat}
-                        </span>
-                        <span className="text-[11px]" style={{ color: inkFaint }}>· Verified Documentation</span>
-                      </div>
-                    </div>
-                  )}
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="px-6 pb-5 pt-1 text-xs sm:text-sm leading-relaxed border-t"
+                        style={{ borderColor: hairline, color: inkMuted }}
+                      >
+                        <p>{faq.a}</p>
+                        <div className="mt-3 flex items-center gap-2">
+                          <span
+                            className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                            style={{ backgroundColor: 'rgba(232,163,61,0.15)', color: amber }}
+                          >
+                            {faq.cat}
+                          </span>
+                          <span className="text-[11px]" style={{ color: inkFaint }}>
+                            · Verified Documentation
+                          </span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )
             })}
@@ -954,45 +837,46 @@ export default function Landing() {
         </section>
 
         {/* ── Workable Contact & Support Section ── */}
-        <section id="contact" className="mx-auto max-w-6xl px-6 py-16 sm:px-10 border-t" style={{ borderColor: hairline }}>
+        <section id="contact" className="mx-auto max-w-6xl px-6 py-20 sm:px-10 border-t border-white/10">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <span
-              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider mb-3"
-              style={{ backgroundColor: 'rgba(45,212,191,0.12)', color: '#2dd4bf', border: '1px solid rgba(45,212,191,0.3)' }}
-            >
-              Get in Touch
-            </span>
-            <h3 className="text-3xl font-extrabold tracking-tight sm:text-4xl" style={{ color: ink }}>
-              Contact the Keyadi Team
-            </h3>
-            <p className="mt-2 text-sm leading-relaxed" style={{ color: inkMuted }}>
-              Have questions, feedback, bug reports, or feature ideas? Send us a message and our team will get back to you promptly.
-            </p>
+            <ScrollRevealHeading
+              tag="Get in Touch"
+              title="Contact the Keyadi Team"
+              subtitle="Have questions, feedback, bug reports, or partnership opportunities? Reach out directly to our engineering team."
+            />
           </div>
 
           <div className="grid gap-8 lg:grid-cols-12 items-start">
             {/* Left Column: Workable Contact Form */}
             <div
-              className="lg:col-span-7 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-2xl border"
+              className="lg:col-span-7 rounded-3xl p-6 sm:p-9 shadow-2xl backdrop-blur-2xl border"
               style={{ backgroundColor: cardBg, borderColor: hairline }}
             >
               {contactSubmitted ? (
                 <div className="py-8 text-center animate-in fade-in zoom-in-95 duration-300">
                   <div
                     className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg"
-                    style={{ backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.35)', color: '#22c55e' }}
+                    style={{
+                      backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                      border: '1px solid rgba(34, 197, 94, 0.35)',
+                      color: '#22c55e',
+                    }}
                   >
                     <CheckCircleIcon size={28} />
                   </div>
-                  <h4 className="text-xl font-bold mb-1.5" style={{ color: ink }}>
+                  <h4 className="text-xl font-bold mb-1.5 text-white">
                     Message Prepared & Logged!
                   </h4>
                   <p className="text-xs sm:text-sm max-w-md mx-auto mb-4" style={{ color: inkMuted }}>
-                    Thank you <span className="font-semibold text-amber-400">{contactForm.name}</span>. Your message has been logged and opened to send to <span className="font-semibold text-amber-400">biruk5868@gmail.com</span>.
+                    Thank you <span className="font-semibold text-amber-400">{contactForm.name}</span>. Your ticket has been logged and opened to send to <span className="font-semibold text-amber-400">biruk5868@gmail.com</span>.
                   </p>
                   <div
                     className="inline-block px-4 py-2 rounded-xl text-xs font-mono font-bold mb-6"
-                    style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)', border: `1px solid ${hairline}`, color: amber }}
+                    style={{
+                      backgroundColor: 'rgba(255,255,255,0.06)',
+                      border: `1px solid ${hairline}`,
+                      color: amber,
+                    }}
                   >
                     Ticket ID: {ticketId}
                   </div>
@@ -1019,7 +903,11 @@ export default function Landing() {
                   {contactError && (
                     <div
                       className="p-3 rounded-xl text-xs flex items-center gap-2"
-                      style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.25)' }}
+                      style={{
+                        backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                        color: '#f87171',
+                        border: '1px solid rgba(239, 68, 68, 0.25)',
+                      }}
                     >
                       <span>⚠</span>
                       <span>{contactError}</span>
@@ -1036,7 +924,7 @@ export default function Landing() {
                         value={contactForm.name}
                         onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                         placeholder="e.g. Alex Morgan"
-                        className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border"
+                        className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border focus:border-amber-400"
                         style={{
                           backgroundColor: inputBg,
                           borderColor: hairline,
@@ -1054,7 +942,7 @@ export default function Landing() {
                         value={contactForm.email}
                         onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
                         placeholder="alex@example.com"
-                        className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border"
+                        className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border focus:border-amber-400"
                         style={{
                           backgroundColor: inputBg,
                           borderColor: hairline,
@@ -1074,9 +962,9 @@ export default function Landing() {
                           key={topic}
                           type="button"
                           onClick={() => setContactForm({ ...contactForm, topic })}
-                          className="px-2.5 py-2 rounded-xl text-[11px] font-medium border transition-all text-center"
+                          className="px-2.5 py-2 rounded-xl text-[11px] font-bold border transition-all text-center"
                           style={{
-                            backgroundColor: contactForm.topic === topic ? 'rgba(232, 163, 61, 0.16)' : inputBg,
+                            backgroundColor: contactForm.topic === topic ? 'rgba(232, 163, 61, 0.22)' : inputBg,
                             borderColor: contactForm.topic === topic ? amber : hairline,
                             color: contactForm.topic === topic ? amber : inkMuted,
                           }}
@@ -1096,7 +984,7 @@ export default function Landing() {
                       value={contactForm.message}
                       onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
                       placeholder="Describe what you need or how we can help..."
-                      className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border resize-none"
+                      className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border resize-none focus:border-amber-400"
                       style={{
                         backgroundColor: inputBg,
                         borderColor: hairline,
@@ -1108,7 +996,7 @@ export default function Landing() {
                   <button
                     type="submit"
                     disabled={contactSubmitting}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-full px-8 py-3 text-xs font-bold transition-all hover:scale-105 shadow-xl disabled:opacity-60"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-full px-8 py-3.5 text-xs font-bold transition-all hover:scale-105 shadow-xl disabled:opacity-60"
                     style={{ backgroundColor: amber, color: '#100e0b' }}
                   >
                     {contactSubmitting ? (
@@ -1134,15 +1022,19 @@ export default function Landing() {
                 className="rounded-3xl p-6 shadow-xl backdrop-blur-2xl border transition-all hover:border-amber-500/40"
                 style={{ backgroundColor: cardBg, borderColor: hairline }}
               >
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2.5 mb-3">
                   <div
-                    className="flex h-9 w-9 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: 'rgba(232, 163, 61, 0.15)', color: amber, border: `1px solid ${amber}33` }}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl"
+                    style={{
+                      backgroundColor: 'rgba(232, 163, 61, 0.15)',
+                      color: amber,
+                      border: `1px solid ${amber}33`,
+                    }}
                   >
                     <MailIcon size={18} />
                   </div>
                   <div>
-                    <h5 className="text-sm font-bold" style={{ color: ink }}>Direct Email</h5>
+                    <h5 className="text-sm font-bold text-white">Direct Email</h5>
                     <p className="text-[11px]" style={{ color: inkFaint }}>Direct inbox for inquiries & feedback</p>
                   </div>
                 </div>
@@ -1171,15 +1063,19 @@ export default function Landing() {
                 className="rounded-3xl p-6 shadow-xl backdrop-blur-2xl border transition-all hover:border-emerald-500/40"
                 style={{ backgroundColor: cardBg, borderColor: hairline }}
               >
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2.5 mb-3">
                   <div
-                    className="flex h-9 w-9 items-center justify-center rounded-xl"
-                    style={{ backgroundColor: 'rgba(52, 211, 153, 0.15)', color: '#34d399', border: '1px solid rgba(52, 211, 153, 0.33)' }}
+                    className="flex h-10 w-10 items-center justify-center rounded-xl"
+                    style={{
+                      backgroundColor: 'rgba(52, 211, 153, 0.15)',
+                      color: '#34d399',
+                      border: '1px solid rgba(52, 211, 153, 0.33)',
+                    }}
                   >
                     <PhoneIcon size={18} />
                   </div>
                   <div>
-                    <h5 className="text-sm font-bold" style={{ color: ink }}>Direct Phone & WhatsApp</h5>
+                    <h5 className="text-sm font-bold text-white">Direct Phone & WhatsApp</h5>
                     <p className="text-[11px]" style={{ color: inkFaint }}>Direct voice calls & messaging</p>
                   </div>
                 </div>
@@ -1205,11 +1101,11 @@ export default function Landing() {
 
               {/* Direct Operator Badge */}
               <div
-                className="rounded-2xl p-4 border backdrop-blur-xl text-xs leading-relaxed"
+                className="rounded-2xl p-5 border backdrop-blur-xl text-xs leading-relaxed"
                 style={{ backgroundColor: cardBg, borderColor: hairline, color: inkMuted }}
               >
-                <div className="flex items-center gap-2 mb-1.5 font-semibold text-amber-400">
-                  <SparklesIcon size={13} color={amber} />
+                <div className="flex items-center gap-2 mb-2 font-bold text-amber-400">
+                  <SparklesIcon size={14} color={amber} />
                   <span>Support & Inquiries — Hawaz Technologies</span>
                 </div>
                 <p>
@@ -1228,40 +1124,41 @@ export default function Landing() {
         </section>
 
         {/* ── Modern Minimalist Footer ── */}
-        <footer className="mt-auto border-t py-8 px-6 sm:px-10" style={{ borderColor: hairline }}>
+        <footer className="mt-auto border-t py-10 px-6 sm:px-10 border-white/10">
           <div className="mx-auto max-w-6xl flex flex-col gap-6 text-xs" style={{ color: inkFaint }}>
             {/* Top row: Brand + Nav links */}
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
                 <div className="flex items-center gap-2.5">
-                  <KeyadiLogo size={22} />
-                  <span className="font-semibold" style={{ color: ink }}>Keyadi</span>
+                  <KeyadiLogo size={24} />
+                  <span className="font-extrabold text-white text-sm">Keyadi</span>
                   <span>·</span>
                   <span>© {new Date().getFullYear()}</span>
                 </div>
                 <span className="hidden sm:inline" style={{ color: hairline }}>•</span>
-                <span className="font-semibold tracking-wide" style={{ color: amber }}>
+                <span className="font-bold tracking-wide text-amber-400">
                   Built by HAWAZ TECHNOLOGIES
                 </span>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-6">
-                <a href="#features" className="hover:text-amber-400 transition">Features</a>
                 <a href="#directions" className="hover:text-amber-400 transition">Directions</a>
+                <a href="#features" className="hover:text-amber-400 transition">Features</a>
+                <a href="#demo" className="hover:text-amber-400 transition">Live Terminal</a>
                 <a href="#faq" className="hover:text-amber-400 transition">FAQ</a>
                 <a href="#contact" className="hover:text-amber-400 transition">Contact</a>
                 {user ? (
-                  <Link to="/dashboard" className="hover:text-amber-400 transition font-medium text-amber-400">Live Map</Link>
+                  <Link to="/dashboard" className="hover:text-amber-400 transition font-bold text-amber-400">Live Map</Link>
                 ) : (
                   <>
                     <Link to="/login" className="hover:text-amber-400 transition">Sign in</Link>
-                    <Link to="/signup" className="hover:text-amber-400 transition font-medium text-amber-400">Create account</Link>
+                    <Link to="/signup" className="hover:text-amber-400 transition font-bold text-amber-400">Create account</Link>
                   </>
                 )}
               </div>
             </div>
 
             {/* Legal links row */}
-            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 pt-3 border-t" style={{ borderColor: hairline }}>
+            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 pt-4 border-t border-white/5">
               <Link to="/privacy" className="hover:text-amber-400 transition">Privacy Policy</Link>
               <span style={{ color: hairline }}>·</span>
               <Link to="/terms" className="hover:text-amber-400 transition">Terms of Service</Link>
@@ -1275,9 +1172,9 @@ export default function Landing() {
             <div className="text-center text-[10px] leading-relaxed" style={{ color: inkFaint }}>
               <p>
                 Hawaz Technologies · Addis Ababa, Ethiopia ·{' '}
-                <a href="mailto:biruk5868@gmail.com" className="text-amber-400/70 hover:text-amber-400 transition">biruk5868@gmail.com</a>
+                <a href="mailto:biruk5868@gmail.com" className="text-amber-400/80 hover:text-amber-400 transition">biruk5868@gmail.com</a>
                 {' '}·{' '}
-                <a href="tel:+251909005450" className="text-amber-400/70 hover:text-amber-400 transition">+251 909 005 450</a>
+                <a href="tel:+251909005450" className="text-amber-400/80 hover:text-amber-400 transition">+251 909 005 450</a>
               </p>
             </div>
           </div>

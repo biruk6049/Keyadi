@@ -283,3 +283,66 @@ select:focus-visible {
   height: auto;
   overflow: visible;
 }
+
+/* ── 3D Spatial & Kinetic Utilities for Landing Page ── */
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.perspective-800 {
+  perspective: 800px;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.perspective-1400 {
+  perspective: 1400px;
+}
+
+@keyframes keyadi-float-slow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
+.animate-float-slow {
+  animation: keyadi-float-slow 6s ease-in-out infinite;
+}
+
+@keyframes keyadi-shimmer-sweep {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.kinetic-shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #f3f1ec 0%,
+    #e8a33d 30%,
+    #fef08a 50%,
+    #e8a33d 70%,
+    #f3f1ec 100%
+  );
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: keyadi-shimmer-sweep 5s linear infinite;
+}
+
+.glass-card-3d {
+  background: rgba(18, 16, 13, 0.72);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(243, 241, 236, 0.1);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}

@@ -795,13 +795,46 @@ async function verifyAndAnchorPlace(
     const rawLat = parseFloat(p.lat)
     const rawLng = parseFloat(p.lng)
 
-    // Check if Gemini's provided coordinates are valid and within radius
+    // Check if Gemini's provided coordinates are valid and strictly within radius
     if (!isNaN(rawLat) && !isNaN(rawLng)) {
       const geminiDist = haversineDistance(center.lat, center.lng, rawLat, rawLng)
-      if (geminiDist <= radiusKm * 1.25) {
-        matchedLat = rawLat
-        matchedLng = rawLng
-        isVerified = true
+      if (geminiDist <= radiusKm) {
+        // Cross-verify Gemini coordinates against GIS to ensure they point to a real place
+        let geminiVerified = false
+        try {
+          const verifyOsm = await queryNominatimPOI(cleanName, { lat: rawLat, lng: rawLng },
+            `${(rawLng - 0.005).toFixed(6)},${(rawLat - 0.005).toFixed(6)},${(rawLng + 0.005).toFixed(6)},${(rawLat + 0.005).toFixed(6)}`, signal)
+          for (const item of verifyOsm) {
+            const vLat = parseFloat(item.lat)
+            const vLng = parseFloat(item.lon)
+            if (!isNaN(vLat) && !isNaN(vLng)) {
+              const vDist = haversineDistance(rawLat, rawLng, vLat, vLng)
+              const nameScore = calculateNameMatchScore(cleanName, item.name || item.display_name)
+              if (vDist < 1.0 && nameScore >= 0.35) {
+                // GIS confirmed — use the more precise GIS coordinates
+                matchedLat = vLat
+                matchedLng = vLng
+                matchedAddress = item.display_name || matchedAddress
+                matchedSnippet = formatAddressSnippet(item.display_name) || matchedSnippet
+                const extra = item.extratags || {}
+                if (extra.phone && !matchedPhone) matchedPhone = extra.phone
+                if (extra.website && !matchedWebsite) matchedWebsite = extra.website
+                if (extra.opening_hours && !matchedHours) matchedHours = extra.opening_hours
+                geminiVerified = true
+                isVerified = true
+                break
+              }
+            }
+          }
+        } catch {
+          // GIS cross-check failed — still accept Gemini coords if within strict radius
+        }
+
+        if (!geminiVerified) {
+          // Accept Gemini coordinates as-is if they're within the strict radius
+          matchedLat = rawLat
+          matchedLng = rawLng
+        }
       }
     }
 
@@ -814,7 +847,7 @@ async function verifyAndAnchorPlace(
           if (feat.center && feat.center.length >= 2) {
             const [sLng, sLat] = feat.center
             const d = haversineDistance(center.lat, center.lng, sLat, sLng)
-            if (d <= radiusKm * 1.25) {
+            if (d <= radiusKm * 1.15) {
               matchedLat = sLat
               matchedLng = sLng
               matchedAddress = `${cleanName}, ${feat.place_name}`
@@ -827,10 +860,20 @@ async function verifyAndAnchorPlace(
       }
     }
 
-    // Ultimate fallback if completely missing coordinates: place near center within 20% of radius (not clamped to a fake ring)
+    // Ultimate fallback if completely missing coordinates: scatter near center
+    // with a small deterministic offset to prevent all unresolved places from
+    // stacking on the exact same point, which is visually misleading
     if (matchedLat === null || matchedLng === null) {
-      matchedLat = center.lat
-      matchedLng = center.lng
+      let hash = 0
+      for (let i = 0; i < cleanName.length; i++) {
+        hash = ((hash << 5) - hash + cleanName.charCodeAt(i)) | 0
+      }
+      const angle = ((Math.abs(hash) % 360) * Math.PI) / 180
+      const offsetKm = 0.15 + (Math.abs(hash >> 8) % 100) / 100 * 0.35
+      const latOffset = (offsetKm / 111.32) * Math.sin(angle)
+      const lngOffset = (offsetKm / (111.32 * Math.cos((center.lat * Math.PI) / 180))) * Math.cos(angle)
+      matchedLat = center.lat + latOffset
+      matchedLng = center.lng + lngOffset
     }
   }
 
@@ -884,8 +927,10 @@ export async function searchPlacesWithGemini({
     ? `${areaContext} (latitude ${center.lat.toFixed(5)}, longitude ${center.lng.toFixed(5)})`
     : `latitude ${center.lat.toFixed(5)}, longitude ${center.lng.toFixed(5)}`
 
-  const prompt = `You are Keyadi's Google Gemini Place Intelligence Engine (Year: 2026).
-Current Date: 2026-10-10. All information, place names, active venues, operating status, road layouts, and geographic coordinates must reflect verified 2026 real-world data. Exclude permanently closed or outdated historical venues.
+  const currentDate = new Date().toISOString().split('T')[0]
+  const currentYear = new Date().getFullYear()
+  const prompt = `You are Keyadi's Google Gemini Place Intelligence Engine (Year: ${currentYear}).
+Current Date: ${currentDate}. All information, place names, active venues, operating status, road layouts, and geographic coordinates must reflect verified ${currentYear} real-world data. Exclude permanently closed or outdated historical venues.
 User query: "${term}"
 Search origin: ${locationDesc}
 Search radius: strictly within ${radiusKm} km.
@@ -893,13 +938,13 @@ Search radius: strictly within ${radiusKm} km.
 Task:
 1. Deeply understand the user query in its full geographic, cultural, and situational context, whether it is a single word (e.g. "pension", "fuel", "coffee"), a phrase ("cheap guest house", "fresh juice"), a practical question ("where can I buy cement for construction"), or a full sentence ("find me a quiet cafe with fast wifi").
 2. Accurately categorize the user intent into a clean, professional category title (e.g. "Guest Houses & Budget Pensions", "Hardware & Construction Materials", "Specialty Coffee & Cafés", "Pharmacies & Medical", "Supermarkets & Groceries", etc.).
-3. Identify and return the MOST RELEVANT, verified, real-world places that are actively open and operating in 2026 in this geographic area strictly within the ${radiusKm} km radius.
+3. Identify and return the MOST RELEVANT, verified, real-world places that are actively open and operating in ${currentYear} in this geographic area strictly within the ${radiusKm} km radius.
    - For lodging/pension queries, identify genuine guest houses, pensions, or budget hotels (NEVER administrative offices, corporate offices, or banks).
    - For construction/cement queries, identify genuine building material suppliers and hardware stores.
    - For food/drink queries, identify genuine restaurants, cafes, or bakeries.
-   - Provide realistic, accurate 2026 physical coordinates (lat, lng) strictly within ${radiusKm} km of the origin.
-   - Include 2026 verified street/district addresses, active opening hours (e.g. 24/7 or 08:00 - 22:00), active contact phones if known, and reliable star ratings (e.g. 4.2).
-   - In "description", give a concise 1-sentence explanation of why this place specifically matches the user's need in 2026.
+   - Provide realistic, accurate ${currentYear} physical coordinates (lat, lng) strictly within ${radiusKm} km of the origin.
+   - Include ${currentYear} verified street/district addresses, active opening hours (e.g. 24/7 or 08:00 - 22:00), active contact phones if known, and reliable star ratings (e.g. 4.2).
+   - In "description", give a concise 1-sentence explanation of why this place specifically matches the user's need in ${currentYear}.
 
 Output strict JSON only with no markdown formatting:
 {
@@ -933,7 +978,7 @@ Output strict JSON only with no markdown formatting:
   const west = Math.max(-180, center.lng - lngDelta).toFixed(6)
   const north = Math.min(90, center.lat + latDelta).toFixed(6)
   const east = Math.min(180, center.lng + lngDelta).toFixed(6)
-  const viewboxParam = `${west},${north},${east},${south}`
+  const viewboxParam = `${west},${south},${east},${north}`
   const mapboxBbox = `${west},${south},${east},${north}`
 
   for (const model of CANDIDATE_MODELS) {
