@@ -92,7 +92,7 @@ export default function InteractiveDemoTerminal({ isDark = true, user }) {
                 <span className="h-3 w-3 rounded-full bg-emerald-500/80 inline-block shadow-sm" />
               </div>
               <span className="text-xs font-mono font-bold uppercase tracking-wider text-white/60">
-                Keyadi Geospatial Terminal v2.4
+                Keyadi · Smart Place Search
               </span>
             </div>
 
@@ -124,28 +124,19 @@ export default function InteractiveDemoTerminal({ isDark = true, user }) {
                 <span className="ml-1 inline-block h-4 w-2 bg-amber-400 animate-pulse align-middle" />
               </div>
               <span className="text-[11px] font-mono text-amber-400/80 shrink-0 hidden sm:inline-block">
-                OVERPASS QL COMPILED
+                SEARCH READY
               </span>
             </div>
           </div>
 
-          {/* Terminal Telemetry Diagnostics */}
-          <div className="relative z-10 mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono [transform:translateZ(30px)]">
-            <div className="rounded-xl bg-white/[0.04] p-3 border border-white/5">
-              <span className="text-white/40 block text-[10px]">EXECUTION TIME</span>
-              <span className="text-emerald-400 font-bold text-sm">{current.time}</span>
+          {/* Quick stats — human-friendly, no technical jargon */}
+          <div className="relative z-10 mt-5 flex flex-wrap items-center gap-3 text-xs [transform:translateZ(30px)]">
+            <div className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 border border-emerald-500/25 bg-emerald-500/10">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="text-emerald-400 font-semibold">Found {current.count} places nearby</span>
             </div>
-            <div className="rounded-xl bg-white/[0.04] p-3 border border-white/5">
-              <span className="text-white/40 block text-[10px]">VERIFIED POIS</span>
-              <span className="text-amber-400 font-bold text-sm">{current.count} Establishments</span>
-            </div>
-            <div className="rounded-xl bg-white/[0.04] p-3 border border-white/5">
-              <span className="text-white/40 block text-[10px]">BOUNDING REGION</span>
-              <span className="text-sky-400 font-bold text-sm truncate">{current.center}</span>
-            </div>
-            <div className="rounded-xl bg-white/[0.04] p-3 border border-white/5">
-              <span className="text-white/40 block text-[10px]">FILTER TAGS</span>
-              <span className="text-purple-400 font-bold text-sm truncate">{current.overpassTag}</span>
+            <div className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 border border-sky-500/25 bg-sky-500/10">
+              <span className="text-sky-400 font-semibold">📍 {current.center}</span>
             </div>
           </div>
 
@@ -181,7 +172,7 @@ export default function InteractiveDemoTerminal({ isDark = true, user }) {
           {/* CTA Footer */}
           <div className="relative z-10 mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-white/10 pt-6 [transform:translateZ(25px)]">
             <span className="text-xs text-white/60 text-center sm:text-left">
-              Keyadi indexes verified OpenStreetMap geometry in real time without AI hallucinations.
+              Every result is sourced from real, community-verified map data — no guesses, no outdated listings.
             </span>
             <Link
               to={user ? '/dashboard' : '/signup'}

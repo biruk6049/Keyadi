@@ -42,33 +42,33 @@ const QUERY_CHIPS = [
 
 const FAQ_ITEMS = [
   {
-    q: 'What is Keyadi and how does its Geospatial AI work?',
-    a: 'Keyadi translates natural conversational requests (e.g. "quiet cafes with fast wifi" or "24/7 pharmacies open now") into structured, deterministic Overpass QL queries. It fetches verified live geographic data from OpenStreetMap without AI hallucinations or stale directory data.',
+    q: 'How does Keyadi find places near me?',
+    a: 'Just describe what you need in plain words — like "quiet cafe with fast wifi" or "24/7 pharmacy open now" — and Keyadi turns that into a live search using real map data from OpenStreetMap. You get accurate, up-to-date results, not guesses.',
     cat: 'Product',
   },
   {
-    q: 'Is Keyadi free to use or does it require a paid subscription?',
-    a: 'Keyadi is completely free to use. You can search verified venues, compute multimodal travel routes across driving, walking, and cycling, and create an account to save persistent radius trackers with no credit card required.',
+    q: 'Is Keyadi free? Do I need a credit card?',
+    a: 'Keyadi is completely free to use. Search for places, get driving and walking directions, and create an account to save your favourite areas — all without ever entering a credit card.',
     cat: 'Pricing',
   },
   {
-    q: 'How does Keyadi calculate routes and travel times?',
-    a: 'When you select any place or request directions, Keyadi queries routing profiles in parallel across 3 travel modes (Driving, Walking, and Cycling), displaying real-time distance and estimated minutes with illuminated route lines directly on the map.',
+    q: 'How does Keyadi calculate routes?',
+    a: 'When you tap on a place or ask for directions, Keyadi instantly shows you three options side-by-side — driving, walking, and cycling — with real-time distance and estimated travel time.',
     cat: 'Directions',
   },
   {
-    q: 'Can I monitor specific neighborhoods or keywords continuously?',
-    a: 'Yes! With Keyadi Live Trackers, you can define a geographic radius around any coordinate or your live GPS position, paired with keyword tags (like artisan bakeries or EV charging). Keyadi monitors the area and alerts you whenever matching establishments update.',
+    q: 'Can I keep an eye on a specific area continuously?',
+    a: 'Yes! With Keyadi Live Trackers, you can draw a circle around any spot on the map and add keywords you care about — like "artisan bakery" or "EV charging". Keyadi watches the area and lets you know when something new shows up.',
     cat: 'Features',
   },
   {
-    q: 'How does Keyadi protect my privacy and GPS location?',
-    a: 'Your GPS coordinates are processed exclusively on the client side in your browser to calculate proximity queries. Keyadi does not sell your location history to advertisers, and your saved trackers are securely stored under your authenticated account.',
+    q: 'Is my location kept private?',
+    a: 'Absolutely. Your GPS position is only ever used inside your own browser — it never gets sent to our servers. We don\'t sell your data, track your movements, or build profiles. Your privacy is non-negotiable.',
     cat: 'Security',
   },
   {
-    q: 'Can I customize map visuals and coordinate origins?',
-    a: 'Yes, inside Settings you can toggle between high-contrast dark vector street cartography and high-resolution satellite imagery, switch between metric (km) and imperial (miles) distance units, and specify a custom fixed pinpoint origin.',
+    q: 'Can I change how the map looks?',
+    a: 'Definitely. Head into Settings to switch between a sleek dark street map and high-resolution satellite view, choose between kilometres and miles, or set a custom home location as your starting point.',
     cat: 'Product',
   },
 ]
@@ -511,8 +511,8 @@ export default function Landing() {
             className="mx-auto mt-6 max-w-2xl text-base sm:text-lg leading-relaxed"
             style={{ color: inkMuted }}
           >
-            Translate natural conversational intent into verified OpenStreetMap vectors.
-            Compare real-time side-by-side drive, walk, and cycle routes with illuminated 3D road telemetry.
+            Just tell Keyadi what you're looking for — in your own words. It finds real, verified places nearby
+            and shows you exactly how to get there by car, foot, or bike.
           </motion.p>
 
           {/* Dynamic Suggestion Chips */}
@@ -558,7 +558,7 @@ export default function Landing() {
                 boxShadow: '0 8px 30px rgba(232, 163, 61, 0.45)',
               }}
             >
-              <span>{user ? 'Open Live Map Console' : 'Start Exploring Free'}</span>
+              <span>{user ? 'Take Me To The Map' : 'Start Exploring — It\'s Free'}</span>
               <span className="transition-transform group-hover:translate-x-1">→</span>
             </Link>
 
@@ -572,7 +572,7 @@ export default function Landing() {
               }}
             >
               <SearchIcon size={15} color={amber} />
-              <span>{user ? 'Explore Live Cartography' : 'Sign In To Explore'}</span>
+              <span>{user ? 'Open the Live Map' : 'Sign In To Explore'}</span>
             </Link>
           </motion.div>
         </section>
@@ -585,53 +585,53 @@ export default function Landing() {
         {/* ── 3D Features Pillars Grid (TiltCard3D) ── */}
         <section id="features" className="mx-auto max-w-6xl px-6 py-20 sm:px-10 border-t border-white/10">
           <ScrollRevealHeading
-            tag="Architected For Local Intelligence"
-            title="Everything You Need To Navigate With Precision"
-            subtitle="Engineered with deterministic GIS Overpass algorithms, multimodal routing engines, and privacy-first client execution."
+            tag="Built for Real Explorers"
+            title="Everything You Need To Move Around Smarter"
+            subtitle="Powerful under the hood, simple to use. Keyadi handles the complex stuff so you can focus on finding what matters."
           />
 
           <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
                 icon: <SparklesIcon size={22} color={amber} />,
-                title: 'Natural Conversational Search',
-                desc: 'Describe what you need in plain speech. Keyadi synthesizes natural queries into verified Overpass queries without AI hallucinated coordinates.',
-                badge: 'Verified Overpass QL',
+                title: 'Search in Plain English',
+                desc: 'No special syntax, no guesswork. Just describe what you want — “quiet cafe with outdoor seating” or “24/7 pharmacy nearby” — and Keyadi handles the rest.',
+                badge: 'Natural Language Search',
                 color: '#e8a33d',
               },
               {
                 icon: <ClockIcon size={22} color="#38bdf8" />,
-                title: 'Multimodal Live Routing',
-                desc: 'Instant side-by-side computation of driving, walking, and cycling routes with illuminated vectors and real-time travel durations.',
-                badge: 'OSRM Multimodal',
+                title: 'Drive, Walk, or Cycle Routes',
+                desc: 'See all three travel options side-by-side in seconds. Choose what works best for you today — whether you\'re in a rush or just enjoying a walk.',
+                badge: 'Multimodal Routing',
                 color: '#38bdf8',
               },
               {
                 icon: <PinIcon size={22} color="#2dd4bf" />,
-                title: 'Real-Time Radar Trackers',
-                desc: 'Set continuous geographic radius buffers around any coordinate or live GPS location with custom alerts for new venue updates.',
-                badge: 'Geo-Radius Alerting',
+                title: 'Watch Your Neighborhood Live',
+                desc: 'Pin a radius around any location and get notified whenever something new pops up — a new restaurant, a pharmacy, whatever you care about.',
+                badge: 'Live Area Monitoring',
                 color: '#2dd4bf',
               },
               {
                 icon: <GlobeIcon size={22} color="#a78bfa" />,
-                title: 'High-Res 3D & Vector Maps',
-                desc: 'Seamlessly switch between high-contrast dark vector street cartography and high-resolution satellite imagery in any quadrant.',
+                title: 'Stunning Maps, Day or Night',
+                desc: 'Switch between sleek dark street maps and vivid satellite imagery. Your city, your way — beautifully rendered at every zoom level.',
                 badge: 'Vector & Satellite',
                 color: '#a78bfa',
               },
               {
                 icon: <NavigationIcon size={22} color="#f43f5e" />,
-                title: 'Custom Origin Telemetry',
-                desc: 'Designate any custom coordinate origin or track your dynamic mobile location with millimeter GPS telemetry and proximity filters.',
-                badge: 'Live GPS Pinpoint',
+                title: 'Your Location, Your Call',
+                desc: 'Use your live GPS or pin any address as your starting point. Keyadi adapts to wherever you are and shows you what\'s close.',
+                badge: 'Flexible Origin Point',
                 color: '#f43f5e',
               },
               {
                 icon: <CheckCircleIcon size={22} color="#34d399" />,
-                title: 'Zero Tracking Privacy Guarantee',
-                desc: 'Your GPS calculations run exclusively in client-side memory. Your routes and location history are never sold, recorded, or profiled.',
-                badge: '100% Client-Side',
+                title: 'Your Data Stays Yours',
+                desc: 'Your location never leaves your device. We don\'t track you, profile you, or sell your data. Period. You explore in total privacy.',
+                badge: '100% Private',
                 color: '#34d399',
               },
             ].map((feat, i) => (
@@ -688,9 +688,9 @@ export default function Landing() {
         <section id="demo" className="mx-auto w-full max-w-6xl px-4 py-20 sm:px-10">
           <div className="mb-10 text-center">
             <ScrollRevealHeading
-              tag="Live Geospatial Console"
-              title="Experience The Query Engine"
-              subtitle="Watch plain-English search terms compile instantly into deterministic OpenStreetMap Overpass queries."
+              tag="See It In Action"
+              title="Try a Real Search, Right Now"
+              subtitle="Type what you're looking for, the way you'd say it to a friend. Keyadi finds real nearby places instantly."
             />
           </div>
           <InteractiveDemoTerminal isDark={isDark} user={user} />
@@ -751,9 +751,9 @@ export default function Landing() {
         <section id="faq" className="mx-auto max-w-6xl px-6 py-20 sm:px-10 border-t border-white/10">
           <div className="text-center max-w-2xl mx-auto mb-10">
             <ScrollRevealHeading
-              tag="Documentation & FAQ"
-              title="Frequently Asked Questions"
-              subtitle="Everything you need to know about Keyadi's geospatial AI, multi-modal routing, and privacy."
+              tag="Got Questions?"
+              title="We've Got Answers"
+              subtitle="Wondering how Keyadi works, what it costs, or how we protect your privacy? Here's everything you need to know."
             />
 
             {/* Filter Category Pills */}
@@ -840,54 +840,134 @@ export default function Landing() {
         <section id="contact" className="mx-auto max-w-6xl px-6 py-20 sm:px-10 border-t border-white/10">
           <div className="text-center max-w-2xl mx-auto mb-12">
             <ScrollRevealHeading
-              tag="Get in Touch"
-              title="Contact the Keyadi Team"
-              subtitle="Have questions, feedback, bug reports, or partnership opportunities? Reach out directly to our engineering team."
+              tag="We'd Love to Hear From You"
+              title="Say Hello to the Keyadi Team"
+              subtitle="Have a question, a feature idea, spotted a bug, or just want to chat? We read every message and we'll get back to you."
             />
           </div>
 
           <div className="grid gap-8 lg:grid-cols-12 items-start">
-            {/* Left Column: Workable Contact Form */}
+            {/* Left Column: Contact Form */}
             <div
-              className="lg:col-span-7 rounded-3xl p-6 sm:p-9 shadow-2xl backdrop-blur-2xl border"
+              className="lg:col-span-7 rounded-3xl p-6 sm:p-9 shadow-2xl backdrop-blur-2xl border transition-all duration-300"
               style={{ backgroundColor: cardBg, borderColor: hairline }}
             >
               {contactSubmitted ? (
-                <div className="py-8 text-center animate-in fade-in zoom-in-95 duration-300">
-                  <div
-                    className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg"
-                    style={{
-                      backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                      border: '1px solid rgba(34, 197, 94, 0.35)',
-                      color: '#22c55e',
-                    }}
-                  >
-                    <CheckCircleIcon size={28} />
+                /* ── Premium Success Animation State ── */
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.88 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: 'spring', damping: 18, stiffness: 200 }}
+                  className="py-10 text-center relative overflow-hidden"
+                >
+                  {/* Confetti burst particles */}
+                  {[...Array(16)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute rounded-full pointer-events-none"
+                      initial={{ opacity: 1, scale: 0, x: 0, y: 0 }}
+                      animate={{
+                        opacity: [1, 1, 0],
+                        scale: [0, 1, 0.8],
+                        x: Math.cos((i / 16) * Math.PI * 2) * (60 + Math.random() * 60),
+                        y: Math.sin((i / 16) * Math.PI * 2) * (60 + Math.random() * 60),
+                      }}
+                      transition={{ duration: 0.9, delay: i * 0.04, ease: 'easeOut' }}
+                      style={{
+                        width: `${5 + (i % 3) * 4}px`,
+                        height: `${5 + (i % 3) * 4}px`,
+                        backgroundColor: ['#e8a33d','#ffd166','#34d399','#38bdf8','#a78bfa','#f43f5e'][i % 6],
+                        top: '50%',
+                        left: '50%',
+                        marginLeft: '-4px',
+                        marginTop: '-4px',
+                      }}
+                    />
+                  ))}
+
+                  {/* Success Checkmark with ring pulse */}
+                  <div className="relative inline-flex items-center justify-center mb-5">
+                    <motion.div
+                      initial={{ scale: 0.3, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: 'spring', damping: 12, stiffness: 260, delay: 0.1 }}
+                      className="relative flex h-20 w-20 items-center justify-center rounded-full shadow-2xl"
+                      style={{
+                        background: 'radial-gradient(circle, rgba(34,197,94,0.25) 0%, rgba(34,197,94,0.08) 100%)',
+                        border: '2px solid rgba(34, 197, 94, 0.5)',
+                        boxShadow: '0 0 40px rgba(34,197,94,0.3)',
+                      }}
+                    >
+                      {/* Outer pulse ring */}
+                      <motion.div
+                        className="absolute inset-0 rounded-full border-2 border-emerald-400/40"
+                        initial={{ scale: 1, opacity: 0.8 }}
+                        animate={{ scale: 1.6, opacity: 0 }}
+                        transition={{ duration: 1.2, repeat: Infinity, ease: 'easeOut', delay: 0.3 }}
+                      />
+                      <motion.svg
+                        width="36" height="36" viewBox="0 0 24 24" fill="none"
+                        initial={{ pathLength: 0, opacity: 0 }}
+                        animate={{ pathLength: 1, opacity: 1 }}
+                        transition={{ duration: 0.5, delay: 0.25, ease: 'easeOut' }}
+                      >
+                        <motion.path
+                          d="M5 13l4 4L19 7"
+                          stroke="#22c55e"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          initial={{ pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ duration: 0.5, delay: 0.25 }}
+                        />
+                      </motion.svg>
+                    </motion.div>
                   </div>
-                  <h4 className="text-xl font-bold mb-1.5 text-white">
-                    Message Prepared & Logged!
-                  </h4>
-                  <p className="text-xs sm:text-sm max-w-md mx-auto mb-4" style={{ color: inkMuted }}>
-                    Thank you <span className="font-semibold text-amber-400">{contactForm.name}</span>. Your ticket has been logged and opened to send to <span className="font-semibold text-amber-400">biruk5868@gmail.com</span>.
-                  </p>
-                  <div
-                    className="inline-block px-4 py-2 rounded-xl text-xs font-mono font-bold mb-6"
+
+                  <motion.h4
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="text-2xl font-extrabold mb-2 text-white"
+                  >
+                    You're all set! 🎉
+                  </motion.h4>
+                  <motion.p
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="text-sm max-w-md mx-auto mb-5"
+                    style={{ color: inkMuted }}
+                  >
+                    Thanks <span className="font-semibold text-amber-400">{contactForm.name}</span>! Your message is on its way. We’ll get back to you soon.
+                  </motion.p>
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="inline-block px-4 py-2 rounded-xl text-xs font-mono font-bold mb-7"
                     style={{
                       backgroundColor: 'rgba(255,255,255,0.06)',
                       border: `1px solid ${hairline}`,
                       color: amber,
                     }}
                   >
-                    Ticket ID: {ticketId}
-                  </div>
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                    Reference: {ticketId}
+                  </motion.div>
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.65 }}
+                    className="flex flex-col sm:flex-row items-center justify-center gap-3"
+                  >
                     <a
-                      href={`mailto:biruk5868@gmail.com?subject=${encodeURIComponent(`[Keyadi - ${contactForm.topic}] from ${contactForm.name}`)}&body=${encodeURIComponent(`Name: ${contactForm.name}\nEmail: ${contactForm.email}\nTopic: ${contactForm.topic}\nTicket ID: ${ticketId}\n\nMessage:\n${contactForm.message}`)}`}
-                      className="rounded-full px-6 py-2.5 text-xs font-bold transition hover:opacity-90 shadow-md flex items-center gap-1.5"
-                      style={{ backgroundColor: amber, color: '#100e0b' }}
+                      href={`mailto:biruk5868@gmail.com?subject=${encodeURIComponent(`[Keyadi - ${contactForm.topic}] from ${contactForm.name}`)}&body=${encodeURIComponent(`Name: ${contactForm.name}\nEmail: ${contactForm.email}\nTopic: ${contactForm.topic}\nReference: ${ticketId}\n\nMessage:\n${contactForm.message}`)}`}
+                      className="rounded-full px-6 py-2.5 text-xs font-bold transition-all hover:opacity-90 hover:scale-105 shadow-md flex items-center gap-1.5"
+                      style={{ backgroundColor: amber, color: '#100e0b', boxShadow: '0 4px 16px rgba(232,163,61,0.35)' }}
                     >
                       <MailIcon size={14} />
-                      <span>Send to biruk5868@gmail.com</span>
+                      <span>Open in Email App</span>
                     </a>
                     <button
                       onClick={resetContactForm}
@@ -896,12 +976,14 @@ export default function Landing() {
                     >
                       Send Another Message
                     </button>
-                  </div>
-                </div>
+                  </motion.div>
+                </motion.div>
               ) : (
                 <form onSubmit={handleContactSubmit} className="space-y-4">
                   {contactError && (
-                    <div
+                    <motion.div
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
                       className="p-3 rounded-xl text-xs flex items-center gap-2"
                       style={{
                         backgroundColor: 'rgba(239, 68, 68, 0.12)',
@@ -911,7 +993,7 @@ export default function Landing() {
                     >
                       <span>⚠</span>
                       <span>{contactError}</span>
-                    </div>
+                    </motion.div>
                   )}
 
                   <div className="grid sm:grid-cols-2 gap-4">
@@ -924,7 +1006,7 @@ export default function Landing() {
                         value={contactForm.name}
                         onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                         placeholder="e.g. Alex Morgan"
-                        className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border focus:border-amber-400"
+                        className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all border focus:border-amber-400 focus:shadow-[0_0_0_3px_rgba(232,163,61,0.15)] hover:border-amber-500/40"
                         style={{
                           backgroundColor: inputBg,
                           borderColor: hairline,
@@ -942,7 +1024,7 @@ export default function Landing() {
                         value={contactForm.email}
                         onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
                         placeholder="alex@example.com"
-                        className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border focus:border-amber-400"
+                        className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all border focus:border-amber-400 focus:shadow-[0_0_0_3px_rgba(232,163,61,0.15)] hover:border-amber-500/40"
                         style={{
                           backgroundColor: inputBg,
                           borderColor: hairline,
@@ -954,7 +1036,7 @@ export default function Landing() {
 
                   <div>
                     <label className="block text-xs font-semibold mb-1.5" style={{ color: inkMuted }}>
-                      Subject / Topic
+                      What's this about?
                     </label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {['General Inquiry', 'Feature Idea', 'Bug Report', 'Partnership'].map((topic) => (
@@ -962,11 +1044,12 @@ export default function Landing() {
                           key={topic}
                           type="button"
                           onClick={() => setContactForm({ ...contactForm, topic })}
-                          className="px-2.5 py-2 rounded-xl text-[11px] font-bold border transition-all text-center"
+                          className="px-2.5 py-2 rounded-xl text-[11px] font-bold border transition-all text-center hover:scale-[1.03] active:scale-95"
                           style={{
                             backgroundColor: contactForm.topic === topic ? 'rgba(232, 163, 61, 0.22)' : inputBg,
                             borderColor: contactForm.topic === topic ? amber : hairline,
                             color: contactForm.topic === topic ? amber : inkMuted,
+                            boxShadow: contactForm.topic === topic ? '0 0 12px rgba(232,163,61,0.2)' : 'none',
                           }}
                         >
                           {topic}
@@ -977,14 +1060,14 @@ export default function Landing() {
 
                   <div>
                     <label className="block text-xs font-semibold mb-1.5" style={{ color: inkMuted }}>
-                      Message
+                      Your Message
                     </label>
                     <textarea
                       rows={4}
                       value={contactForm.message}
                       onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
-                      placeholder="Describe what you need or how we can help..."
-                      className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition border resize-none focus:border-amber-400"
+                      placeholder="Tell us what's on your mind..."
+                      className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition-all border resize-none focus:border-amber-400 focus:shadow-[0_0_0_3px_rgba(232,163,61,0.15)] hover:border-amber-500/40"
                       style={{
                         backgroundColor: inputBg,
                         borderColor: hairline,
@@ -996,13 +1079,13 @@ export default function Landing() {
                   <button
                     type="submit"
                     disabled={contactSubmitting}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-full px-8 py-3.5 text-xs font-bold transition-all hover:scale-105 shadow-xl disabled:opacity-60"
-                    style={{ backgroundColor: amber, color: '#100e0b' }}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-full px-8 py-3.5 text-xs font-bold transition-all hover:scale-105 active:scale-95 shadow-xl disabled:opacity-60"
+                    style={{ backgroundColor: amber, color: '#100e0b', boxShadow: '0 4px 20px rgba(232,163,61,0.35)' }}
                   >
                     {contactSubmitting ? (
                       <>
                         <span className="h-3.5 w-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                        <span>Sending message...</span>
+                        <span>Sending...</span>
                       </>
                     ) : (
                       <>
@@ -1015,15 +1098,19 @@ export default function Landing() {
               )}
             </div>
 
-            {/* Right Column: Direct Info Cards */}
+            {/* Right Column: Contact Info Cards with Micro-interactions */}
             <div className="lg:col-span-5 space-y-4">
-              {/* Direct Email Card */}
-              <div
-                className="rounded-3xl p-6 shadow-xl backdrop-blur-2xl border transition-all hover:border-amber-500/40"
+              {/* Email Card */}
+              <motion.div
+                whileHover={{ scale: 1.02, y: -2 }}
+                transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                className="rounded-3xl p-6 shadow-xl backdrop-blur-2xl border cursor-pointer"
                 style={{ backgroundColor: cardBg, borderColor: hairline }}
               >
                 <div className="flex items-center gap-2.5 mb-3">
-                  <div
+                  <motion.div
+                    whileHover={{ rotate: [0, -8, 8, 0], scale: 1.1 }}
+                    transition={{ duration: 0.4 }}
                     className="flex h-10 w-10 items-center justify-center rounded-xl"
                     style={{
                       backgroundColor: 'rgba(232, 163, 61, 0.15)',
@@ -1032,16 +1119,16 @@ export default function Landing() {
                     }}
                   >
                     <MailIcon size={18} />
-                  </div>
+                  </motion.div>
                   <div>
-                    <h5 className="text-sm font-bold text-white">Direct Email</h5>
-                    <p className="text-[11px]" style={{ color: inkFaint }}>Direct inbox for inquiries & feedback</p>
+                    <h5 className="text-sm font-bold text-white">Email Us</h5>
+                    <p className="text-[11px]" style={{ color: inkFaint }}>We typically reply within a few hours</p>
                   </div>
                 </div>
 
                 <a
                   href="mailto:biruk5868@gmail.com"
-                  className="flex items-center justify-between gap-2 p-3.5 rounded-2xl border transition-all hover:scale-[1.02] hover:border-amber-500/50 group"
+                  className="group flex items-center justify-between gap-2 p-3.5 rounded-2xl border transition-all hover:scale-[1.02] hover:border-amber-500/50 hover:shadow-[0_0_20px_rgba(232,163,61,0.15)]"
                   style={{ backgroundColor: inputBg, borderColor: hairline }}
                   title="Click to email biruk5868@gmail.com"
                 >
@@ -1049,22 +1136,26 @@ export default function Landing() {
                     biruk5868@gmail.com
                   </span>
                   <span
-                    className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold border transition group-hover:opacity-90 flex items-center gap-1"
+                    className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold border transition-all group-hover:scale-105 flex items-center gap-1"
                     style={{ backgroundColor: amber, color: '#100e0b', borderColor: amber }}
                   >
-                    <span>Email</span>
+                    <span>Write</span>
                     <span>↗</span>
                   </span>
                 </a>
-              </div>
+              </motion.div>
 
-              {/* Direct Phone & WhatsApp Card */}
-              <div
-                className="rounded-3xl p-6 shadow-xl backdrop-blur-2xl border transition-all hover:border-emerald-500/40"
+              {/* Phone Card */}
+              <motion.div
+                whileHover={{ scale: 1.02, y: -2 }}
+                transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+                className="rounded-3xl p-6 shadow-xl backdrop-blur-2xl border cursor-pointer"
                 style={{ backgroundColor: cardBg, borderColor: hairline }}
               >
                 <div className="flex items-center gap-2.5 mb-3">
-                  <div
+                  <motion.div
+                    whileHover={{ y: [-1, 1, -1, 0] }}
+                    transition={{ duration: 0.35 }}
                     className="flex h-10 w-10 items-center justify-center rounded-xl"
                     style={{
                       backgroundColor: 'rgba(52, 211, 153, 0.15)',
@@ -1073,109 +1164,209 @@ export default function Landing() {
                     }}
                   >
                     <PhoneIcon size={18} />
-                  </div>
+                  </motion.div>
                   <div>
-                    <h5 className="text-sm font-bold text-white">Direct Phone & WhatsApp</h5>
-                    <p className="text-[11px]" style={{ color: inkFaint }}>Direct voice calls & messaging</p>
+                    <h5 className="text-sm font-bold text-white">Call or WhatsApp</h5>
+                    <p className="text-[11px]" style={{ color: inkFaint }}>Available for calls and quick messages</p>
                   </div>
                 </div>
 
                 <a
                   href="tel:+251909005450"
-                  className="flex items-center justify-between gap-2 p-3.5 rounded-2xl border transition-all hover:scale-[1.02] hover:border-emerald-500/50 group"
+                  className="group flex items-center justify-between gap-2 p-3.5 rounded-2xl border transition-all hover:scale-[1.02] hover:border-emerald-500/50 hover:shadow-[0_0_20px_rgba(52,211,153,0.15)]"
                   style={{ backgroundColor: inputBg, borderColor: hairline }}
                   title="Click to call +251 909005450"
                 >
                   <span className="text-sm font-mono font-medium text-emerald-400 truncate">
-                    +251 909005450
+                    +251 909 005 450
                   </span>
                   <span
-                    className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold border transition group-hover:opacity-90 flex items-center gap-1"
+                    className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold border transition-all group-hover:scale-105 flex items-center gap-1"
                     style={{ backgroundColor: '#10b981', color: '#100e0b', borderColor: '#10b981' }}
                   >
-                    <span>Call / SMS</span>
+                    <span>Call</span>
                     <span>↗</span>
                   </span>
                 </a>
-              </div>
+              </motion.div>
 
-              {/* Direct Operator Badge */}
+              {/* Note */}
               <div
                 className="rounded-2xl p-5 border backdrop-blur-xl text-xs leading-relaxed"
                 style={{ backgroundColor: cardBg, borderColor: hairline, color: inkMuted }}
               >
                 <div className="flex items-center gap-2 mb-2 font-bold text-amber-400">
                   <SparklesIcon size={14} color={amber} />
-                  <span>Support & Inquiries — Hawaz Technologies</span>
+                  <span>Hawaz Technologies — Addis Ababa</span>
                 </div>
                 <p>
-                  For questions, feedback, partnerships, or technical support, reach out to the Keyadi team via phone at{' '}
+                  We're a small team that genuinely cares about building something great. Reach out any time via{' '}
                   <a href="tel:+251909005450" className="text-emerald-400 font-semibold underline decoration-emerald-400/40">
-                    +251 909005450
+                    phone
                   </a>{' '}
-                  or via email at{' '}
+                  or{' '}
                   <a href="mailto:biruk5868@gmail.com" className="text-amber-400 font-semibold underline decoration-amber-400/40">
-                    biruk5868@gmail.com
-                  </a>.
+                    email
+                  </a>
+                  {' '}— we'd love to hear from you.
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ── Modern Minimalist Footer ── */}
-        <footer className="mt-auto border-t py-10 px-6 sm:px-10 border-white/10">
-          <div className="mx-auto max-w-6xl flex flex-col gap-6 text-xs" style={{ color: inkFaint }}>
-            {/* Top row: Brand + Nav links */}
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left">
-                <div className="flex items-center gap-2.5">
-                  <KeyadiLogo size={24} />
-                  <span className="font-extrabold text-white text-sm">Keyadi</span>
-                  <span>·</span>
-                  <span>© {new Date().getFullYear()}</span>
+        {/* ── Premium Footer ── */}
+        <footer className="mt-auto border-t border-white/10" style={{ backgroundColor: 'rgba(10,9,8,0.98)' }}>
+          {/* Top section */}
+          <div className="mx-auto max-w-6xl px-6 sm:px-10 pt-14 pb-10">
+            <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+
+              {/* Brand Column */}
+              <div className="lg:col-span-1 flex flex-col gap-4">
+                <Link to="/" className="flex items-center gap-2.5 group w-fit">
+                  <div className="transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
+                    <KeyadiLogo size={30} />
+                  </div>
+                  <span className="text-base font-extrabold tracking-tight text-white">Keyadi</span>
+                </Link>
+                <p className="text-xs leading-relaxed max-w-[200px]" style={{ color: 'rgba(243,241,236,0.45)' }}>
+                  Smart place search for real people. Find what you need, get there your way.
+                </p>
+                <div className="flex items-center gap-2 mt-1">
+                  <a
+                    href="mailto:biruk5868@gmail.com"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border transition-all hover:border-amber-500/50 hover:bg-amber-500/10 hover:scale-110"
+                    style={{ borderColor: hairline, color: 'rgba(243,241,236,0.45)' }}
+                    title="Email us"
+                  >
+                    <MailIcon size={13} />
+                  </a>
+                  <a
+                    href="tel:+251909005450"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border transition-all hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:scale-110"
+                    style={{ borderColor: hairline, color: 'rgba(243,241,236,0.45)' }}
+                    title="Call us"
+                  >
+                    <PhoneIcon size={13} />
+                  </a>
+                  <a
+                    href="#contact"
+                    className="flex h-8 w-8 items-center justify-center rounded-full border transition-all hover:border-sky-500/50 hover:bg-sky-500/10 hover:scale-110"
+                    style={{ borderColor: hairline, color: 'rgba(243,241,236,0.45)' }}
+                    title="Globe"
+                  >
+                    <GlobeIcon size={13} />
+                  </a>
                 </div>
-                <span className="hidden sm:inline" style={{ color: hairline }}>•</span>
-                <span className="font-bold tracking-wide text-amber-400">
-                  Built by HAWAZ TECHNOLOGIES
+              </div>
+
+              {/* Explore Column */}
+              <div className="flex flex-col gap-3">
+                <h6 className="text-[11px] font-bold uppercase tracking-widest" style={{ color: amber }}>Explore</h6>
+                <nav className="flex flex-col gap-2.5">
+                  {[
+                    { label: 'How It Works', href: '#directions' },
+                    { label: 'Features', href: '#features' },
+                    { label: 'Live Demo', href: '#demo' },
+                    { label: 'FAQ', href: '#faq' },
+                    { label: 'Contact', href: '#contact' },
+                  ].map((link) => (
+                    <a
+                      key={link.label}
+                      href={link.href}
+                      className="text-xs font-medium transition-all hover:text-amber-400 hover:translate-x-1 inline-block"
+                      style={{ color: 'rgba(243,241,236,0.5)' }}
+                    >
+                      {link.label}
+                    </a>
+                  ))}
+                </nav>
+              </div>
+
+              {/* Account Column */}
+              <div className="flex flex-col gap-3">
+                <h6 className="text-[11px] font-bold uppercase tracking-widest" style={{ color: amber }}>Account</h6>
+                <nav className="flex flex-col gap-2.5">
+                  {user ? (
+                    <Link
+                      to="/dashboard"
+                      className="text-xs font-bold transition-all hover:text-amber-400 hover:translate-x-1 inline-block text-amber-400"
+                    >
+                      Open Live Map
+                    </Link>
+                  ) : (
+                    <>
+                      <Link
+                        to="/login"
+                        className="text-xs font-medium transition-all hover:text-amber-400 hover:translate-x-1 inline-block"
+                        style={{ color: 'rgba(243,241,236,0.5)' }}
+                      >
+                        Sign In
+                      </Link>
+                      <Link
+                        to="/signup"
+                        className="text-xs font-bold transition-all hover:text-amber-400 hover:translate-x-1 inline-block"
+                        style={{ color: 'rgba(243,241,236,0.5)' }}
+                      >
+                        Create Account
+                      </Link>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setGetAppOpen(true)}
+                    className="text-xs font-medium text-left transition-all hover:text-amber-400 hover:translate-x-1 inline-block"
+                    style={{ color: 'rgba(243,241,236,0.5)' }}
+                  >
+                    Get the Mobile App
+                  </button>
+                </nav>
+              </div>
+
+              {/* Legal Column */}
+              <div className="flex flex-col gap-3">
+                <h6 className="text-[11px] font-bold uppercase tracking-widest" style={{ color: amber }}>Legal</h6>
+                <nav className="flex flex-col gap-2.5">
+                  {[
+                    { label: 'Privacy Policy', to: '/privacy' },
+                    { label: 'Terms of Service', to: '/terms' },
+                    { label: 'Cookie Policy', to: '/cookies' },
+                    { label: 'Refund Policy', to: '/refund' },
+                  ].map((link) => (
+                    <Link
+                      key={link.label}
+                      to={link.to}
+                      className="text-xs font-medium transition-all hover:text-amber-400 hover:translate-x-1 inline-block"
+                      style={{ color: 'rgba(243,241,236,0.5)' }}
+                    >
+                      {link.label}
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom bar */}
+          <div
+            className="border-t"
+            style={{ borderColor: 'rgba(243,241,236,0.07)' }}
+          >
+            <div className="mx-auto max-w-6xl px-6 sm:px-10 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3 text-[11px]" style={{ color: 'rgba(243,241,236,0.35)' }}>
+                <span>© {new Date().getFullYear()} Keyadi</span>
+                <span style={{ color: hairline }}>·</span>
+                <span
+                  className="font-semibold tracking-wide"
+                  style={{ color: 'rgba(232,163,61,0.65)' }}
+                >
+                  Hawaz Technologies · Addis Ababa, Ethiopia
                 </span>
               </div>
-              <div className="flex flex-wrap items-center justify-center gap-5 sm:gap-6">
-                <a href="#directions" className="hover:text-amber-400 transition">Directions</a>
-                <a href="#features" className="hover:text-amber-400 transition">Features</a>
-                <a href="#demo" className="hover:text-amber-400 transition">Live Terminal</a>
-                <a href="#faq" className="hover:text-amber-400 transition">FAQ</a>
-                <a href="#contact" className="hover:text-amber-400 transition">Contact</a>
-                {user ? (
-                  <Link to="/dashboard" className="hover:text-amber-400 transition font-bold text-amber-400">Live Map</Link>
-                ) : (
-                  <>
-                    <Link to="/login" className="hover:text-amber-400 transition">Sign in</Link>
-                    <Link to="/signup" className="hover:text-amber-400 transition font-bold text-amber-400">Create account</Link>
-                  </>
-                )}
+              <div className="flex items-center gap-1.5 text-[11px]" style={{ color: 'rgba(243,241,236,0.35)' }}>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                <span>All services operational</span>
               </div>
-            </div>
-
-            {/* Legal links row */}
-            <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 pt-4 border-t border-white/5">
-              <Link to="/privacy" className="hover:text-amber-400 transition">Privacy Policy</Link>
-              <span style={{ color: hairline }}>·</span>
-              <Link to="/terms" className="hover:text-amber-400 transition">Terms of Service</Link>
-              <span style={{ color: hairline }}>·</span>
-              <Link to="/cookies" className="hover:text-amber-400 transition">Cookie Policy</Link>
-              <span style={{ color: hairline }}>·</span>
-              <Link to="/refund" className="hover:text-amber-400 transition">Refund Policy</Link>
-            </div>
-
-            {/* Business details */}
-            <div className="text-center text-[10px] leading-relaxed" style={{ color: inkFaint }}>
-              <p>
-                Hawaz Technologies · Addis Ababa, Ethiopia ·{' '}
-                <a href="mailto:biruk5868@gmail.com" className="text-amber-400/80 hover:text-amber-400 transition">biruk5868@gmail.com</a>
-                {' '}·{' '}
-                <a href="tel:+251909005450" className="text-amber-400/80 hover:text-amber-400 transition">+251 909 005 450</a>
-              </p>
             </div>
           </div>
         </footer>

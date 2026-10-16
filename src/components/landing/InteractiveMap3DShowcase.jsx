@@ -124,10 +124,10 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-white/50">
-                  Multimodal Telemetry
+                  Live Route Preview
                 </span>
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
-                <span className="text-[10px] font-mono text-emerald-400 font-semibold">LIVE ROUTING</span>
+                <span className="text-[10px] font-mono text-emerald-400 font-semibold">LIVE</span>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-base font-extrabold text-white">Bole Atlas</span>
@@ -298,7 +298,7 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
               <div>
                 <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-400 mb-1">
                   <SparklesIcon size={12} color="#e8a33d" />
-                  <span>99.4% Verified OpenStreetMap POI</span>
+                  <span>Verified — Real Place, Real Reviews</span>
                 </div>
                 <h4 className="text-base font-extrabold text-white">
                   Tomoca Specialty Roastery
