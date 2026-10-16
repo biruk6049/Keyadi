@@ -30,7 +30,11 @@ import {
   PhoneIcon,
   GlobeIcon,
   NavigationIcon,
+  XIcon,
+  MenuIcon,
+  AlertTriangleIcon,
 } from '../components/Icons'
+import ThemeToggle from '../components/ThemeToggle'
 
 const QUERY_CHIPS = [
   { label: 'Quiet Cafes', icon: 'cafe', query: 'Quiet specialty cafe with outdoor seating' },
@@ -152,8 +156,7 @@ const TRUSTED_COMPANIES = [
 
 export default function Landing() {
   const { user } = useAuth()
-  const { settings } = useSettings()
-  const isDark = true
+  const { isDark, toggleDarkMode } = useSettings()
   const [activeChip, setActiveChip] = useState(0)
 
   // Navigation & Mobile menu state
@@ -179,9 +182,9 @@ export default function Landing() {
   const ink = isDark ? '#f3f1ec' : '#100e0b'
   const inkMuted = isDark ? 'rgba(243,241,236,0.65)' : 'rgba(16,14,11,0.65)'
   const inkFaint = isDark ? 'rgba(243,241,236,0.40)' : 'rgba(16,14,11,0.45)'
-  const hairline = 'rgba(243,241,236,0.12)'
-  const cardBg = 'rgba(18, 16, 13, 0.78)'
-  const inputBg = 'rgba(255, 255, 255, 0.04)'
+  const hairline = isDark ? 'rgba(243,241,236,0.12)' : 'rgba(16,14,11,0.10)'
+  const cardBg = isDark ? 'rgba(18, 16, 13, 0.78)' : 'rgba(255, 255, 255, 0.88)'
+  const inputBg = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)'
   const amber = '#e8a33d'
 
   const handleContactSubmit = (e) => {
@@ -352,6 +355,11 @@ export default function Landing() {
                 </>
               )}
 
+              {/* Interactive Theme Toggle Switch (Strictly No-Emoji) */}
+              <div className="hidden sm:flex items-center">
+                <ThemeToggle isDark={isDark} onToggle={toggleDarkMode} size="sm" />
+              </div>
+
               {/* Mobile hamburger button */}
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -359,7 +367,7 @@ export default function Landing() {
                 style={{ color: ink }}
                 aria-label="Toggle navigation menu"
               >
-                {mobileMenuOpen ? '✕' : '☰'}
+                {mobileMenuOpen ? <XIcon size={18} color={ink} /> : <MenuIcon size={18} color={ink} />}
               </button>
             </div>
           </div>
@@ -374,10 +382,14 @@ export default function Landing() {
                 transition={{ duration: 0.2 }}
                 className="mt-3 rounded-2xl p-4 md:hidden shadow-2xl backdrop-blur-3xl border flex flex-col gap-2.5 text-sm"
                 style={{
-                  backgroundColor: 'rgba(16, 14, 11, 0.96)',
+                  backgroundColor: isDark ? 'rgba(16, 14, 11, 0.96)' : 'rgba(255, 255, 255, 0.96)',
                   borderColor: hairline,
                 }}
               >
+                <div className="flex items-center justify-between px-3 py-2 rounded-xl mb-1 border" style={{ backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)', borderColor: hairline }}>
+                  <span className="text-xs font-semibold" style={{ color: inkMuted }}>Appearance</span>
+                  <ThemeToggle isDark={isDark} onToggle={toggleDarkMode} size="sm" />
+                </div>
                 <a
                   href="#directions"
                   onClick={() => setMobileMenuOpen(false)}
@@ -931,7 +943,7 @@ export default function Landing() {
                     transition={{ delay: 0.4 }}
                     className="text-2xl font-extrabold mb-2 text-white"
                   >
-                    You're all set! 🎉
+                    You're all set!
                   </motion.h4>
                   <motion.p
                     initial={{ opacity: 0, y: 8 }}
@@ -991,7 +1003,7 @@ export default function Landing() {
                         border: '1px solid rgba(239, 68, 68, 0.25)',
                       }}
                     >
-                      <span>⚠</span>
+                      <AlertTriangleIcon size={14} color="#f87171" className="shrink-0" />
                       <span>{contactError}</span>
                     </motion.div>
                   )}

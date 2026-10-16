@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import KeyadiLogo from './KeyadiLogo'
-import { SparklesIcon, CheckCircleIcon } from './Icons'
+import { SparklesIcon, CheckCircleIcon, XIcon, CheckIcon } from './Icons'
 
 function AndroidIcon({ size = 18, color = 'currentColor' }) {
   return (
@@ -100,7 +100,7 @@ export default function GetAppModal({ isOpen, onClose, isDark = true }) {
           }}
           title="Close"
         >
-          ✕
+          <XIcon size={14} color={inkMuted} />
         </button>
 
         {/* Header with Circular Logo */}
@@ -166,8 +166,22 @@ export default function GetAppModal({ isOpen, onClose, isDark = true }) {
               className="flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 px-4 text-xs font-bold transition hover:scale-[1.02] shadow-lg"
               style={{ backgroundColor: amber, color: '#100e0b' }}
             >
-              <SmartphoneIcon size={16} color="#100e0b" />
-              <span>{isInstalled ? '✓ App Installed' : deferredPrompt ? 'Install App' : 'Add to Home Screen'}</span>
+              {isInstalled ? (
+                <>
+                  <CheckIcon size={14} color="#100e0b" />
+                  <span>App Installed</span>
+                </>
+              ) : deferredPrompt ? (
+                <>
+                  <SmartphoneIcon size={16} color="#100e0b" />
+                  <span>Install App</span>
+                </>
+              ) : (
+                <>
+                  <SmartphoneIcon size={16} color="#100e0b" />
+                  <span>Add to Home Screen</span>
+                </>
+              )}
             </button>
 
             <button
@@ -175,7 +189,14 @@ export default function GetAppModal({ isOpen, onClose, isDark = true }) {
               className="flex items-center justify-center gap-1.5 rounded-xl py-2.5 px-3.5 text-xs font-semibold transition border hover:bg-white/5"
               style={{ borderColor: hairline, color: ink }}
             >
-              <span>{copiedLink ? '✓ Link Copied!' : 'Copy Link'}</span>
+              {copiedLink ? (
+                <>
+                  <CheckIcon size={13} color={amber} />
+                  <span>Link Copied!</span>
+                </>
+              ) : (
+                <span>Copy Link</span>
+              )}
             </button>
           </div>
 

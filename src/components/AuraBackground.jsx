@@ -1,19 +1,20 @@
 export default function AuraBackground({ isDark = true }) {
-    const beamBlend = 'screen'
+    const beamBlend = isDark ? 'screen' : 'multiply'
 
     return (
         <div
             aria-hidden="true"
             style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}
         >
-            {/* Layer 1 - radial teal glow */}
+            {/* Layer 1 - radial teal/amber glow */}
             <div
                 style={{
                     position: 'absolute',
                     inset: 0,
-                    background:
-                        'radial-gradient(55.8% 55.49% at 50% 100%, rgb(38, 77, 76) 0%, rgba(25, 48, 47, 0) 100%)',
-                    mixBlendMode: beamBlend,
+                    background: isDark
+                        ? 'radial-gradient(55.8% 55.49% at 50% 100%, rgb(38, 77, 76) 0%, rgba(25, 48, 47, 0) 100%)'
+                        : 'radial-gradient(70% 60% at 50% 0%, rgba(232, 163, 61, 0.12) 0%, rgba(45, 212, 191, 0.06) 50%, rgba(250, 249, 246, 0) 100%)',
+                    mixBlendMode: isDark ? 'screen' : 'normal',
                     transform: 'translateZ(0)',
                     willChange: 'transform',
                 }}

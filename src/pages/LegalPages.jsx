@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { useSettings } from '../context/SettingsContext'
 import PageBackground from '../components/PageBackground'
 import KeyadiLogo from '../components/KeyadiLogo'
+import { ShieldIcon, FileTextIcon, CookieIcon, CreditCardIcon } from '../components/Icons'
 
 /* ── Design tokens ── */
 const ink = '#f3f1ec'
@@ -262,17 +264,25 @@ function RefundPolicy() {
 
 /* ═══════════════════════ PAGE CONFIG ═══════════════════════ */
 const PAGES = {
-  privacy: { title: 'Privacy Policy', subtitle: 'How we handle and protect your data', icon: '🔒', Component: PrivacyPolicy },
-  terms: { title: 'Terms of Service', subtitle: 'Rules and responsibilities for using Keyadi', icon: '📜', Component: TermsOfService },
-  cookies: { title: 'Cookie Policy', subtitle: 'What we store and why', icon: '🍪', Component: CookiePolicy },
-  refund: { title: 'Refund Policy', subtitle: 'Our pricing transparency commitment', icon: '💳', Component: RefundPolicy },
+  privacy: { title: 'Privacy Policy', subtitle: 'How we handle and protect your data', Icon: ShieldIcon, Component: PrivacyPolicy },
+  terms: { title: 'Terms of Service', subtitle: 'Rules and responsibilities for using Keyadi', Icon: FileTextIcon, Component: TermsOfService },
+  cookies: { title: 'Cookie Policy', subtitle: 'What we store and why', Icon: CookieIcon, Component: CookiePolicy },
+  refund: { title: 'Refund Policy', subtitle: 'Our pricing transparency commitment', Icon: CreditCardIcon, Component: RefundPolicy },
 }
 
 /* ═══════════════════════ MAIN COMPONENT ═══════════════════════ */
 export default function LegalPages() {
   const location = useLocation()
+  const { isDark } = useSettings()
   const pageKey = location.pathname.replace('/', '')
   const page = PAGES[pageKey]
+
+  const ink = isDark ? '#f3f1ec' : '#100e0b'
+  const inkMuted = isDark ? 'rgba(243,241,236,0.65)' : 'rgba(16,14,11,0.65)'
+  const inkFaint = isDark ? 'rgba(243,241,236,0.40)' : 'rgba(16,14,11,0.45)'
+  const hairline = isDark ? 'rgba(243,241,236,0.12)' : 'rgba(16,14,11,0.12)'
+  const cardBg = isDark ? 'rgba(14, 13, 11, 0.86)' : 'rgba(255, 255, 255, 0.92)'
+  const amber = '#e8a33d'
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -280,7 +290,7 @@ export default function LegalPages() {
 
   if (!page) {
     return (
-      <PageBackground showToggle={false}>
+      <PageBackground showToggle={true}>
         <div className="flex min-h-screen items-center justify-center px-4" style={{ color: ink }}>
           <div className="text-center">
             <h1 className="text-2xl font-bold mb-3">Page Not Found</h1>
@@ -291,10 +301,10 @@ export default function LegalPages() {
     )
   }
 
-  const { title, subtitle, icon, Component } = page
+  const { title, subtitle, Icon, Component } = page
 
   return (
-    <PageBackground showToggle={false}>
+    <PageBackground showToggle={true}>
       <div
         className="min-h-screen px-4 py-8 sm:py-12 selection:bg-amber-500/20 selection:text-amber-400"
         style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif", color: ink }}
@@ -323,7 +333,16 @@ export default function LegalPages() {
           {/* Header */}
           <header className="mb-8 pb-6 border-b" style={{ borderColor: hairline }}>
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl" role="img" aria-hidden="true">{icon}</span>
+              <div
+                className="flex h-11 w-11 items-center justify-center rounded-2xl border shrink-0"
+                style={{
+                  backgroundColor: 'rgba(232, 163, 61, 0.15)',
+                  borderColor: 'rgba(232, 163, 61, 0.35)',
+                  color: amber,
+                }}
+              >
+                <Icon size={22} color={amber} />
+              </div>
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ color: ink }}>{title}</h1>
             </div>
             <p className="text-sm" style={{ color: inkMuted }}>{subtitle}</p>

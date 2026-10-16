@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { SparklesIcon, MapPinIcon } from '../Icons'
+import { SparklesIcon, MapPinIcon, ArrowRightIcon, StarIcon } from '../Icons'
 
 /**
  * InteractiveMap3DShowcase
@@ -131,7 +131,7 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
               </div>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-base font-extrabold text-white">Bole Atlas</span>
-                <span className="text-amber-400 text-xs">➔</span>
+                <ArrowRightIcon size={12} color="#e8a33d" />
                 <span className="text-base font-extrabold text-white">Tomoca Roastery</span>
               </div>
             </div>
@@ -308,14 +308,15 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
                 </p>
               </div>
               <div
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl text-xs font-bold border"
+                className="flex items-center gap-1 px-2.5 py-1.5 shrink-0 rounded-2xl text-xs font-bold border"
                 style={{
                   backgroundColor: 'rgba(232, 163, 61, 0.16)',
                   color: '#e8a33d',
                   borderColor: 'rgba(232, 163, 61, 0.4)',
                 }}
               >
-                ★ 4.9
+                <StarIcon size={12} color="#e8a33d" fill="#e8a33d" />
+                <span>4.9</span>
               </div>
             </div>
 

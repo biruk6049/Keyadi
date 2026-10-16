@@ -1,4 +1,5 @@
 import React from 'react'
+import { AlertTriangleIcon } from './Icons'
 
 export default class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -24,8 +25,8 @@ export default class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen flex items-center justify-center p-6 bg-[#100e0b] text-[#f3f1ec] font-sans">
           <div className="max-w-md w-full rounded-2xl p-6 border border-white/10 bg-white/5 backdrop-blur-xl text-center shadow-2xl">
-            <div className="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 mx-auto flex items-center justify-center mb-4 text-xl">
-              ⚠️
+            <div className="w-12 h-12 rounded-full bg-amber-500/20 text-amber-400 mx-auto flex items-center justify-center mb-4">
+              <AlertTriangleIcon size={24} color="#e8a33d" />
             </div>
             <h2 className="text-lg font-semibold mb-2">Something went wrong</h2>
             <p className="text-xs text-white/60 mb-3 leading-relaxed">

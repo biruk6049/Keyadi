@@ -1153,7 +1153,7 @@ Task: Grounded Retrieval-Augmented Generation (RAG).
 Synthesize the retrieved places relative to the user's query intent. Do NOT invent places not in the data.
 Return a strict JSON object with:
 1. "ragSummary": A 2-sentence grounded insight highlighting the best options based strictly on their categorized information and proximity.
-2. "badges": Object mapping place name to a short 2-3 word highlight badge (e.g. "★ Guest House", "★ Top Pick", "★ Open Late", "★ Closest (350m)").
+2. "badges": Object mapping place name to a short 2-3 word highlight badge without symbols (e.g. "Guest House", "Top Pick", "Open Late", "Closest (350m)").
 3. "followUps": Array of 2-3 short natural follow-up queries.`
 
   const apiKey = getGeminiKey()
@@ -1188,11 +1188,11 @@ Return a strict JSON object with:
 
   const badges = {}
   if (closest) {
-    badges[closest.name] = closest.matchedCategory ? `★ ${closest.matchedCategory}` : '★ Top Pick'
+    badges[closest.name] = closest.matchedCategory ? closest.matchedCategory : 'Top Pick'
   }
   if (hasHours && hasHours.name !== closest?.name) badges[hasHours.name] = 'Verified Hours'
   if (retrievedPlaces[1] && !badges[retrievedPlaces[1].name]) {
-    badges[retrievedPlaces[1].name] = retrievedPlaces[1].matchedCategory ? `★ ${retrievedPlaces[1].matchedCategory}` : 'Popular Option'
+    badges[retrievedPlaces[1].name] = retrievedPlaces[1].matchedCategory ? retrievedPlaces[1].matchedCategory : 'Popular Option'
   }
 
   return {

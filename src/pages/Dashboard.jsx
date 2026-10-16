@@ -25,7 +25,13 @@ import {
   UserIcon,
   InfoIcon,
   MapIcon,
+  StarIcon,
+  XIcon,
+  AlertTriangleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from '../components/Icons'
+import ThemeToggle from '../components/ThemeToggle'
 import {
   CATEGORY_PRESETS,
   interpretWithAI,
@@ -205,8 +211,7 @@ function getGreeting() {
 
 export default function Dashboard() {
   const { user, signOut } = useAuth()
-  const { settings } = useSettings()
-  const isDark = true
+  const { settings, updateSettings, toggleDarkMode, isDark } = useSettings()
 
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
@@ -371,7 +376,7 @@ export default function Dashboard() {
       container: mapContainer.current,
       style: settings.mapStyle === 'satellite'
         ? 'mapbox://styles/mapbox/satellite-streets-v12'
-        : 'mapbox://styles/mapbox/dark-v11',
+        : (isDark ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11'),
       center: [center.lng, center.lat],
       zoom: 12,
       attributionControl: false,
@@ -410,9 +415,9 @@ export default function Dashboard() {
     if (!mapRef.current) return
     const style = settings.mapStyle === 'satellite'
       ? 'mapbox://styles/mapbox/satellite-streets-v12'
-      : 'mapbox://styles/mapbox/dark-v11'
+      : (isDark ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11')
     mapRef.current.setStyle(style)
-  }, [settings.mapStyle])
+  }, [settings.mapStyle, isDark])
 
   // Apply Settings search-mode choice
   useEffect(() => {
@@ -462,7 +467,7 @@ export default function Dashboard() {
         closeOnClick: false,
       }).setHTML(`
         <div style="padding: 5px 11px; font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 700; color: #100e0b; background: #e8a33d; border-radius: 9999px; box-shadow: 0 4px 14px rgba(0,0,0,0.35); text-align: center; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
-          <span>📍</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#100e0b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
           <span>You Are Here</span>
         </div>
       `)
@@ -643,7 +648,7 @@ export default function Dashboard() {
       el.innerHTML = `
         <div style="background:rgba(18,16,13,0.92);color:#2dd4bf;border:1px solid rgba(45,212,191,0.6);padding:3px 9px;border-radius:20px;font-size:11px;font-family:'Outfit',sans-serif;font-weight:600;display:flex;align-items:center;gap:5px;box-shadow:0 4px 14px rgba(0,0,0,0.5);backdrop-filter:blur(8px);">
           <span style="width:7px;height:7px;border-radius:50%;background:#2dd4bf;box-shadow:0 0 8px #2dd4bf;"></span>
-          <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📍 ${safeKeyword} (${safeRadius}km)</span>
+          <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeKeyword} (${safeRadius}km)</span>
         </div>
         <div style="width:6px;height:6px;background:#2dd4bf;transform:rotate(45deg);margin-top:-3px;"></div>
       `
@@ -1217,9 +1222,10 @@ export default function Dashboard() {
                     setResults([])
                     setAiDescription('')
                   }}
-                  className="text-xs p-1 text-white/50 hover:text-white"
+                  className="p-1 hover:opacity-100 transition"
+                  style={{ color: inkMuted }}
                 >
-                  ✕
+                  <XIcon size={12} color={inkMuted} />
                 </button>
               )}
             </div>
@@ -1287,7 +1293,7 @@ export default function Dashboard() {
               }}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm shrink-0">⚠️</span>
+                <AlertTriangleIcon size={14} color="#fca5a5" className="shrink-0" />
                 <p className="text-[11px] leading-tight font-medium" style={{ color: isDark ? '#fca5a5' : '#b91c1c' }}>
                   {locationErrorMsg}
                 </p>
@@ -1304,11 +1310,11 @@ export default function Dashboard() {
                 <button
                   type="button"
                   onClick={() => setLocationErrorMsg(null)}
-                  className="h-6 w-6 rounded-full flex items-center justify-center text-xs opacity-60 hover:opacity-100 transition"
+                  className="h-6 w-6 rounded-full flex items-center justify-center opacity-60 hover:opacity-100 transition"
                   style={{ color: ink }}
                   title="Dismiss alert"
                 >
-                  ✕
+                  <XIcon size={12} color={ink} />
                 </button>
               </div>
             </div>
@@ -1317,11 +1323,14 @@ export default function Dashboard() {
 
         {/* ── Top-Right Floating Controls ── */}
         <div className="absolute top-4 right-3 sm:right-4 z-30 flex items-center gap-1.5 sm:gap-2 pointer-events-auto">
+          {/* Interactive Light/Dark Mode Switch (Strictly No-Emoji) */}
+          <ThemeToggle isDark={isDark} onToggle={toggleDarkMode} size="sm" />
+
           <button
             onClick={() => setAiEnabled(!aiEnabled)}
             className="flex items-center gap-1 sm:gap-1.5 rounded-full px-2.5 py-1.5 sm:px-3 text-xs font-medium backdrop-blur-xl shadow-lg transition hover:scale-105"
             style={{
-              backgroundColor: aiEnabled ? 'rgba(232,163,61,0.18)' : 'rgba(16,14,11,0.7)',
+              backgroundColor: aiEnabled ? 'rgba(232,163,61,0.18)' : (isDark ? 'rgba(16,14,11,0.7)' : 'rgba(255,255,255,0.85)'),
               color: aiEnabled ? amber : inkMuted,
               border: `1px solid ${aiEnabled ? amber + '55' : hairline}`,
             }}
@@ -1407,22 +1416,22 @@ export default function Dashboard() {
                   setActiveNav('map')
                   setSidebarExpanded(false)
                 }}
-                className="flex md:hidden h-7 w-7 items-center justify-center rounded-full text-xs hover:bg-white/10 transition border"
+                className="flex md:hidden h-7 w-7 items-center justify-center rounded-full hover:bg-white/10 transition border"
                 style={{ borderColor: hairline, color: inkMuted }}
                 title="Return to map"
               >
-                ✕
+                <XIcon size={12} color={inkMuted} />
               </button>
             </div>
 
             {/* Desktop Expand/Collapse toggle */}
             <button
               onClick={() => setSidebarExpanded(!sidebarExpanded)}
-              className="hidden md:flex h-7 w-7 items-center justify-center rounded-full text-xs hover:bg-white/10 transition"
+              className="hidden md:flex h-7 w-7 items-center justify-center rounded-full hover:bg-white/10 transition"
               style={{ color: inkMuted }}
               title={sidebarExpanded ? 'Collapse panel' : 'Expand panel'}
             >
-              {sidebarExpanded ? '◀' : '▶'}
+              {sidebarExpanded ? <ChevronLeftIcon size={13} color={inkMuted} /> : <ChevronRightIcon size={13} color={inkMuted} />}
             </button>
           </div>
 
@@ -1501,7 +1510,7 @@ export default function Dashboard() {
                       ))}
                     </div>
                     <p className="text-[10px] mt-1.5 truncate flex items-center gap-1" style={{ color: inkFaint }}>
-                      <span style={{ color: amber }}>📍</span>
+                      <MapPinIcon size={11} color={amber} className="shrink-0" />
                       <span>Strict {radiusKm} km standard from {settings.searchMode === 'custom' ? (settings.defaultLocationLabel || 'Saved Point') : (myLocation ? 'Your Location' : 'Map View')}</span>
                     </p>
                   </div>
@@ -1584,7 +1593,7 @@ export default function Dashboard() {
                       className="mb-2.5 px-3 py-1.5 rounded-xl text-[11px] font-medium flex items-center gap-1.5"
                       style={{ backgroundColor: 'rgba(232,163,61,0.12)', color: amber, border: `1px solid ${amber}33` }}
                     >
-                      <span>📍</span>
+                      <MapPinIcon size={12} color={amber} className="shrink-0" />
                       <span>{searchNotice}</span>
                     </div>
                   )}
@@ -1663,7 +1672,7 @@ export default function Dashboard() {
                                   {typeBadge(place.type)}
                                   {typeof place.semanticScore === 'number' && (
                                     <span
-                                      className="rounded-full px-2 py-0.5 text-[9px] font-semibold"
+                                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold"
                                       style={{
                                         backgroundColor: place.semanticScore >= 80 ? 'rgba(45,212,191,0.15)' : 'rgba(232,163,61,0.15)',
                                         color: place.semanticScore >= 80 ? '#2dd4bf' : amber,
@@ -1671,15 +1680,17 @@ export default function Dashboard() {
                                       }}
                                       title={place.ragReason || 'RAG Semantic Match'}
                                     >
-                                      ★ {place.semanticScore}% Match
+                                      <StarIcon size={9} color={place.semanticScore >= 80 ? '#2dd4bf' : amber} />
+                                      <span>{place.semanticScore}% Match</span>
                                     </span>
                                   )}
                                   {placeBadges && placeBadges[place.name] && (
                                     <span
-                                      className="rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase"
+                                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase"
                                       style={{ backgroundColor: 'rgba(232,163,61,0.18)', color: amber, border: `1px solid ${amber}44` }}
                                     >
-                                      ★ {placeBadges[place.name]}
+                                      <StarIcon size={9} color={amber} />
+                                      <span>{placeBadges[place.name]}</span>
                                     </span>
                                   )}
                                 </div>
@@ -1695,15 +1706,26 @@ export default function Dashboard() {
                             </div>
 
                             {place.addressSnippet && (
-                              <p className="text-[11px] mt-1.5 truncate" style={{ color: inkMuted }}>
-                                📍 {place.addressSnippet}
+                              <p className="text-[11px] mt-1.5 truncate flex items-center gap-1" style={{ color: inkMuted }}>
+                                <MapPinIcon size={11} color={amber} className="shrink-0" />
+                                <span className="truncate">{place.addressSnippet}</span>
                               </p>
                             )}
 
                             {(place.phone || place.openingHours) && (
                               <div className="flex items-center gap-3 mt-1 text-[10px]" style={{ color: inkFaint }}>
-                                {place.phone && <span>📞 {place.phone}</span>}
-                                {place.openingHours && <span>🕒 {place.openingHours}</span>}
+                                {place.phone && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <PhoneIcon size={10} color={inkFaint} />
+                                    <span>{place.phone}</span>
+                                  </span>
+                                )}
+                                {place.openingHours && (
+                                  <span className="inline-flex items-center gap-1">
+                                    <ClockIcon size={10} color={inkFaint} />
+                                    <span>{place.openingHours}</span>
+                                  </span>
+                                )}
                               </div>
                             )}
 
@@ -1869,7 +1891,7 @@ export default function Dashboard() {
                     style={{ borderColor: hairline, color: inkMuted }}
                     title="Close"
                   >
-                    ✕
+                    <XIcon size={12} color={inkMuted} />
                   </button>
                 </div>
               </div>
@@ -1907,7 +1929,7 @@ export default function Dashboard() {
                       }}
                       title="Close directions"
                     >
-                      ✕
+                      <XIcon size={13} color={inkMuted} />
                     </button>
                   </div>
                 </div>
@@ -1929,7 +1951,7 @@ export default function Dashboard() {
                 className="flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold shrink-0"
                 style={{ backgroundColor: 'rgba(232, 163, 61, 0.15)', color: amber, border: `1px solid ${amber}44` }}
               >
-                <span>★</span>
+                <StarIcon size={11} color={amber} />
                 <span>{getPlaceRating(selectedPlace)}</span>
               </div>
             </div>
@@ -2038,8 +2060,9 @@ export default function Dashboard() {
                   Keyadi Assistant
                 </span>
                 {placeBadges && selectedPlace?.name && placeBadges[selectedPlace.name] && (
-                  <span className="rounded-full px-2 py-0.5 text-[9px] font-medium" style={{ backgroundColor: 'rgba(232,163,61,0.15)', color: amber }}>
-                    ★ {placeBadges[selectedPlace.name]}
+                  <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-medium" style={{ backgroundColor: 'rgba(232,163,61,0.15)', color: amber }}>
+                    <StarIcon size={9} color={amber} />
+                    <span>{placeBadges[selectedPlace.name]}</span>
                   </span>
                 )}
               </div>

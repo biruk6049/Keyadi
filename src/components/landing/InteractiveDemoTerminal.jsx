@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { SearchIcon, SparklesIcon, MapPinIcon } from '../Icons'
+import { SearchIcon, SparklesIcon, MapPinIcon, StarIcon } from '../Icons'
 import TiltCard3D from './TiltCard3D'
 
 const SAMPLE_QUERIES = [
@@ -136,7 +136,8 @@ export default function InteractiveDemoTerminal({ isDark = true, user }) {
               <span className="text-emerald-400 font-semibold">Found {current.count} places nearby</span>
             </div>
             <div className="flex items-center gap-1.5 rounded-full px-3.5 py-1.5 border border-sky-500/25 bg-sky-500/10">
-              <span className="text-sky-400 font-semibold">📍 {current.center}</span>
+              <MapPinIcon size={12} color="#38bdf8" />
+              <span className="text-sky-400 font-semibold">{current.center}</span>
             </div>
           </div>
 
@@ -154,8 +155,9 @@ export default function InteractiveDemoTerminal({ isDark = true, user }) {
                   <h5 className="text-sm font-bold text-white group-hover:text-amber-400 transition-colors">
                     {item.name}
                   </h5>
-                  <span className="text-xs font-bold text-amber-400 shrink-0">
-                    ★ {item.rating}
+                  <span className="text-xs font-bold text-amber-400 shrink-0 flex items-center gap-1">
+                    <StarIcon size={11} color="#f59e0b" fill="#f59e0b" />
+                    <span>{item.rating}</span>
                   </span>
                 </div>
                 <div className="mt-2 flex items-center justify-between text-xs text-white/50">

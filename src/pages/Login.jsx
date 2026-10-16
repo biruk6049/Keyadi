@@ -3,13 +3,12 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useSettings } from '../context/SettingsContext'
 import PageBackground from '../components/PageBackground'
-import { SparklesIcon } from '../components/Icons'
+import { SparklesIcon, AlertTriangleIcon } from '../components/Icons'
 import KeyadiLogo from '../components/KeyadiLogo'
 
 export default function Login() {
   const { user, signInWithEmail } = useAuth()
-  const { settings } = useSettings()
-  const isDark = true
+  const { isDark } = useSettings()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
@@ -25,11 +24,11 @@ export default function Login() {
     }
   }, [user, navigate, location])
 
-  const ink = '#f3f1ec'
-  const inkMuted = 'rgba(243,241,236,0.65)'
-  const hairline = 'rgba(243,241,236,0.12)'
-  const cardBg = 'rgba(14, 13, 11, 0.86)'
-  const inputBg = 'rgba(255, 255, 255, 0.04)'
+  const ink = isDark ? '#f3f1ec' : '#100e0b'
+  const inkMuted = isDark ? 'rgba(243,241,236,0.65)' : 'rgba(16,14,11,0.65)'
+  const hairline = isDark ? 'rgba(243,241,236,0.12)' : 'rgba(16,14,11,0.12)'
+  const cardBg = isDark ? 'rgba(14, 13, 11, 0.86)' : 'rgba(255, 255, 255, 0.92)'
+  const inputBg = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)'
   const amber = '#e8a33d'
 
   const handleSubmit = async (e) => {
@@ -47,7 +46,7 @@ export default function Login() {
   }
 
   return (
-    <PageBackground showToggle={false}>
+    <PageBackground showToggle={true}>
       <div
         className="flex flex-col min-h-screen items-center justify-center px-4 py-8 sm:py-12 selection:bg-amber-500/20 selection:text-amber-400"
         style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif", color: ink }}
@@ -96,7 +95,7 @@ export default function Login() {
               className="mb-5 flex items-start gap-2 rounded-2xl p-3.5 text-xs"
               style={{ backgroundColor: 'rgba(239, 68, 68, 0.10)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.25)' }}
             >
-              <span>✕</span>
+              <AlertTriangleIcon size={14} color="#f87171" className="mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}

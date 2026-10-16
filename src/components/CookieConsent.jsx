@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useSettings } from '../context/SettingsContext'
+import { CookieIcon } from './Icons'
 
 export default function CookieConsent() {
+  const { isDark } = useSettings()
   const [visible, setVisible] = useState(false)
   const [animateIn, setAnimateIn] = useState(false)
 
@@ -57,8 +60,8 @@ export default function CookieConsent() {
       >
         {/* Header */}
         <div className="flex items-center gap-2.5 mb-3">
-          <span className="text-lg" role="img" aria-hidden="true">🍪</span>
-          <h3 className="text-sm font-bold tracking-tight" style={{ color: '#f3f1ec' }}>
+          <CookieIcon size={18} color="#e8a33d" />
+          <h3 className="text-sm font-bold tracking-tight" style={{ color: isDark ? '#f3f1ec' : '#100e0b' }}>
             Your Privacy Matters
           </h3>
         </div>

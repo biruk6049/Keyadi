@@ -21,6 +21,25 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Anti-flash smooth transitions when switching themes */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.25s ease, fill 0.25s ease, stroke 0.25s ease, box-shadow 0.3s ease !important;
+  transition-delay: 0s !important;
+}
+
+html.dark body {
+  background-color: #0e0d0b;
+  color: #f3f1ec;
+}
+
+html:not(.dark) body {
+  background-color: #faf9f6;
+  color: #100e0b;
+}
+
 h1,
 h2,
 h3,

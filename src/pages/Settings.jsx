@@ -4,22 +4,22 @@ import { useSettings } from '../context/SettingsContext'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 import PageBackground from '../components/PageBackground'
-import { MapIcon, SatelliteIcon, CrosshairIcon, SparklesIcon, UserIcon } from '../components/Icons'
+import { MapIcon, SatelliteIcon, CrosshairIcon, SparklesIcon, UserIcon, SunIcon, MoonIcon } from '../components/Icons'
 import KeyadiLogo from '../components/KeyadiLogo'
+import ThemeToggle from '../components/ThemeToggle'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
 export default function Settings() {
-  const { settings, updateSettings } = useSettings()
+  const { settings, updateSettings, toggleDarkMode, isDark } = useSettings()
   const { user, signOut } = useAuth()
-  const isDark = true
 
-  const ink = '#f3f1ec'
-  const inkMuted = 'rgba(243,241,236,0.65)'
-  const inkFaint = 'rgba(243,241,236,0.40)'
-  const hairline = 'rgba(243,241,236,0.12)'
-  const cardBg = 'rgba(14, 13, 11, 0.86)'
-  const inputBg = 'rgba(255, 255, 255, 0.04)'
+  const ink = isDark ? '#f3f1ec' : '#100e0b'
+  const inkMuted = isDark ? 'rgba(243,241,236,0.65)' : 'rgba(16,14,11,0.65)'
+  const inkFaint = isDark ? 'rgba(243,241,236,0.40)' : 'rgba(16,14,11,0.45)'
+  const hairline = isDark ? 'rgba(243,241,236,0.12)' : 'rgba(16,14,11,0.10)'
+  const cardBg = isDark ? 'rgba(14, 13, 11, 0.86)' : 'rgba(255, 255, 255, 0.92)'
+  const inputBg = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)'
   const amber = '#e8a33d'
 
   // Geocoding autocomplete state
@@ -122,7 +122,7 @@ export default function Settings() {
   }
 
   return (
-    <PageBackground showToggle={false}>
+    <PageBackground showToggle={true}>
       <div
         className="min-h-screen px-4 py-8 sm:py-12 selection:bg-amber-500/20 selection:text-amber-400"
         style={{ fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif", color: ink }}
@@ -168,11 +168,56 @@ export default function Settings() {
               Settings
             </h1>
             <p className="mt-1 text-sm leading-relaxed" style={{ color: inkMuted }}>
-              Manage map styling, distance units, search origin, and navigation preferences.
+              Manage theme mode, map styling, distance units, search origin, and navigation preferences.
             </p>
           </div>
 
           <div className="space-y-5">
+            {/* Card 0: Theme Mode (Strictly No-Emoji) */}
+            <div
+              className="rounded-3xl p-6 shadow-2xl backdrop-blur-2xl border"
+              style={{ backgroundColor: cardBg, borderColor: hairline }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-base font-bold" style={{ color: ink }}>Theme & Appearance</h2>
+                <span className="text-xs font-medium" style={{ color: amber }}>
+                  {isDark ? 'Dark Mode' : 'Light Mode'}
+                </span>
+              </div>
+              <p className="text-xs mb-4 leading-relaxed" style={{ color: inkMuted }}>
+                Switch between Keyadi's signature dark aesthetic and high-contrast light mode. All map themes, cards, and text update smoothly without flashes.
+              </p>
+              <div
+                className="flex items-center justify-between p-4 rounded-2xl border transition-all"
+                style={{
+                  backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                  borderColor: hairline,
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-10 w-10 items-center justify-center rounded-xl"
+                    style={{
+                      backgroundColor: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(232, 163, 61, 0.15)',
+                      color: isDark ? '#a5b4fc' : '#d97706',
+                      border: `1px solid ${isDark ? 'rgba(99, 102, 241, 0.3)' : 'rgba(232, 163, 61, 0.3)'}`,
+                    }}
+                  >
+                    {isDark ? <MoonIcon size={18} /> : <SunIcon size={18} />}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold" style={{ color: ink }}>
+                      {isDark ? 'Dark Palette Active' : 'Light Palette Active'}
+                    </p>
+                    <p className="text-[11px]" style={{ color: inkMuted }}>
+                      {isDark ? 'Deep contrast optimized for low-light & night navigation' : 'Clean daytime contrast with paper-warm hues'}
+                    </p>
+                  </div>
+                </div>
+                <ThemeToggle isDark={isDark} onToggle={toggleDarkMode} size="lg" />
+              </div>
+            </div>
+
             {/* Card 1: Map Visuals */}
             <div
               className="rounded-3xl p-6 shadow-2xl backdrop-blur-2xl border"
