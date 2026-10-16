@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
+import { useSettings } from '../../context/SettingsContext'
 
 /**
  * Landing3DBackground
@@ -10,8 +11,12 @@ import * as THREE from 'three'
  * - Holographic coordinate ground grid
  * - Dynamic scroll-reactive camera motion & mouse parallax lerp
  */
-export default function Landing3DBackground() {
+export default function Landing3DBackground({ isDark }) {
   const containerRef = useRef(null)
+  const settings = useSettings()
+  const dark = isDark !== undefined ? isDark : (settings?.isDark ?? true)
+  const sceneRef = useRef(null)
+  const matsRef = useRef({})
 
   useEffect(() => {
     const container = containerRef.current
@@ -19,7 +24,8 @@ export default function Landing3DBackground() {
 
     // Scene setup
     const scene = new THREE.Scene()
-    scene.fog = new THREE.FogExp2(0x0a0908, 0.028)
+    scene.fog = new THREE.FogExp2(dark ? 0x0a0908 : 0xfaf9f6, dark ? 0.028 : 0.022)
+    sceneRef.current = scene
 
     // Camera setup
     const camera = new THREE.PerspectiveCamera(
@@ -108,6 +114,13 @@ export default function Landing3DBackground() {
     })
     const coreMesh = new THREE.Mesh(coreGeo, coreMat)
     globeGroup.add(coreMesh)
+
+    matsRef.current = {
+      dotMaterial,
+      coreMat,
+      gridHelper: null,
+      starMat: null,
+    }
 
     // Glowing equator / latitude rings
     const ringGeo = new THREE.RingGeometry(globeRadius * 1.12, globeRadius * 1.15, 64)
@@ -207,12 +220,14 @@ export default function Landing3DBackground() {
     const starField = new THREE.Points(starGeo, starMat)
     worldGroup.add(starField)
 
-    // ── 5. Ground Holographic Grid Plane (Perspective matrix) ──
     const gridHelper = new THREE.GridHelper(90, 45, 0xe8a33d, 0x1f1a14)
     gridHelper.position.set(0, -9, 0)
     gridHelper.material.transparent = true
-    gridHelper.material.opacity = 0.28
+    gridHelper.material.opacity = dark ? 0.28 : 0.16
     worldGroup.add(gridHelper)
+
+    matsRef.current.gridHelper = gridHelper
+    matsRef.current.starMat = starMat
 
     // ── Interactive State & Scroll Reactivity ──
     let targetMouseX = 0
@@ -339,14 +354,32 @@ export default function Landing3DBackground() {
     }
   }, [])
 
+  // Reactive theme changes for 3D universe
+  useEffect(() => {
+    if (sceneRef.current) {
+      sceneRef.current.fog = new THREE.FogExp2(dark ? 0x0a0908 : 0xfaf9f6, dark ? 0.028 : 0.02)
+    }
+    if (matsRef.current.gridHelper?.material) {
+      matsRef.current.gridHelper.material.opacity = dark ? 0.28 : 0.16
+    }
+    if (matsRef.current.starMat) {
+      matsRef.current.starMat.color.setHex(dark ? 0xebd5a7 : 0x9a8f7c)
+      matsRef.current.starMat.opacity = dark ? 0.45 : 0.22
+    }
+    if (matsRef.current.coreMat) {
+      matsRef.current.coreMat.color.setHex(dark ? 0x16120b : 0xebe7de)
+      matsRef.current.coreMat.opacity = dark ? 0.22 : 0.12
+    }
+  }, [dark])
+
   return (
     <div
       ref={containerRef}
       aria-hidden="true"
-      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden transition-all duration-300"
       style={{
-        opacity: 0.95,
-        mixBlendMode: 'screen',
+        opacity: dark ? 0.95 : 0.38,
+        mixBlendMode: dark ? 'screen' : 'multiply',
       }}
     />
   )

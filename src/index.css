@@ -21,6 +21,30 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+:root {
+  color-scheme: light;
+  --bg-primary: #faf9f6;
+  --bg-secondary: #f4f2eb;
+  --bg-card: rgba(255, 255, 255, 0.90);
+  --text-primary: #100e0b;
+  --text-muted: rgba(16, 14, 11, 0.65);
+  --text-faint: rgba(16, 14, 11, 0.45);
+  --hairline: rgba(16, 14, 11, 0.10);
+  --amber: #e8a33d;
+}
+
+html.dark {
+  color-scheme: dark;
+  --bg-primary: #0a0908;
+  --bg-secondary: #12100d;
+  --bg-card: rgba(18, 16, 13, 0.85);
+  --text-primary: #f3f1ec;
+  --text-muted: rgba(243, 241, 236, 0.65);
+  --text-faint: rgba(243, 241, 236, 0.40);
+  --hairline: rgba(243, 241, 236, 0.12);
+  --amber: #e8a33d;
+}
+
 /* Anti-flash smooth transitions when switching themes */
 html.theme-transition,
 html.theme-transition *,
@@ -40,6 +64,25 @@ html:not(.dark) body {
   color: #100e0b;
 }
 
+/* Contrast inheritance for headings and text */
+html:not(.dark) h1,
+html:not(.dark) h2,
+html:not(.dark) h3,
+html:not(.dark) h4,
+html:not(.dark) h5,
+html:not(.dark) h6 {
+  color: #100e0b;
+}
+
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6 {
+  color: #f3f1ec;
+}
+
 h1,
 h2,
 h3,
@@ -52,10 +95,10 @@ h6 {
 
 /* Glassmorphism helpers matching inspiration */
 .glass-panel {
-  background: rgba(16, 14, 11, 0.75);
+  background: var(--bg-card);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  border: 1px solid var(--hairline);
 }
 
 .glass-panel-light {

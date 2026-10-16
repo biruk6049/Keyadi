@@ -50,7 +50,7 @@ export default function AuraBackground({ isDark = true }) {
           `,
                     backgroundSize: '300% 200%',
                     mixBlendMode: beamBlend,
-                    opacity: 0.9,
+                    opacity: isDark ? 0.9 : 0.15,
                     transform: 'translateZ(0)',
                     willChange: 'transform',
                 }}
@@ -60,15 +60,17 @@ export default function AuraBackground({ isDark = true }) {
                 style={{
                     position: 'absolute',
                     inset: 0,
-                    background: 'radial-gradient(ellipse at 100% 100%, #ffffff 20%, #0a0a0a 80%)',
-                    mixBlendMode: 'multiply',
+                    background: isDark
+                        ? 'radial-gradient(ellipse at 100% 100%, #ffffff 20%, #0a0a0a 80%)'
+                        : 'radial-gradient(ellipse at 100% 100%, #ffffff 60%, rgba(235, 230, 220, 0.45) 100%)',
+                    mixBlendMode: isDark ? 'multiply' : 'normal',
                     transform: 'translateZ(0)',
                     willChange: 'transform',
                 }}
             />
             {/* Grain overlay */}
             <div
-                style={{ position: 'absolute', inset: 0, mixBlendMode: 'overlay', opacity: 0.85 }}
+                style={{ position: 'absolute', inset: 0, mixBlendMode: isDark ? 'overlay' : 'soft-light', opacity: isDark ? 0.85 : 0.25 }}
             >
                 <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                     <filter id="keyadi-grain">

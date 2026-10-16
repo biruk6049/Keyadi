@@ -77,6 +77,14 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
   }
 
   const current = MODES[activeMode]
+  const ink = isDark ? '#ffffff' : '#100e0b'
+  const inkMuted = isDark ? 'rgba(255,255,255,0.65)' : 'rgba(16,14,11,0.65)'
+  const inkFaint = isDark ? 'rgba(255,255,255,0.45)' : 'rgba(16,14,11,0.45)'
+  const borderLine = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(16,14,11,0.08)'
+  const cardBg = isDark ? 'rgba(18, 15, 12, 0.88)' : 'rgba(255, 255, 255, 0.94)'
+  const pillBarBg = isDark ? 'rgba(0, 0, 0, 0.50)' : 'rgba(0, 0, 0, 0.05)'
+  const pinBadgeBg = isDark ? 'rgba(18, 16, 13, 0.92)' : 'rgba(255, 255, 255, 0.95)'
+  const gridRoadColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(16,14,11,0.06)'
 
   return (
     <div className="relative mx-auto w-full max-w-5xl [perspective:1400px]">
@@ -88,7 +96,7 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
         className="relative overflow-hidden rounded-[2.5rem] border shadow-[0_25px_80px_rgba(0,0,0,0.7)] backdrop-blur-3xl [transform-style:preserve-3d] transition-all"
         style={{
           backgroundColor: isDark ? 'rgba(15, 13, 11, 0.94)' : 'rgba(255, 255, 255, 0.96)',
-          borderColor: 'rgba(232, 163, 61, 0.28)',
+          borderColor: isDark ? 'rgba(232, 163, 61, 0.28)' : 'rgba(232, 163, 61, 0.35)',
           minHeight: '520px',
         }}
       >
@@ -108,7 +116,10 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
         />
 
         {/* ── Top Floating HUD: Multi-modal Route Switcher ── */}
-        <div className="relative z-20 flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6 border-b border-white/10 [transform:translateZ(35px)]">
+        <div
+          className="relative z-20 flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6 border-b [transform:translateZ(35px)]"
+          style={{ borderColor: borderLine }}
+        >
           {/* Active Route Summary */}
           <div className="flex items-center gap-3">
             <div
@@ -123,22 +134,25 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-white/50">
+                <span className="text-xs font-bold uppercase tracking-wider" style={{ color: inkFaint }}>
                   Live Route Preview
                 </span>
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
                 <span className="text-[10px] font-mono text-emerald-400 font-semibold">LIVE</span>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-base font-extrabold text-white">Bole Atlas</span>
+                <span className="text-base font-extrabold" style={{ color: ink }}>Bole Atlas</span>
                 <ArrowRightIcon size={12} color="#e8a33d" />
-                <span className="text-base font-extrabold text-white">Tomoca Roastery</span>
+                <span className="text-base font-extrabold" style={{ color: ink }}>Tomoca Roastery</span>
               </div>
             </div>
           </div>
 
           {/* Interactive Mode Pills */}
-          <div className="flex items-center gap-1.5 rounded-full bg-black/50 p-1.5 border border-white/10 backdrop-blur-xl">
+          <div
+            className="flex items-center gap-1.5 rounded-full p-1.5 border backdrop-blur-xl"
+            style={{ backgroundColor: pillBarBg, borderColor: borderLine }}
+          >
             {Object.entries(MODES).map(([key, mode]) => {
               const isSelected = activeMode === key
               return (
@@ -147,7 +161,11 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
                   type="button"
                   onClick={() => setActiveMode(key)}
                   className={`relative flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold transition-all duration-300 ${
-                    isSelected ? 'text-black shadow-lg scale-105' : 'text-white/60 hover:text-white'
+                    isSelected
+                      ? 'text-black shadow-lg scale-105'
+                      : isDark
+                      ? 'text-white/60 hover:text-white'
+                      : 'text-neutral-600 hover:text-neutral-900'
                   }`}
                   style={{
                     backgroundColor: isSelected ? mode.color : 'transparent',
@@ -190,11 +208,11 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
             </defs>
 
             {/* Background street cartography grid */}
-            <path d="M 0,160 L 800,190" stroke="rgba(255,255,255,0.06)" strokeWidth="12" fill="none" />
-            <path d="M 0,280 L 800,250" stroke="rgba(255,255,255,0.06)" strokeWidth="10" fill="none" />
-            <path d="M 280,0 L 320,400" stroke="rgba(255,255,255,0.06)" strokeWidth="8" fill="none" />
-            <path d="M 540,0 L 490,400" stroke="rgba(255,255,255,0.06)" strokeWidth="8" fill="none" />
-            <path d="M 100,400 Q 300,240 750,80" stroke="rgba(255,255,255,0.04)" strokeWidth="6" fill="none" />
+            <path d="M 0,160 L 800,190" stroke={gridRoadColor} strokeWidth="12" fill="none" />
+            <path d="M 0,280 L 800,250" stroke={gridRoadColor} strokeWidth="10" fill="none" />
+            <path d="M 280,0 L 320,400" stroke={gridRoadColor} strokeWidth="8" fill="none" />
+            <path d="M 540,0 L 490,400" stroke={gridRoadColor} strokeWidth="8" fill="none" />
+            <path d="M 100,400 Q 300,240 750,80" stroke={gridRoadColor} strokeWidth="6" fill="none" />
 
             {/* Glowing active route baseline */}
             <motion.path
@@ -212,7 +230,7 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
             {/* Pulsing Dash Vector Overlay */}
             <motion.path
               d={current.pathD}
-              stroke="#ffffff"
+              stroke={isDark ? "#ffffff" : "#100e0b"}
               strokeWidth="3.5"
               strokeLinecap="round"
               strokeDasharray="12 12"
@@ -236,8 +254,8 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
           >
             <motion.div
               whileHover={{ scale: 1.1, y: -4 }}
-              className="rounded-2xl px-3 py-1.5 shadow-xl text-xs font-bold border backdrop-blur-md flex items-center gap-1.5 mb-2 bg-[#12100d]/90"
-              style={{ borderColor: '#e8a33d', color: '#e8a33d' }}
+              className="rounded-2xl px-3 py-1.5 shadow-xl text-xs font-bold border backdrop-blur-md flex items-center gap-1.5 mb-2"
+              style={{ backgroundColor: pinBadgeBg, borderColor: '#e8a33d', color: '#e8a33d' }}
             >
               <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
               <span>Origin · Bole</span>
@@ -260,8 +278,8 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
           >
             <motion.div
               whileHover={{ scale: 1.1, y: -4 }}
-              className="rounded-2xl px-3 py-1.5 shadow-xl text-xs font-bold border backdrop-blur-md flex items-center gap-1.5 mb-2 bg-[#12100d]/90"
-              style={{ borderColor: current.color, color: current.color }}
+              className="rounded-2xl px-3 py-1.5 shadow-xl text-xs font-bold border backdrop-blur-md flex items-center gap-1.5 mb-2"
+              style={{ backgroundColor: pinBadgeBg, borderColor: current.color, color: current.color }}
             >
               <SparklesIcon size={12} color={current.color} />
               <span>Tomoca Specialty Roastery</span>
@@ -289,21 +307,23 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
             transition={{ delay: 0.2 }}
             className="absolute bottom-5 left-5 right-5 sm:left-auto sm:right-7 sm:w-96 rounded-3xl p-5 shadow-2xl backdrop-blur-2xl border [transform:translateZ(60px)] transition-all hover:scale-[1.02]"
             style={{
-              backgroundColor: 'rgba(18, 15, 12, 0.88)',
-              borderColor: 'rgba(255, 255, 255, 0.12)',
-              boxShadow: `0 20px 50px rgba(0,0,0,0.8), 0 0 30px ${current.bgGlow}`,
+              backgroundColor: cardBg,
+              borderColor: borderLine,
+              boxShadow: isDark
+                ? `0 20px 50px rgba(0,0,0,0.8), 0 0 30px ${current.bgGlow}`
+                : `0 20px 40px rgba(0,0,0,0.08), 0 0 25px ${current.bgGlow}`,
             }}
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-400 mb-1">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-500 dark:text-amber-400 mb-1">
                   <SparklesIcon size={12} color="#e8a33d" />
                   <span>Verified — Real Place, Real Reviews</span>
                 </div>
-                <h4 className="text-base font-extrabold text-white">
+                <h4 className="text-base font-extrabold" style={{ color: ink }}>
                   Tomoca Specialty Roastery
                 </h4>
-                <p className="text-xs text-white/60 mt-0.5">
+                <p className="text-xs mt-0.5" style={{ color: inkMuted }}>
                   Wabi Shebelle Zone · Artisan Espresso, Outdoor Patio & Fast Wi-Fi
                 </p>
               </div>
@@ -321,53 +341,59 @@ export default function InteractiveMap3DShowcase({ user, isDark = true }) {
             </div>
 
             {/* Real-time Telemetry Metrics */}
-            <div className="mt-4 grid grid-cols-3 gap-2 border-t border-white/10 pt-3">
+            <div
+              className="mt-4 grid grid-cols-3 gap-2 border-t pt-3"
+              style={{ borderColor: borderLine }}
+            >
               <div
                 className="rounded-2xl p-2.5 text-center transition-all border"
                 style={{
-                  backgroundColor: activeMode === 'drive' ? 'rgba(232, 163, 61, 0.18)' : 'rgba(255, 255, 255, 0.04)',
+                  backgroundColor: activeMode === 'drive' ? 'rgba(232, 163, 61, 0.18)' : (isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)'),
                   borderColor: activeMode === 'drive' ? '#e8a33d' : 'transparent',
                 }}
               >
-                <div className="text-[10px] uppercase font-bold text-amber-400">Drive</div>
-                <div className="text-sm font-extrabold text-white mt-0.5">7 mins</div>
-                <div className="text-[10px] text-white/50">3.2 km</div>
+                <div className="text-[10px] uppercase font-bold text-amber-500 dark:text-amber-400">Drive</div>
+                <div className="text-sm font-extrabold mt-0.5" style={{ color: ink }}>7 mins</div>
+                <div className="text-[10px]" style={{ color: inkFaint }}>3.2 km</div>
               </div>
 
               <div
                 className="rounded-2xl p-2.5 text-center transition-all border"
                 style={{
-                  backgroundColor: activeMode === 'walk' ? 'rgba(56, 189, 248, 0.18)' : 'rgba(255, 255, 255, 0.04)',
+                  backgroundColor: activeMode === 'walk' ? 'rgba(56, 189, 248, 0.18)' : (isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)'),
                   borderColor: activeMode === 'walk' ? '#38bdf8' : 'transparent',
                 }}
               >
-                <div className="text-[10px] uppercase font-bold text-sky-400">Walk</div>
-                <div className="text-sm font-extrabold text-white mt-0.5">22 mins</div>
-                <div className="text-[10px] text-white/50">2.1 km</div>
+                <div className="text-[10px] uppercase font-bold text-sky-500 dark:text-sky-400">Walk</div>
+                <div className="text-sm font-extrabold mt-0.5" style={{ color: ink }}>22 mins</div>
+                <div className="text-[10px]" style={{ color: inkFaint }}>2.1 km</div>
               </div>
 
               <div
                 className="rounded-2xl p-2.5 text-center transition-all border"
                 style={{
-                  backgroundColor: activeMode === 'cycle' ? 'rgba(45, 212, 191, 0.18)' : 'rgba(255, 255, 255, 0.04)',
+                  backgroundColor: activeMode === 'cycle' ? 'rgba(45, 212, 191, 0.18)' : (isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)'),
                   borderColor: activeMode === 'cycle' ? '#2dd4bf' : 'transparent',
                 }}
               >
-                <div className="text-[10px] uppercase font-bold text-teal-400">Cycle</div>
-                <div className="text-sm font-extrabold text-white mt-0.5">11 mins</div>
-                <div className="text-[10px] text-white/50">2.8 km</div>
+                <div className="text-[10px] uppercase font-bold text-teal-500 dark:text-teal-400">Cycle</div>
+                <div className="text-sm font-extrabold mt-0.5" style={{ color: ink }}>11 mins</div>
+                <div className="text-[10px]" style={{ color: inkFaint }}>2.8 km</div>
               </div>
             </div>
 
             {/* Bottom Status & CTA */}
-            <div className="mt-3.5 flex items-center justify-between text-[11px] text-white/50 pt-2 border-t border-white/5">
+            <div
+              className="mt-3.5 flex items-center justify-between text-[11px] pt-2 border-t"
+              style={{ borderColor: borderLine, color: inkFaint }}
+            >
               <span className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                <span className="text-emerald-400 font-semibold">Open Now</span> · Closes 10:00 PM
+                <span className="text-emerald-500 dark:text-emerald-400 font-semibold">Open Now</span> · Closes 10:00 PM
               </span>
               <Link
                 to={user ? '/dashboard' : '/signup'}
-                className="font-bold text-amber-400 hover:text-amber-300 transition flex items-center gap-1"
+                className="font-bold text-amber-500 dark:text-amber-400 hover:opacity-80 transition flex items-center gap-1"
               >
                 <span>Launch Live Route</span>
                 <span>→</span>

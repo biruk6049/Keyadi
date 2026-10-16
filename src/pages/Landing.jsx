@@ -254,20 +254,24 @@ export default function Landing() {
 
   return (
     <div
-      className="relative min-h-screen overflow-x-hidden selection:bg-amber-500/25 selection:text-amber-300"
+      className="relative min-h-screen overflow-x-hidden selection:bg-amber-500/25 selection:text-amber-300 transition-colors duration-300"
       style={{
-        backgroundColor: '#0a0908',
+        backgroundColor: isDark ? '#0a0908' : '#faf9f6',
         color: ink,
         fontFamily: "'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
       }}
     >
       {/* ── 3D Reactive Three.js Geospatial Environment ── */}
-      <Landing3DBackground />
+      <Landing3DBackground isDark={isDark} />
 
       {/* Subtle radial vignette */}
       <div
         aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(10,9,8,0.75)_100%)]"
+        className={
+          isDark
+            ? "pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(10,9,8,0.75)_100%)]"
+            : "pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(240,238,233,0.35)_100%)]"
+        }
       />
 
       {/* Main Foreground Container */}
@@ -277,9 +281,11 @@ export default function Landing() {
           <div
             className="flex items-center justify-between rounded-full px-4 py-2.5 sm:px-6 sm:py-3.5 shadow-2xl backdrop-blur-3xl transition-all"
             style={{
-              backgroundColor: 'rgba(14, 12, 10, 0.85)',
+              backgroundColor: isDark ? 'rgba(14, 12, 10, 0.85)' : 'rgba(255, 255, 255, 0.88)',
               border: `1px solid ${hairline}`,
-              boxShadow: '0 10px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)',
+              boxShadow: isDark
+                ? '0 10px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)'
+                : '0 10px 30px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
             }}
           >
             {/* Logo with 3D hover scale */}
@@ -294,11 +300,11 @@ export default function Landing() {
 
             {/* Nav links with animated bottom indicator */}
             <nav className="hidden md:flex items-center gap-7 text-sm font-semibold" style={{ color: inkMuted }}>
-              <a href="#directions" className="transition-colors hover:text-amber-400">Directions</a>
-              <a href="#features" className="transition-colors hover:text-amber-400">Features</a>
-              <a href="#demo" className="transition-colors hover:text-amber-400">Live Terminal</a>
-              <a href="#faq" className="transition-colors hover:text-amber-400">FAQ</a>
-              <a href="#contact" className="transition-colors hover:text-amber-400">Contact</a>
+              <a href="#directions" className="transition-colors hover:text-amber-500 dark:hover:text-amber-400">Directions</a>
+              <a href="#features" className="transition-colors hover:text-amber-500 dark:hover:text-amber-400">Features</a>
+              <a href="#demo" className="transition-colors hover:text-amber-500 dark:hover:text-amber-400">Live Terminal</a>
+              <a href="#faq" className="transition-colors hover:text-amber-500 dark:hover:text-amber-400">FAQ</a>
+              <a href="#contact" className="transition-colors hover:text-amber-500 dark:hover:text-amber-400">Contact</a>
             </nav>
 
             {/* Actions */}
@@ -501,7 +507,9 @@ export default function Landing() {
           <div className="mx-auto max-w-4xl">
             <KineticTitle
               text="Explore Any City With"
-              className="text-4xl font-black tracking-tight sm:text-6xl md:text-7xl leading-[1.08] text-[#f3f1ec]"
+              className={`text-4xl font-black tracking-tight sm:text-6xl md:text-7xl leading-[1.08] ${
+                isDark ? 'text-[#f3f1ec]' : 'text-[#100e0b]'
+              }`}
             />
             <div className="mt-2 text-4xl font-black tracking-tight sm:text-6xl md:text-7xl leading-[1.08]">
               <KineticWordRotator
@@ -534,7 +542,11 @@ export default function Landing() {
             transition={{ delay: 0.5, duration: 0.7 }}
             className="mt-8 flex flex-wrap items-center justify-center gap-2 sm:gap-2.5"
           >
-            <span className="text-xs font-bold tracking-wide mr-1 uppercase text-[#e8a33d]/70">
+            <span
+              className={`text-xs font-bold tracking-wide mr-1 uppercase ${
+                isDark ? 'text-[#e8a33d]/70' : 'text-amber-600'
+              }`}
+            >
               Try searching:
             </span>
             {QUERY_CHIPS.map((chip, idx) => (
@@ -543,9 +555,20 @@ export default function Landing() {
                 onClick={() => setActiveChip(idx)}
                 className="group flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold backdrop-blur-xl transition-all duration-200 hover:scale-105"
                 style={{
-                  backgroundColor: activeChip === idx ? 'rgba(232, 163, 61, 0.22)' : 'rgba(255, 255, 255, 0.05)',
-                  border: `1px solid ${activeChip === idx ? amber : 'rgba(255, 255, 255, 0.1)'}`,
-                  color: activeChip === idx ? '#ffd166' : inkMuted,
+                  backgroundColor:
+                    activeChip === idx
+                      ? isDark
+                        ? 'rgba(232, 163, 61, 0.22)'
+                        : 'rgba(232, 163, 61, 0.16)'
+                      : isDark
+                      ? 'rgba(255, 255, 255, 0.05)'
+                      : 'rgba(0, 0, 0, 0.04)',
+                  border: `1px solid ${
+                    activeChip === idx
+                      ? amber
+                      : hairline
+                  }`,
+                  color: activeChip === idx ? (isDark ? '#ffd166' : '#b45309') : inkMuted,
                   boxShadow: activeChip === idx ? '0 0 18px rgba(232, 163, 61, 0.3)' : 'none',
                 }}
               >
@@ -578,7 +601,7 @@ export default function Landing() {
               to={user ? '/dashboard' : '/login'}
               className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-full px-8 py-4 text-sm font-bold backdrop-blur-2xl border transition-all hover:scale-105 hover:bg-white/10"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)',
                 borderColor: hairline,
                 color: ink,
               }}
@@ -595,7 +618,7 @@ export default function Landing() {
         </section>
 
         {/* ── 3D Features Pillars Grid (TiltCard3D) ── */}
-        <section id="features" className="mx-auto max-w-6xl px-6 py-20 sm:px-10 border-t border-white/10">
+        <section id="features" className="mx-auto max-w-6xl px-6 py-20 sm:px-10 border-t" style={{ borderColor: hairline }}>
           <ScrollRevealHeading
             tag="Built for Real Explorers"
             title="Everything You Need To Move Around Smarter"
@@ -652,7 +675,7 @@ export default function Landing() {
                   className="group relative h-full rounded-3xl p-7 shadow-xl backdrop-blur-2xl border transition-all duration-300 [transform-style:preserve-3d]"
                   style={{
                     backgroundColor: cardBg,
-                    borderColor: 'rgba(255, 255, 255, 0.09)',
+                    borderColor: hairline,
                   }}
                 >
                   {/* Top row with icon & badge */}
@@ -680,7 +703,8 @@ export default function Landing() {
 
                   {/* Title & Description with 3D Z-depth */}
                   <h4
-                    className="text-lg font-extrabold mb-2 text-white group-hover:text-amber-400 transition-colors [transform:translateZ(30px)]"
+                    className="text-lg font-extrabold mb-2 transition-colors [transform:translateZ(30px)]"
+                    style={{ color: ink }}
                   >
                     {feat.title}
                   </h4>
@@ -722,7 +746,7 @@ export default function Landing() {
               <SparklesIcon size={12} color={amber} />
               <span>Technology Stack</span>
             </span>
-            <h4 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+            <h4 className="text-xl sm:text-2xl font-bold tracking-tight" style={{ color: ink }}>
               Powered By Leading Map & Cloud Technologies
             </h4>
           </div>
@@ -731,7 +755,7 @@ export default function Landing() {
           <div
             className="relative overflow-hidden rounded-3xl border py-5 backdrop-blur-2xl shadow-2xl"
             style={{
-              backgroundColor: 'rgba(18, 16, 13, 0.75)',
+              backgroundColor: isDark ? 'rgba(18, 16, 13, 0.75)' : 'rgba(255, 255, 255, 0.88)',
               borderColor: hairline,
               maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
               WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
@@ -743,14 +767,20 @@ export default function Landing() {
                   key={i}
                   className="flex items-center gap-3 rounded-2xl px-5 py-3 border transition-all duration-200 hover:scale-105 hover:border-amber-500/40 group cursor-default shrink-0 shadow-sm"
                   style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                    backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)',
                     borderColor: hairline,
                   }}
                 >
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5 border border-white/10 group-hover:scale-110 transition-transform">
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border group-hover:scale-110 transition-transform"
+                    style={{
+                      backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
+                      borderColor: hairline,
+                    }}
+                  >
                     {comp.icon}
                   </div>
-                  <span className="text-sm font-bold tracking-tight whitespace-nowrap text-white">
+                  <span className="text-sm font-bold tracking-tight whitespace-nowrap" style={{ color: ink }}>
                     {comp.name}
                   </span>
                 </div>
@@ -760,7 +790,7 @@ export default function Landing() {
         </section>
 
         {/* ── Frequently Asked Questions (FAQ) Section ── */}
-        <section id="faq" className="mx-auto max-w-6xl px-6 py-20 sm:px-10 border-t border-white/10">
+        <section id="faq" className="mx-auto max-w-6xl px-6 py-20 sm:px-10 border-t" style={{ borderColor: hairline }}>
           <div className="text-center max-w-2xl mx-auto mb-10">
             <ScrollRevealHeading
               tag="Got Questions?"
@@ -849,7 +879,7 @@ export default function Landing() {
         </section>
 
         {/* ── Workable Contact & Support Section ── */}
-        <section id="contact" className="mx-auto max-w-6xl px-6 py-20 sm:px-10 border-t border-white/10">
+        <section id="contact" className="mx-auto max-w-6xl px-6 py-20 sm:px-10 border-t" style={{ borderColor: hairline }}>
           <div className="text-center max-w-2xl mx-auto mb-12">
             <ScrollRevealHeading
               tag="We'd Love to Hear From You"
@@ -941,7 +971,8 @@ export default function Landing() {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="text-2xl font-extrabold mb-2 text-white"
+                    className="text-2xl font-extrabold mb-2"
+                    style={{ color: ink }}
                   >
                     You're all set!
                   </motion.h4>
@@ -952,16 +983,16 @@ export default function Landing() {
                     className="text-sm max-w-md mx-auto mb-5"
                     style={{ color: inkMuted }}
                   >
-                    Thanks <span className="font-semibold text-amber-400">{contactForm.name}</span>! Your message is on its way. We’ll get back to you soon.
+                    Thanks <span className="font-semibold text-amber-500 dark:text-amber-400">{contactForm.name}</span>! Your message is on its way. We’ll get back to you soon.
                   </motion.p>
                   <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.6 }}
-                    className="inline-block px-4 py-2 rounded-xl text-xs font-mono font-bold mb-7"
+                    className="inline-block px-4 py-2 rounded-xl text-xs font-mono font-bold mb-7 border"
                     style={{
-                      backgroundColor: 'rgba(255,255,255,0.06)',
-                      border: `1px solid ${hairline}`,
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                      borderColor: hairline,
                       color: amber,
                     }}
                   >
@@ -983,7 +1014,7 @@ export default function Landing() {
                     </a>
                     <button
                       onClick={resetContactForm}
-                      className="rounded-full px-5 py-2.5 text-xs font-semibold transition hover:bg-white/10 border"
+                      className="rounded-full px-5 py-2.5 text-xs font-semibold transition hover:bg-black/5 dark:hover:bg-white/10 border"
                       style={{ borderColor: hairline, color: ink }}
                     >
                       Send Another Message
@@ -1060,7 +1091,7 @@ export default function Landing() {
                           style={{
                             backgroundColor: contactForm.topic === topic ? 'rgba(232, 163, 61, 0.22)' : inputBg,
                             borderColor: contactForm.topic === topic ? amber : hairline,
-                            color: contactForm.topic === topic ? amber : inkMuted,
+                            color: contactForm.topic === topic ? (isDark ? amber : '#b45309') : inkMuted,
                             boxShadow: contactForm.topic === topic ? '0 0 12px rgba(232,163,61,0.2)' : 'none',
                           }}
                         >
@@ -1133,7 +1164,7 @@ export default function Landing() {
                     <MailIcon size={18} />
                   </motion.div>
                   <div>
-                    <h5 className="text-sm font-bold text-white">Email Us</h5>
+                    <h5 className="text-sm font-bold" style={{ color: ink }}>Email Us</h5>
                     <p className="text-[11px]" style={{ color: inkFaint }}>We typically reply within a few hours</p>
                   </div>
                 </div>
@@ -1144,7 +1175,7 @@ export default function Landing() {
                   style={{ backgroundColor: inputBg, borderColor: hairline }}
                   title="Click to email biruk5868@gmail.com"
                 >
-                  <span className="text-sm font-mono font-medium text-amber-400 truncate">
+                  <span className="text-sm font-mono font-medium text-amber-500 dark:text-amber-400 truncate">
                     biruk5868@gmail.com
                   </span>
                   <span
@@ -1178,7 +1209,7 @@ export default function Landing() {
                     <PhoneIcon size={18} />
                   </motion.div>
                   <div>
-                    <h5 className="text-sm font-bold text-white">Call or WhatsApp</h5>
+                    <h5 className="text-sm font-bold" style={{ color: ink }}>Call or WhatsApp</h5>
                     <p className="text-[11px]" style={{ color: inkFaint }}>Available for calls and quick messages</p>
                   </div>
                 </div>
@@ -1189,7 +1220,7 @@ export default function Landing() {
                   style={{ backgroundColor: inputBg, borderColor: hairline }}
                   title="Click to call +251 909005450"
                 >
-                  <span className="text-sm font-mono font-medium text-emerald-400 truncate">
+                  <span className="text-sm font-mono font-medium text-emerald-500 dark:text-emerald-400 truncate">
                     +251 909 005 450
                   </span>
                   <span
@@ -1207,17 +1238,17 @@ export default function Landing() {
                 className="rounded-2xl p-5 border backdrop-blur-xl text-xs leading-relaxed"
                 style={{ backgroundColor: cardBg, borderColor: hairline, color: inkMuted }}
               >
-                <div className="flex items-center gap-2 mb-2 font-bold text-amber-400">
+                <div className="flex items-center gap-2 mb-2 font-bold text-amber-500 dark:text-amber-400">
                   <SparklesIcon size={14} color={amber} />
                   <span>Hawaz Technologies — Addis Ababa</span>
                 </div>
                 <p>
                   We're a small team that genuinely cares about building something great. Reach out any time via{' '}
-                  <a href="tel:+251909005450" className="text-emerald-400 font-semibold underline decoration-emerald-400/40">
+                  <a href="tel:+251909005450" className="text-emerald-500 dark:text-emerald-400 font-semibold underline decoration-emerald-400/40">
                     phone
                   </a>{' '}
                   or{' '}
-                  <a href="mailto:biruk5868@gmail.com" className="text-amber-400 font-semibold underline decoration-amber-400/40">
+                  <a href="mailto:biruk5868@gmail.com" className="text-amber-500 dark:text-amber-400 font-semibold underline decoration-amber-400/40">
                     email
                   </a>
                   {' '}— we'd love to hear from you.
@@ -1228,7 +1259,13 @@ export default function Landing() {
         </section>
 
         {/* ── Premium Footer ── */}
-        <footer className="mt-auto border-t border-white/10" style={{ backgroundColor: 'rgba(10,9,8,0.98)' }}>
+        <footer
+          className="mt-auto border-t transition-colors duration-300"
+          style={{
+            backgroundColor: isDark ? 'rgba(10,9,8,0.98)' : 'rgba(245, 243, 238, 0.98)',
+            borderColor: hairline,
+          }}
+        >
           {/* Top section */}
           <div className="mx-auto max-w-6xl px-6 sm:px-10 pt-14 pb-10">
             <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
@@ -1239,16 +1276,16 @@ export default function Landing() {
                   <div className="transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
                     <KeyadiLogo size={30} />
                   </div>
-                  <span className="text-base font-extrabold tracking-tight text-white">Keyadi</span>
+                  <span className="text-base font-extrabold tracking-tight" style={{ color: ink }}>Keyadi</span>
                 </Link>
-                <p className="text-xs leading-relaxed max-w-[200px]" style={{ color: 'rgba(243,241,236,0.45)' }}>
+                <p className="text-xs leading-relaxed max-w-[200px]" style={{ color: inkMuted }}>
                   Smart place search for real people. Find what you need, get there your way.
                 </p>
                 <div className="flex items-center gap-2 mt-1">
                   <a
                     href="mailto:biruk5868@gmail.com"
                     className="flex h-8 w-8 items-center justify-center rounded-full border transition-all hover:border-amber-500/50 hover:bg-amber-500/10 hover:scale-110"
-                    style={{ borderColor: hairline, color: 'rgba(243,241,236,0.45)' }}
+                    style={{ borderColor: hairline, color: inkMuted }}
                     title="Email us"
                   >
                     <MailIcon size={13} />
@@ -1256,7 +1293,7 @@ export default function Landing() {
                   <a
                     href="tel:+251909005450"
                     className="flex h-8 w-8 items-center justify-center rounded-full border transition-all hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:scale-110"
-                    style={{ borderColor: hairline, color: 'rgba(243,241,236,0.45)' }}
+                    style={{ borderColor: hairline, color: inkMuted }}
                     title="Call us"
                   >
                     <PhoneIcon size={13} />
@@ -1264,7 +1301,7 @@ export default function Landing() {
                   <a
                     href="#contact"
                     className="flex h-8 w-8 items-center justify-center rounded-full border transition-all hover:border-sky-500/50 hover:bg-sky-500/10 hover:scale-110"
-                    style={{ borderColor: hairline, color: 'rgba(243,241,236,0.45)' }}
+                    style={{ borderColor: hairline, color: inkMuted }}
                     title="Globe"
                   >
                     <GlobeIcon size={13} />
@@ -1286,8 +1323,8 @@ export default function Landing() {
                     <a
                       key={link.label}
                       href={link.href}
-                      className="text-xs font-medium transition-all hover:text-amber-400 hover:translate-x-1 inline-block"
-                      style={{ color: 'rgba(243,241,236,0.5)' }}
+                      className="text-xs font-medium transition-all hover:text-amber-500 dark:hover:text-amber-400 hover:translate-x-1 inline-block"
+                      style={{ color: inkMuted }}
                     >
                       {link.label}
                     </a>
@@ -1302,7 +1339,7 @@ export default function Landing() {
                   {user ? (
                     <Link
                       to="/dashboard"
-                      className="text-xs font-bold transition-all hover:text-amber-400 hover:translate-x-1 inline-block text-amber-400"
+                      className="text-xs font-bold transition-all hover:text-amber-500 dark:hover:text-amber-400 hover:translate-x-1 inline-block text-amber-500 dark:text-amber-400"
                     >
                       Open Live Map
                     </Link>
@@ -1310,15 +1347,15 @@ export default function Landing() {
                     <>
                       <Link
                         to="/login"
-                        className="text-xs font-medium transition-all hover:text-amber-400 hover:translate-x-1 inline-block"
-                        style={{ color: 'rgba(243,241,236,0.5)' }}
+                        className="text-xs font-medium transition-all hover:text-amber-500 dark:hover:text-amber-400 hover:translate-x-1 inline-block"
+                        style={{ color: inkMuted }}
                       >
                         Sign In
                       </Link>
                       <Link
                         to="/signup"
-                        className="text-xs font-bold transition-all hover:text-amber-400 hover:translate-x-1 inline-block"
-                        style={{ color: 'rgba(243,241,236,0.5)' }}
+                        className="text-xs font-bold transition-all hover:text-amber-500 dark:hover:text-amber-400 hover:translate-x-1 inline-block"
+                        style={{ color: inkMuted }}
                       >
                         Create Account
                       </Link>
@@ -1327,8 +1364,8 @@ export default function Landing() {
                   <button
                     type="button"
                     onClick={() => setGetAppOpen(true)}
-                    className="text-xs font-medium text-left transition-all hover:text-amber-400 hover:translate-x-1 inline-block"
-                    style={{ color: 'rgba(243,241,236,0.5)' }}
+                    className="text-xs font-medium text-left transition-all hover:text-amber-500 dark:hover:text-amber-400 hover:translate-x-1 inline-block"
+                    style={{ color: inkMuted }}
                   >
                     Get the Mobile App
                   </button>
@@ -1348,8 +1385,8 @@ export default function Landing() {
                     <Link
                       key={link.label}
                       to={link.to}
-                      className="text-xs font-medium transition-all hover:text-amber-400 hover:translate-x-1 inline-block"
-                      style={{ color: 'rgba(243,241,236,0.5)' }}
+                      className="text-xs font-medium transition-all hover:text-amber-500 dark:hover:text-amber-400 hover:translate-x-1 inline-block"
+                      style={{ color: inkMuted }}
                     >
                       {link.label}
                     </Link>
@@ -1362,20 +1399,20 @@ export default function Landing() {
           {/* Bottom bar */}
           <div
             className="border-t"
-            style={{ borderColor: 'rgba(243,241,236,0.07)' }}
+            style={{ borderColor: hairline }}
           >
             <div className="mx-auto max-w-6xl px-6 sm:px-10 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-3 text-[11px]" style={{ color: 'rgba(243,241,236,0.35)' }}>
+              <div className="flex items-center gap-3 text-[11px]" style={{ color: inkFaint }}>
                 <span>© {new Date().getFullYear()} Keyadi</span>
                 <span style={{ color: hairline }}>·</span>
                 <span
                   className="font-semibold tracking-wide"
-                  style={{ color: 'rgba(232,163,61,0.65)' }}
+                  style={{ color: isDark ? 'rgba(232,163,61,0.65)' : 'rgba(180,83,9,0.85)' }}
                 >
                   Hawaz Technologies · Addis Ababa, Ethiopia
                 </span>
               </div>
-              <div className="flex items-center gap-1.5 text-[11px]" style={{ color: 'rgba(243,241,236,0.35)' }}>
+              <div className="flex items-center gap-1.5 text-[11px]" style={{ color: inkFaint }}>
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
                 <span>All services operational</span>
               </div>

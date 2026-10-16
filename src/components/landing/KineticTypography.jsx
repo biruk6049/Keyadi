@@ -198,18 +198,18 @@ export function ScrollRevealHeading({ tag, title, subtitle, align = 'center' }) 
           whileInView={{ opacity: 1, letterSpacing: '0.22em' }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="inline-block text-xs font-extrabold uppercase mb-2.5 text-amber-400 tracking-widest"
+          className="inline-block text-xs font-extrabold uppercase mb-2.5 text-amber-500 dark:text-amber-400 tracking-widest"
         >
           {tag}
         </motion.span>
       )}
 
-      <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-[#f3f1ec] leading-tight">
+      <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-neutral-900 dark:text-[#f3f1ec] leading-tight transition-colors">
         {title}
       </h3>
 
       {subtitle && (
-        <p className="mt-3 text-sm sm:text-base text-[#f3f1ec]/65 leading-relaxed">
+        <p className="mt-3 text-sm sm:text-base text-neutral-600 dark:text-[#f3f1ec]/65 leading-relaxed transition-colors">
           {subtitle}
         </p>
       )}
