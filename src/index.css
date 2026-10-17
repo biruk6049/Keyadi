@@ -90,6 +90,17 @@ html.dark p:not([class*="text-amber"]):not([class*="text-emerald"]):not([class*=
   color: #f3f1ec;
 }
 
+html.dark .text-neutral-950,
+html.dark .text-neutral-900,
+html.dark .text-neutral-800 {
+  color: #f3f1ec !important;
+}
+
+html.dark .text-neutral-700,
+html.dark .text-neutral-600 {
+  color: rgba(243, 241, 236, 0.72) !important;
+}
+
 html.dark input,
 html.dark textarea,
 html.dark select {

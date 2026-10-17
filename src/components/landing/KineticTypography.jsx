@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useSettings } from '../../context/SettingsContext'
 
 /**
  * KineticTitle
@@ -7,6 +8,8 @@ import { motion, AnimatePresence } from 'framer-motion'
  * and kinetic spring physics.
  */
 export function KineticTitle({ text, className = '', highlightText = '', highlightGradient = '' }) {
+  const { isDark } = useSettings()
+  const ink = isDark ? '#f3f1ec' : '#100e0b'
   const words = text.split(' ')
 
   const containerVariants = {
@@ -43,6 +46,7 @@ export function KineticTitle({ text, className = '', highlightText = '', highlig
   return (
     <motion.h1
       className={`relative [perspective:1000px] ${className}`}
+      style={{ color: ink }}
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -53,6 +57,7 @@ export function KineticTitle({ text, className = '', highlightText = '', highlig
           <motion.span
             key={i}
             variants={wordVariants}
+            style={{ color: isHighlight ? undefined : ink }}
             className={`inline-block mr-[0.28em] [transform-style:preserve-3d] transition-transform hover:scale-105 ${
               isHighlight
                 ? highlightGradient || 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 bg-clip-text text-transparent'
@@ -183,6 +188,9 @@ export function KineticBadge({ children, icon: Icon, onClick }) {
  * specular light sheen when entering view.
  */
 export function ScrollRevealHeading({ tag, title, subtitle, align = 'center' }) {
+  const { isDark } = useSettings()
+  const ink = isDark ? '#f3f1ec' : '#100e0b'
+  const inkMuted = isDark ? 'rgba(243,241,236,0.72)' : 'rgba(16,14,11,0.70)'
   const isCenter = align === 'center'
   return (
     <motion.div
@@ -204,12 +212,18 @@ export function ScrollRevealHeading({ tag, title, subtitle, align = 'center' }) 
         </motion.span>
       )}
 
-      <h3 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-neutral-900 dark:text-[#f3f1ec] leading-tight transition-colors">
+      <h3
+        className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight transition-colors"
+        style={{ color: ink }}
+      >
         {title}
       </h3>
 
       {subtitle && (
-        <p className="mt-3 text-sm sm:text-base text-neutral-600 dark:text-[#f3f1ec]/65 leading-relaxed transition-colors">
+        <p
+          className="mt-3 text-sm sm:text-base leading-relaxed transition-colors"
+          style={{ color: inkMuted }}
+        >
           {subtitle}
         </p>
       )}
