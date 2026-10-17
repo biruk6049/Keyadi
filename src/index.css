@@ -54,17 +54,19 @@ html.theme-transition *::after {
   transition-delay: 0s !important;
 }
 
+html.dark,
 html.dark body {
   background-color: #0e0d0b;
   color: #f3f1ec;
 }
 
+html:not(.dark),
 html:not(.dark) body {
   background-color: #faf9f6;
   color: #100e0b;
 }
 
-/* Contrast inheritance for headings and text */
+/* Contrast inheritance for headings and typography */
 html:not(.dark) h1,
 html:not(.dark) h2,
 html:not(.dark) h3,
@@ -81,6 +83,22 @@ html.dark h4,
 html.dark h5,
 html.dark h6 {
   color: #f3f1ec;
+}
+
+/* High contrast default for readable copy in light mode */
+html:not(.dark) p:not([class*="text-amber"]):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-sky"]):not([class*="text-teal"]):not([style*="color"]) {
+  color: #100e0b;
+}
+
+html:not(.dark) input,
+html:not(.dark) textarea,
+html:not(.dark) select {
+  color: #100e0b;
+}
+
+html:not(.dark) input::placeholder,
+html:not(.dark) textarea::placeholder {
+  color: rgba(16, 14, 11, 0.45);
 }
 
 h1,

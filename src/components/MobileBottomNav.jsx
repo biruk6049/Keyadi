@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { MapIcon, SearchIcon, BookmarkIcon, UserIcon, PinIcon } from './Icons'
+import { MapIcon, SearchIcon, BookmarkIcon, SettingsIcon, PinIcon } from './Icons'
 
 export default function MobileBottomNav({
   activeTab = 'map',
@@ -9,8 +9,8 @@ export default function MobileBottomNav({
 }) {
   const amber = '#e8a33d'
   const ink = isDark ? '#f3f1ec' : '#100e0b'
-  const inkMuted = isDark ? 'rgba(243,241,236,0.55)' : 'rgba(16,14,11,0.5)'
-  const hairline = isDark ? 'rgba(243,241,236,0.12)' : 'rgba(16,14,11,0.10)'
+  const inkMuted = isDark ? 'rgba(243,241,236,0.65)' : 'rgba(16,14,11,0.65)'
+  const hairline = isDark ? 'rgba(243,241,236,0.14)' : 'rgba(16,14,11,0.12)'
 
   const tabs = [
     {
@@ -32,7 +32,7 @@ export default function MobileBottomNav({
     {
       id: 'settings',
       label: 'Settings',
-      icon: <UserIcon size={19} color={activeTab === 'settings' ? amber : inkMuted} />,
+      icon: <SettingsIcon size={19} color={activeTab === 'settings' ? amber : inkMuted} />,
       isLink: true,
       to: '/settings',
     },

@@ -4,7 +4,7 @@ import { useSettings } from '../context/SettingsContext'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 import PageBackground from '../components/PageBackground'
-import { MapIcon, SatelliteIcon, CrosshairIcon, SparklesIcon, UserIcon, SunIcon, MoonIcon } from '../components/Icons'
+import { MapIcon, SatelliteIcon, CrosshairIcon, SparklesIcon, UserIcon, SunIcon, MoonIcon, SettingsIcon, LogoutIcon } from '../components/Icons'
 import KeyadiLogo from '../components/KeyadiLogo'
 import ThemeToggle from '../components/ThemeToggle'
 
@@ -164,12 +164,25 @@ export default function Settings() {
           </div>
 
           <div className="mb-6">
-            <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl" style={{ color: ink }}>
-              Settings
-            </h1>
-            <p className="mt-1 text-sm leading-relaxed" style={{ color: inkMuted }}>
-              Manage theme mode, map styling, distance units, search origin, and navigation preferences.
-            </p>
+            <div className="flex items-center gap-3">
+              <div
+                className="flex h-11 w-11 items-center justify-center rounded-2xl shadow-sm border"
+                style={{
+                  backgroundColor: 'rgba(232, 163, 61, 0.15)',
+                  borderColor: 'rgba(232, 163, 61, 0.3)',
+                }}
+              >
+                <SettingsIcon size={22} color={amber} />
+              </div>
+              <div>
+                <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl" style={{ color: ink }}>
+                  Settings
+                </h1>
+                <p className="mt-0.5 text-xs sm:text-sm leading-relaxed" style={{ color: inkMuted }}>
+                  Manage theme mode, map styling, distance units, search origin, and navigation preferences.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-5">
@@ -442,9 +455,10 @@ export default function Settings() {
 
               <button
                 onClick={signOut}
-                className="rounded-2xl px-4 py-2 text-xs font-semibold transition hover:bg-red-500/10 text-red-400 border border-red-500/20"
+                className="flex items-center gap-1.5 rounded-2xl px-4 py-2 text-xs font-semibold transition hover:bg-red-500/10 text-red-400 border border-red-500/20 shadow-sm"
               >
-                Sign out
+                <LogoutIcon size={14} color="#f87171" />
+                <span>Sign out</span>
               </button>
             </div>
 

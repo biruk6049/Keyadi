@@ -13,7 +13,8 @@ export default function PageBackground({ children, showToggle = false }) {
                 position: 'relative',
                 minHeight: '100vh',
                 backgroundColor: isDark ? '#0e0d0b' : '#faf9f6',
-                transition: 'background-color 0.3s ease',
+                color: isDark ? '#f3f1ec' : '#100e0b',
+                transition: 'background-color 0.3s ease, color 0.3s ease',
             }}
         >
             <AuraBackground isDark={isDark} />

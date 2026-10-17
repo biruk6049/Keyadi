@@ -23,6 +23,8 @@ import {
   GridIcon,
   BookmarkIcon,
   UserIcon,
+  SettingsIcon,
+  LogoutIcon,
   InfoIcon,
   MapIcon,
   StarIcon,
@@ -126,11 +128,12 @@ function IconButton({ onClick, title, children, isDark }) {
       onClick={onClick}
       title={title}
       aria-label={title}
-      className="flex h-9 w-9 items-center justify-center rounded-full border transition-colors"
+      className="flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 shadow-sm backdrop-blur-xl hover:scale-105 active:scale-95"
       style={{
-        borderColor: isDark ? 'rgba(243,241,236,0.18)' : 'rgba(16,14,11,0.15)',
+        borderColor: isDark ? 'rgba(243,241,236,0.18)' : 'rgba(16,14,11,0.16)',
         color: isDark ? '#f3f1ec' : '#100e0b',
-        backgroundColor: isDark ? 'rgba(243,241,236,0.04)' : 'rgba(16,14,11,0.03)',
+        backgroundColor: isDark ? 'rgba(18,16,13,0.85)' : 'rgba(255,255,255,0.92)',
+        boxShadow: isDark ? '0 4px 12px rgba(0,0,0,0.35)' : '0 4px 12px rgba(0,0,0,0.08)',
       }}
     >
       {children}
@@ -645,8 +648,12 @@ export default function Dashboard() {
       el.className = 'cursor-pointer flex flex-col items-center group transition-transform hover:scale-110'
       const safeKeyword = escapeHtml(t.keyword)
       const safeRadius = (Number(t.radius_m || 0) / 1000).toFixed(1)
+      const labelBg = isDark ? 'rgba(18,16,13,0.92)' : 'rgba(255,255,255,0.95)'
+      const labelColor = isDark ? '#2dd4bf' : '#0f766e'
+      const labelBorder = isDark ? 'rgba(45,212,191,0.6)' : 'rgba(13,148,136,0.45)'
+      const labelShadow = isDark ? '0 4px 14px rgba(0,0,0,0.5)' : '0 4px 14px rgba(0,0,0,0.12)'
       el.innerHTML = `
-        <div style="background:rgba(18,16,13,0.92);color:#2dd4bf;border:1px solid rgba(45,212,191,0.6);padding:3px 9px;border-radius:20px;font-size:11px;font-family:'Outfit',sans-serif;font-weight:600;display:flex;align-items:center;gap:5px;box-shadow:0 4px 14px rgba(0,0,0,0.5);backdrop-filter:blur(8px);">
+        <div style="background:${labelBg};color:${labelColor};border:1px solid ${labelBorder};padding:3px 9px;border-radius:20px;font-size:11px;font-family:'Outfit',sans-serif;font-weight:600;display:flex;align-items:center;gap:5px;box-shadow:${labelShadow};backdrop-filter:blur(8px);">
           <span style="width:7px;height:7px;border-radius:50%;background:#2dd4bf;box-shadow:0 0 8px #2dd4bf;"></span>
           <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeKeyword} (${safeRadius}km)</span>
         </div>
@@ -665,7 +672,13 @@ export default function Dashboard() {
 
   useEffect(() => {
     plotTrackerMarkers()
-  }, [trackers, activeNav])
+  }, [trackers, activeNav, isDark])
+
+  useEffect(() => {
+    if (results && results.length > 0) {
+      plotResults(results)
+    }
+  }, [isDark])
 
   const deleteTracker = async (id) => {
     await supabase.from('trackers').delete().eq('id', id)
@@ -688,8 +701,12 @@ export default function Dashboard() {
       el.className = 'cursor-pointer flex flex-col items-center group transition-transform hover:scale-110'
       el.style.cssText = 'cursor:pointer;display:flex;flex-direction:column;align-items:center;'
       const safeName = escapeHtml(place.name)
+      const labelBg = isDark ? 'rgba(18,16,13,0.92)' : 'rgba(255,255,255,0.95)'
+      const labelColor = isDark ? '#f3f1ec' : '#100e0b'
+      const labelBorder = isDark ? 'rgba(232,163,61,0.6)' : 'rgba(232,163,61,0.7)'
+      const labelShadow = isDark ? '0 4px 14px rgba(0,0,0,0.5)' : '0 4px 14px rgba(0,0,0,0.12)'
       el.innerHTML = `
-        <div style="background:rgba(18,16,13,0.92);color:#f3f1ec;border:1px solid rgba(232,163,61,0.6);padding:3px 9px;border-radius:20px;font-size:11px;font-family:'Outfit',sans-serif;font-weight:600;display:flex;align-items:center;gap:5px;box-shadow:0 4px 14px rgba(0,0,0,0.5);backdrop-filter:blur(8px);">
+        <div style="background:${labelBg};color:${labelColor};border:1px solid ${labelBorder};padding:3px 9px;border-radius:20px;font-size:11px;font-family:'Outfit',sans-serif;font-weight:600;display:flex;align-items:center;gap:5px;box-shadow:${labelShadow};backdrop-filter:blur(8px);">
           <span style="width:7px;height:7px;border-radius:50%;background:#e8a33d;box-shadow:0 0 8px #e8a33d;"></span>
           <span style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${safeName}</span>
         </div>
@@ -1342,27 +1359,25 @@ export default function Dashboard() {
 
           <Link to="/settings" className="hidden sm:inline-flex">
             <IconButton title="Settings" isDark={isDark}>
-              <UserIcon size={16} />
+              <SettingsIcon size={16} color={isDark ? '#f3f1ec' : '#100e0b'} />
             </IconButton>
           </Link>
 
           <div className="hidden sm:inline-flex items-center gap-2">
             <span
-              className="text-xs font-semibold px-2.5 py-1 rounded-full border truncate max-w-[130px]"
+              className="text-xs font-semibold px-3 py-1.5 rounded-full border truncate max-w-[130px] shadow-sm backdrop-blur-xl"
               style={{
-                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)',
-                borderColor: hairline,
-                color: inkMuted,
+                backgroundColor: isDark ? 'rgba(18, 16, 13, 0.85)' : 'rgba(255, 255, 255, 0.92)',
+                borderColor: isDark ? 'rgba(243,241,236,0.18)' : 'rgba(16,14,11,0.16)',
+                color: isDark ? '#f3f1ec' : '#100e0b',
+                boxShadow: isDark ? '0 4px 12px rgba(0,0,0,0.35)' : '0 4px 12px rgba(0,0,0,0.08)',
               }}
               title={user?.email || 'Authenticated User'}
             >
               {user?.email ? user.email.split('@')[0] : 'Member'}
             </span>
             <IconButton title="Sign out" isDark={isDark} onClick={signOut}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M16 17l5-5-5-5M21 12H9" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <LogoutIcon size={15} color={isDark ? '#f3f1ec' : '#100e0b'} />
             </IconButton>
           </div>
         </div>
@@ -1824,13 +1839,33 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Sidebar Footer */}
-          <div className="border-t px-4 py-3 text-[11px] flex items-center justify-between mt-auto shrink-0" style={{ borderColor: hairline, color: inkFaint }}>
-            <span className="flex items-center gap-1">
-              <CrosshairIcon size={11} color={inkFaint} />
-              <span>{center.lat.toFixed(2)}°, {center.lng.toFixed(2)}°</span>
-            </span>
-            <span>{searchCount} searches today</span>
+          {/* Sidebar Navigation Actions & Footer */}
+          <div className="border-t px-3.5 py-2.5 flex items-center justify-between mt-auto shrink-0 gap-2" style={{ borderColor: hairline }}>
+            <Link
+              to="/settings"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all hover:scale-105"
+              style={{
+                backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                color: isDark ? '#f3f1ec' : '#100e0b',
+                border: `1px solid ${hairline}`,
+              }}
+              title="Settings"
+            >
+              <SettingsIcon size={13} color={isDark ? '#f3f1ec' : '#100e0b'} />
+              <span>Settings</span>
+            </Link>
+
+            <button
+              onClick={signOut}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all hover:scale-105 text-red-500 hover:bg-red-500/10"
+              style={{
+                border: `1px solid ${isDark ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.2)'}`,
+              }}
+              title="Sign out of Keyadi"
+            >
+              <LogoutIcon size={13} color="#ef4444" />
+              <span>Sign out</span>
+            </button>
           </div>
         </aside>
 
