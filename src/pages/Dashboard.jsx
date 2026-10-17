@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import mapboxgl from 'mapbox-gl'
 import { useAuth } from '../context/AuthContext'
 import { useSettings } from '../context/SettingsContext'
@@ -1205,12 +1206,46 @@ export default function Dashboard() {
               border: `1px solid ${hairline}`,
             }}
           >
-            <div className="flex items-center gap-2.5 flex-1 pl-4 pr-2">
+            <div className="relative flex items-center gap-2.5 flex-1 pl-4 pr-2">
               {aiEnabled ? (
                 <SparklesIcon size={16} color={amber} className="keyadi-ai-pulse shrink-0" />
               ) : (
                 <SearchIcon size={16} color={inkFaint} className="shrink-0" />
               )}
+
+              {/* Animated Gold Placeholder Text (Vibrant Gold Animation in Dark Mode / Soft Slate in Light Mode) */}
+              {!keyword && (
+                <div className="pointer-events-none absolute left-10 sm:left-11 right-12 flex items-center overflow-hidden h-6 z-0">
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={placeholderIdx}
+                      initial={{ opacity: 0, y: 7, filter: 'blur(3px)' }}
+                      animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                      exit={{ opacity: 0, y: -7, filter: 'blur(3px)' }}
+                      transition={{ duration: 0.32, ease: 'easeOut' }}
+                      className="flex items-center gap-1.5 text-xs sm:text-sm font-medium truncate select-none"
+                    >
+                      {aiEnabled && (
+                        <span
+                          className="h-1.5 w-1.5 rounded-full shrink-0 animate-ping"
+                          style={{ backgroundColor: isDark ? '#fbbf24' : '#d97706' }}
+                        />
+                      )}
+                      <span
+                        className="truncate"
+                        style={{
+                          color: isDark ? '#fbbf24' : 'rgba(16, 14, 11, 0.55)',
+                          textShadow: isDark ? '0 0 14px rgba(245, 158, 11, 0.65)' : 'none',
+                          letterSpacing: isDark ? '0.01em' : 'normal',
+                        }}
+                      >
+                        {aiEnabled ? PLACEHOLDER_TERMS[placeholderIdx] : 'Search places with Keyadi AI...'}
+                      </span>
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
+              )}
+
               <input
                 ref={searchInputRef}
                 value={keyword}
@@ -1227,8 +1262,7 @@ export default function Dashboard() {
                     setSidebarExpanded(true)
                   }
                 }}
-                placeholder={aiEnabled ? PLACEHOLDER_TERMS[placeholderIdx] : 'Search places with Keyadi AI...'}
-                className="w-full bg-transparent text-sm outline-none font-normal placeholder:opacity-50"
+                className="w-full bg-transparent text-sm outline-none font-normal relative z-10"
                 style={{ color: ink }}
               />
               {keyword && (

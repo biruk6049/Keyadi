@@ -85,6 +85,23 @@ html.dark h6 {
   color: #f3f1ec;
 }
 
+/* High contrast default for readable copy in dark mode */
+html.dark p:not([class*="text-amber"]):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-sky"]):not([class*="text-teal"]):not([style*="color"]) {
+  color: #f3f1ec;
+}
+
+html.dark input,
+html.dark textarea,
+html.dark select {
+  color: #f3f1ec;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #fbbf24;
+  opacity: 0.85;
+}
+
 /* High contrast default for readable copy in light mode */
 html:not(.dark) p:not([class*="text-amber"]):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-sky"]):not([class*="text-teal"]):not([style*="color"]) {
   color: #100e0b;
