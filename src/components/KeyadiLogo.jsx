@@ -6,14 +6,14 @@ export default function KeyadiLogo({ size = 36, className = "", alt = "Keyadi Lo
         width: `${size}px`,
         height: `${size}px`,
         backgroundColor: '#0c0b09',
-        border: '1.5px solid rgba(232, 163, 61, 0.45)',
-        boxShadow: '0 0 16px rgba(232, 163, 61, 0.25)',
+        border: '1px solid rgba(232, 163, 61, 0.35)',
+        boxShadow: '0 0 14px rgba(232, 163, 61, 0.22)',
       }}
     >
       <img
         src="/keyadi-logo.png"
         alt={alt}
-        className="h-full w-full rounded-full object-cover select-none"
+        className="h-full w-full rounded-full object-contain p-[1px] select-none"
         loading="eager"
         draggable="false"
       />

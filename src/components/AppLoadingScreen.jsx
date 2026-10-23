@@ -1,4 +1,5 @@
 import KeyadiLogo from './KeyadiLogo'
+import KeyadiWordmark from './KeyadiWordmark'
 
 export default function AppLoadingScreen() {
   return (
@@ -21,13 +22,10 @@ export default function AppLoadingScreen() {
           <KeyadiLogo size={72} />
         </div>
 
-        {/* Title */}
-        <h1
-          className="relative z-10 mt-5 text-2xl font-bold tracking-tight text-[#f3f1ec]"
-          style={{ fontFamily: "'Outfit', sans-serif" }}
-        >
-          Keyadi
-        </h1>
+        {/* Brand Wordmark */}
+        <div className="relative z-10 mt-5">
+          <KeyadiWordmark height={32} />
+        </div>
 
         <p className="relative z-10 mt-1 text-xs font-medium tracking-widest uppercase text-white/40">
           Geospatial Intelligence

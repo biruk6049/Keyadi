@@ -5,6 +5,7 @@ import { useSettings } from '../context/SettingsContext'
 import PageBackground from '../components/PageBackground'
 import { SparklesIcon, AlertTriangleIcon } from '../components/Icons'
 import KeyadiLogo from '../components/KeyadiLogo'
+import KeyadiWordmark from '../components/KeyadiWordmark'
 
 export default function Login() {
   const { user, signInWithEmail } = useAuth()
@@ -57,11 +58,9 @@ export default function Login() {
         >
           {/* Brand Mark */}
           <div className="mb-6 flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <KeyadiLogo size={40} />
-              <span className="text-xl font-bold tracking-tight" style={{ color: ink }}>
-                Keyadi
-              </span>
+            <Link to="/" className="flex items-center gap-2.5 group" aria-label="Keyadi Home">
+              <KeyadiLogo size={38} />
+              <KeyadiWordmark height={26} />
             </Link>
 
             <span

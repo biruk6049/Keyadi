@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabaseClient'
 import PageBackground from '../components/PageBackground'
 import { MapIcon, SatelliteIcon, CrosshairIcon, SparklesIcon, UserIcon, SunIcon, MoonIcon, SettingsIcon, LogoutIcon } from '../components/Icons'
 import KeyadiLogo from '../components/KeyadiLogo'
+import KeyadiWordmark from '../components/KeyadiWordmark'
 import ThemeToggle from '../components/ThemeToggle'
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
@@ -131,11 +132,9 @@ export default function Settings() {
           {/* Top Bar */}
           <div className="mb-8 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link to="/" className="flex items-center gap-2.5 group">
-                <KeyadiLogo size={36} />
-                <span className="text-lg font-bold tracking-tight" style={{ color: ink }}>
-                  Keyadi
-                </span>
+              <Link to="/" className="flex items-center gap-2.5 group" aria-label="Keyadi Home">
+                <KeyadiLogo size={34} />
+                <KeyadiWordmark height={22} />
               </Link>
               <span className="text-xs" style={{ color: inkFaint }}>/</span>
               <Link

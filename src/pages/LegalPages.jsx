@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useSettings } from '../context/SettingsContext'
 import PageBackground from '../components/PageBackground'
 import KeyadiLogo from '../components/KeyadiLogo'
+import KeyadiWordmark from '../components/KeyadiWordmark'
 import { ShieldIcon, FileTextIcon, CookieIcon, CreditCardIcon } from '../components/Icons'
 
 /* ── Design tokens ── */
@@ -316,7 +317,7 @@ export default function LegalPages() {
         >
           <Link to="/" className="flex items-center gap-2.5 group" aria-label="Return to Keyadi home">
             <KeyadiLogo size={28} />
-            <span className="font-bold text-sm" style={{ color: ink }}>Keyadi</span>
+            <KeyadiWordmark height={18} />
           </Link>
           <div className="flex items-center gap-3 text-xs" style={{ color: inkMuted }}>
             <Link to="/" className="hover:text-amber-400 transition" aria-label="Home page">Home</Link>

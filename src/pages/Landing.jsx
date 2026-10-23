@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useSettings } from '../context/SettingsContext'
 import KeyadiLogo from '../components/KeyadiLogo'
+import KeyadiWordmark from '../components/KeyadiWordmark'
 import GetAppModal from '../components/GetAppModal'
 import Landing3DBackground from '../components/landing/Landing3DBackground'
 import {
@@ -289,13 +290,11 @@ export default function Landing() {
             }}
           >
             {/* Logo with 3D hover scale */}
-            <Link to="/" className="flex items-center gap-2.5 group shrink-0">
+            <Link to="/" className="flex items-center gap-2.5 group shrink-0" aria-label="Keyadi Home">
               <div className="transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
                 <KeyadiLogo size={32} />
               </div>
-              <span className="text-base sm:text-lg font-extrabold tracking-tight" style={{ color: ink }}>
-                Keyadi
-              </span>
+              <KeyadiWordmark height={23} />
             </Link>
 
             {/* Nav links with animated bottom indicator */}
@@ -1272,11 +1271,11 @@ export default function Landing() {
 
               {/* Brand Column */}
               <div className="lg:col-span-1 flex flex-col gap-4">
-                <Link to="/" className="flex items-center gap-2.5 group w-fit">
+                <Link to="/" className="flex items-center gap-2.5 group w-fit" aria-label="Keyadi Home">
                   <div className="transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
                     <KeyadiLogo size={30} />
                   </div>
-                  <span className="text-base font-extrabold tracking-tight" style={{ color: ink }}>Keyadi</span>
+                  <KeyadiWordmark height={21} />
                 </Link>
                 <p className="text-xs leading-relaxed max-w-[200px]" style={{ color: inkMuted }}>
                   Smart place search for real people. Find what you need, get there your way.

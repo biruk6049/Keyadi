@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import KeyadiLogo from './KeyadiLogo'
+import KeyadiWordmark from './KeyadiWordmark'
 import { SparklesIcon, CheckCircleIcon, XIcon, CheckIcon } from './Icons'
 
 function AndroidIcon({ size = 18, color = 'currentColor' }) {
@@ -111,9 +112,12 @@ export default function GetAppModal({ isOpen, onClose, isDark = true }) {
               <SparklesIcon size={11} color="#100e0b" />
             </div>
           </div>
-          <h2 className="text-2xl font-bold tracking-tight" style={{ color: ink }}>
-            Install Keyadi
-          </h2>
+          <div className="flex items-center justify-center gap-2">
+            <h2 className="text-2xl font-bold tracking-tight" style={{ color: ink }}>
+              Install
+            </h2>
+            <KeyadiWordmark height={26} />
+          </div>
           <p className="text-xs sm:text-sm mt-1.5 max-w-xs leading-relaxed" style={{ color: inkMuted }}>
             Add Keyadi to your device for instant 1-tap access to local places, live directions, and saved spots.
           </p>
