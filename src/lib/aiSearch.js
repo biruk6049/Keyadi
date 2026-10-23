@@ -470,12 +470,12 @@ export function interpretWithLocalAI(userQuery) {
 // ── Unified Geospatial Intelligence Engine (Google Gemini AI) ───────────────────
 
 const CANDIDATE_MODELS = [
-  'gemini-flash-lite-latest',
-  'gemini-3.6-flash',
-  'gemini-3.8-flash',
-  'gemini-flash-latest',
-  'gemini-3.5-flash',
-  'gemini-3.7-flash',
+  'gemini-2.0-flash',
+  'gemini-2.0-flash-lite',
+  'gemini-1.5-flash',
+  'gemini-1.5-flash-8b',
+  'gemini-1.5-pro',
+  'gemini-2.5-flash-preview-05-20',
 ]
 
 const areaContextCache = new Map()

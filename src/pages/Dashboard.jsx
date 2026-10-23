@@ -565,7 +565,7 @@ export default function Dashboard() {
         (err) => {
           handleLocationError(err)
         },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 30000 }
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 5000 }
       )
     }
 
@@ -592,7 +592,7 @@ export default function Dashboard() {
             fallbackLowAccuracy()
           }
         },
-        { enableHighAccuracy: true, timeout: 7000, maximumAge: 10000 }
+        { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
       )
     } catch {
       clearTimeout(timer)
@@ -2226,7 +2226,7 @@ export default function Dashboard() {
               </svg>
             )}
             {locationStatus === 'granted' && (
-              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-[#0e0d0b]" />
+              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-emerald-400" style={{ border: `2px solid ${isDark ? '#0e0d0b' : '#faf9f6'}` }} />
             )}
           </button>
         </div>

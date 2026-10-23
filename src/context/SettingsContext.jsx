@@ -40,16 +40,17 @@ export function SettingsProvider({ children }) {
         const isDark = settings.darkMode
 
         // Apply transition class to prevent harsh snap (skip on initial load to prevent boot lag)
+        let timer = null
         if (!isFirstMount.current) {
             document.documentElement.classList.add('theme-transition')
-            const timer = setTimeout(() => {
+            timer = setTimeout(() => {
                 document.documentElement.classList.remove('theme-transition')
             }, 350)
-            return () => clearTimeout(timer)
         } else {
             isFirstMount.current = false
         }
 
+        // Always apply the dark/light class — must not be inside an early-return branch
         if (isDark) {
             document.documentElement.classList.add('dark')
             document.body.style.backgroundColor = '#0e0d0b'
@@ -66,6 +67,8 @@ export function SettingsProvider({ children }) {
         } catch {
             // LocalStorage write error fallback
         }
+
+        return () => { if (timer) clearTimeout(timer) }
     }, [settings])
 
     const updateSettings = useCallback((partial) => {

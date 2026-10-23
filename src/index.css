@@ -15,8 +15,8 @@ body,
 
 body {
   font-family: 'Outfit', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  background-color: #0e0d0b;
-  color: #f3f1ec;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -88,6 +88,15 @@ html.dark h6 {
 /* High contrast default for readable copy in dark mode */
 html.dark p:not([class*="text-amber"]):not([class*="text-emerald"]):not([class*="text-red"]):not([class*="text-sky"]):not([class*="text-teal"]):not([style*="color"]) {
   color: #f3f1ec;
+}
+
+/* ── Light mode overrides for Tailwind text utility classes that were not adapting ── */
+html:not(.dark) .text-white,
+html:not(.dark) .text-neutral-50,
+html:not(.dark) .text-gray-50,
+html:not(.dark) .text-zinc-50,
+html:not(.dark) .text-slate-50 {
+  color: #100e0b !important;
 }
 
 html.dark .text-neutral-950,
@@ -453,4 +462,31 @@ select:focus-visible {
   -webkit-backdrop-filter: blur(28px);
   border: 1px solid rgba(243, 241, 236, 0.1);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+html:not(.dark) .glass-card-3d {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(16, 14, 11, 0.10);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+html:not(.dark) .kinetic-shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #100e0b 0%,
+    #e8a33d 30%,
+    #d97706 50%,
+    #e8a33d 70%,
+    #100e0b 100%
+  );
+  background-size: 200% auto;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  animation: keyadi-shimmer-sweep 5s linear infinite;
+}
+
+/* Ensure location marker badge is always dark text on amber */
+html:not(.dark) .keyadi-user-core-dot {
+  border-color: rgba(0, 0, 0, 0.2);
 }
