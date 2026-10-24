@@ -67,7 +67,7 @@ function PrivacyPolicy() {
         <p>Keyadi integrates the following third-party services. Each operates under its own privacy policy:</p>
         <ul className="list-disc list-inside space-y-1.5 ml-2">
           <li><strong style={{ color: ink }}>Supabase</strong> — Authentication and database storage for user accounts and saved trackers.</li>
-          <li><strong style={{ color: ink }}>Google Maps Platform</strong> — Map rendering, geocoding, Places discovery, and directions routing. Google processes tile and place requests which may include viewport coordinates.</li>
+          <li><strong style={{ color: ink }}>Mapbox</strong> — Map rendering, geocoding, and routing. Mapbox processes tile requests which may include viewport coordinates.</li>
           <li><strong style={{ color: ink }}>OpenStreetMap (Overpass API)</strong> — Geospatial venue queries. Search queries include bounding-box coordinates but no personal identifiers.</li>
           <li><strong style={{ color: ink }}>Google Fonts</strong> — Typography delivery. Google may log standard web request metadata (IP address, user agent).</li>
           <li><strong style={{ color: ink }}>Vercel</strong> — Hosting and CDN delivery.</li>
@@ -132,7 +132,7 @@ function TermsOfService() {
       </Section>
 
       <Section title="5. Intellectual Property">
-        <p>The Keyadi name, logo, design, and source code are the intellectual property of Hawaz Technologies. Map and geospatial data are sourced from Google Maps Platform and OpenStreetMap (ODbL license). You may not reproduce, distribute, or create derivative works from the Service without written permission.</p>
+        <p>The Keyadi name, logo, design, and source code are the intellectual property of Hawaz Technologies. Map data is sourced from OpenStreetMap (ODbL license) and Mapbox. You may not reproduce, distribute, or create derivative works from the Service without written permission.</p>
       </Section>
 
       <Section title="6. Pricing & Fees">
@@ -140,7 +140,7 @@ function TermsOfService() {
       </Section>
 
       <Section title="7. Data Accuracy Disclaimer">
-        <p>Venue information, distances, and routing data are provided on an "as-is" basis. Keyadi sources data from Google Maps Platform and OpenStreetMap, and while we strive for accuracy, we cannot guarantee that all venue details (hours, availability, contact information) are current or correct. Always verify critical information independently.</p>
+        <p>Venue information, distances, and routing data are provided on an "as-is" basis. Keyadi sources data from OpenStreetMap and Mapbox, and while we strive for accuracy, we cannot guarantee that all venue details (hours, availability, contact information) are current or correct. Always verify critical information independently.</p>
       </Section>
 
       <Section title="8. Limitation of Liability">
@@ -218,7 +218,7 @@ function CookiePolicy() {
       <Section title="3. Third-Party Cookies">
         <p>Keyadi does not set any third-party advertising or tracking cookies. However, third-party services we integrate may set their own cookies:</p>
         <ul className="list-disc list-inside space-y-1.5 ml-2">
-          <li><strong style={{ color: ink }}>Google Maps Platform</strong> — May set performance cookies for map tile and assets caching.</li>
+          <li><strong style={{ color: ink }}>Mapbox</strong> — May set performance cookies for map tile caching.</li>
           <li><strong style={{ color: ink }}>Google Fonts</strong> — May set cookies related to font delivery.</li>
           <li><strong style={{ color: ink }}>Supabase</strong> — Sets authentication session cookies.</li>
         </ul>

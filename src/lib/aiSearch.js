@@ -1,12 +1,9 @@
-import { queryGooglePlaces } from './googleMaps.js'
-
 /**
  * AI-powered search engine for Keyadi.
  *
  * Provides a hybrid architecture:
- * 1. Google Places API (native client-side POI search via Google Maps SDK).
- * 2. Google Gemini Cloud LLM (natural language intent & verified places).
- * 3. High-Accuracy Geospatial Engine (OSM Nominatim & Overpass) as guaranteed fallback.
+ * 1. Google Gemini Cloud LLM (natural language intent & verified places).
+ * 2. High-Accuracy Geospatial Engine (OSM Nominatim & Mapbox POI) as guaranteed fallback.
  *
  * Guarantees intelligent semantic search always runs and never fails silently.
  */
@@ -1633,11 +1630,10 @@ async function searchPlacesWithGeospatialFallback({
 }
 
 /**
- * High-Reliability Geospatial Search:
- * - Leverages Triple-Engine Architecture:
- *   1. Google Places API (native client-side POI search via Google Maps SDK)
- *   2. Google Gemini AI Place Intelligence (deep context, natural language categorization)
- *   3. Resilient Geospatial POI Engine (OSM Nominatim) as guaranteed fallback.
+ * High-Reliability Geospatial RAG Search:
+ * - Leverages Dual-Engine Architecture:
+ *   1. Google Gemini AI Place Intelligence (deep context, natural language categorization)
+ *   2. Resilient Geospatial POI Engine (OSM Nominatim & Mapbox geocoding) as guaranteed fallback.
  * - Always returns verified real-world places within the chosen radius standard.
  */
 export async function searchPlacesReliable({
@@ -1651,64 +1647,13 @@ export async function searchPlacesReliable({
   const unaccented = trimmed.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   if (!trimmed) return { places: [], isExpanded: false, effectiveRadius: radiusKm, aiInterpretation: null }
 
-  const cacheKey = `places-${unaccented.toLowerCase()}-${center.lat.toFixed(3)}-${center.lng.toFixed(3)}-${radiusKm}`
+  const cacheKey = `gemini-${unaccented.toLowerCase()}-${center.lat.toFixed(3)}-${center.lng.toFixed(3)}-${radiusKm}`
   const cached = searchCache.get(cacheKey)
   if (cached && Date.now() - cached.ts < SEARCH_CACHE_TTL && Array.isArray(cached.places) && cached.places.length > 0) {
     return cached
   }
 
-  // 1. Google Places API (Primary geospatial search when Google Maps is loaded)
-  if (typeof window !== 'undefined' && window.google?.maps?.places) {
-    try {
-      const googlePlaces = await queryGooglePlaces({
-        term: trimmed,
-        center,
-        radiusKm,
-        google: window.google,
-        signal,
-      })
-
-      if (Array.isArray(googlePlaces) && googlePlaces.length > 0) {
-        const intent = interpretWithLocalAI(trimmed)
-        const enriched = googlePlaces.map((p) => {
-          const scoreObj = scoreSemanticRelevance(p, intent, trimmed, radiusKm)
-          return {
-            ...p,
-            semanticScore: scoreObj.percentage,
-            categoryMatch: scoreObj.isCategoryMatch,
-            matchedCategory: scoreObj.matchedCategory || p.type,
-            ragReason: scoreObj.ragReason,
-            badge: scoreObj.percentage >= 90 ? 'Top Pick' : p.distanceKm <= radiusKm * 0.4 ? 'Closest' : 'Verified Place',
-          }
-        })
-
-        const strictlyWithin = enriched.filter((p) => p.distanceKm <= radiusKm)
-        const isExp = strictlyWithin.length === 0 && enriched.length > 0
-        const finalPlaces = strictlyWithin.length > 0 ? strictlyWithin : enriched.slice(0, 10)
-
-        const resultObj = {
-          places: finalPlaces,
-          isExpanded: isExp,
-          effectiveRadius: radiusKm,
-          aiInterpretation: {
-            engine: 'Keyadi Google Places Engine',
-            categoryLabel: intent?.categoryLabel || 'Verified Places',
-            description: `Found ${finalPlaces.length} real-world places matching "${trimmed}"${isExp ? ' nearby' : ` within ${radiusKm} km`}.`,
-            refinements: intent?.refinements || ['Explore nearby', 'Filter by category'],
-          },
-          nearestOutside: isExp ? enriched[0] : null,
-          source: 'google_places',
-        }
-
-        searchCache.set(cacheKey, { ...resultObj, ts: Date.now() })
-        return resultObj
-      }
-    } catch (gpErr) {
-      console.warn('Google Places API search notice:', gpErr)
-    }
-  }
-
-  // 2. Google Gemini AI Place Intelligence Engine
+  // 1. Google Gemini AI Place Intelligence Engine
   try {
     const geminiResult = await searchPlacesWithGemini({
       term: trimmed,

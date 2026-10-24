@@ -9,7 +9,7 @@ import KeyadiLogo from '../components/KeyadiLogo'
 import KeyadiWordmark from '../components/KeyadiWordmark'
 import ThemeToggle from '../components/ThemeToggle'
 
-import { getGoogleMapsKey, saveGoogleMapsKey } from '../lib/googleMaps.js'
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN
 
 export default function Settings() {
   const { settings, updateSettings, toggleDarkMode, isDark } = useSettings()
@@ -23,14 +23,20 @@ export default function Settings() {
   const inputBg = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)'
   const amber = '#e8a33d'
 
-  // Google Maps API Key state
-  const [googleKeyInput, setGoogleKeyInput] = useState(() => getGoogleMapsKey())
-  const [googleKeySaved, setGoogleKeySaved] = useState(false)
+  // Mapbox Token state
+  const [mapboxTokenInput, setMapboxTokenInput] = useState(() => {
+    return localStorage.getItem('KEYADI_MAPBOX_TOKEN') || import.meta.env.VITE_MAPBOX_TOKEN || ''
+  })
+  const [tokenSaved, setTokenSaved] = useState(false)
 
-  const handleSaveGoogleKey = () => {
-    saveGoogleMapsKey(googleKeyInput)
-    setGoogleKeySaved(true)
-    setTimeout(() => setGoogleKeySaved(false), 2400)
+  const handleSaveMapboxToken = () => {
+    if (!mapboxTokenInput || !mapboxTokenInput.trim()) {
+      localStorage.removeItem('KEYADI_MAPBOX_TOKEN')
+    } else {
+      localStorage.setItem('KEYADI_MAPBOX_TOKEN', mapboxTokenInput.trim())
+    }
+    setTokenSaved(true)
+    setTimeout(() => setTokenSaved(false), 2400)
   }
 
   // Geocoding autocomplete state
@@ -69,29 +75,20 @@ export default function Settings() {
     }
 
     debounceRef.current = setTimeout(async () => {
-      // 1. Google Geocoder (if available in window)
-      if (typeof window !== 'undefined' && window.google?.maps?.Geocoder) {
+      if (MAPBOX_TOKEN && MAPBOX_TOKEN.startsWith('pk.')) {
         try {
-          const geocoder = new window.google.maps.Geocoder()
-          const gResults = await new Promise((resolve) => {
-            geocoder.geocode({ address: value }, (results, status) => {
-              if (status === 'OK' && Array.isArray(results)) resolve(results)
-              else resolve([])
-            })
-          })
-          if (gResults.length > 0) {
-            const formatted = gResults.slice(0, 5).map((r) => ({
-              place_name: r.formatted_address,
-              center: [r.geometry.location.lng(), r.geometry.location.lat()],
-            }))
-            setSuggestions(formatted)
+          const res = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(value)}.json?access_token=${MAPBOX_TOKEN}&limit=5&types=place,locality,region,country`
+          )
+          const data = await res.json()
+          if (data.features && data.features.length > 0) {
+            setSuggestions(data.features)
             setShowSuggestions(true)
             return
           }
         } catch {}
       }
 
-      // 2. OpenStreetMap Nominatim fallback
       try {
         const res = await fetch(
           `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(value)}&format=json&limit=5&addressdetails=1`,
@@ -100,6 +97,7 @@ export default function Settings() {
         const data = await res.json()
         if (Array.isArray(data) && data.length > 0) {
           const formatted = data.map((d) => ({
+            id: String(d.place_id),
             place_name: d.display_name,
             center: [parseFloat(d.lon), parseFloat(d.lat)],
           }))
@@ -306,61 +304,53 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* Card 1.5: Google Maps API Engine */}
+            {/* Card 1.5: Mapbox Access Token */}
             <div
               className="rounded-3xl p-6 shadow-2xl backdrop-blur-2xl border"
               style={{ backgroundColor: cardBg, borderColor: hairline }}
             >
               <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-base font-bold" style={{ color: ink }}>Google Maps Platform</h2>
-                </div>
+                <h2 className="text-base font-bold" style={{ color: ink }}>Mapbox Platform</h2>
                 <span
                   className="flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
                   style={{
-                    backgroundColor: googleKeyInput ? 'rgba(52, 168, 83, 0.15)' : 'rgba(232, 163, 61, 0.15)',
-                    color: googleKeyInput ? '#34A853' : amber,
-                    border: `1px solid ${googleKeyInput ? 'rgba(52, 168, 83, 0.3)' : 'rgba(232, 163, 61, 0.3)'}`,
+                    backgroundColor: (mapboxTokenInput && mapboxTokenInput.startsWith('pk.')) ? 'rgba(52, 168, 83, 0.15)' : 'rgba(232, 163, 61, 0.15)',
+                    color: (mapboxTokenInput && mapboxTokenInput.startsWith('pk.')) ? '#34A853' : amber,
+                    border: `1px solid ${(mapboxTokenInput && mapboxTokenInput.startsWith('pk.')) ? 'rgba(52, 168, 83, 0.3)' : 'rgba(232, 163, 61, 0.3)'}`,
                   }}
                 >
-                  <span className={`h-1.5 w-1.5 rounded-full ${googleKeyInput ? 'bg-[#34A853]' : 'bg-amber-400'}`} />
-                  <span>{googleKeyInput ? 'Key Configured' : 'Fallback Mode'}</span>
+                  <span className={`h-1.5 w-1.5 rounded-full ${(mapboxTokenInput && mapboxTokenInput.startsWith('pk.')) ? 'bg-[#34A853]' : 'bg-amber-400'}`} />
+                  <span>{(mapboxTokenInput && mapboxTokenInput.startsWith('pk.')) ? 'Token Active' : 'OSM Standalone'}</span>
                 </span>
               </div>
               <p className="text-xs mb-4 leading-relaxed" style={{ color: inkMuted }}>
-                Powers 3D geospatial cartography, Google Places POI discovery, and Directions routing. You can configure your key here or via <code className="font-mono text-[11px] text-amber-400">VITE_GOOGLE_MAPS_API_KEY</code> in your environment.
+                Powers custom Mapbox vector cartography, 3D buildings, and geocoding. If left blank, Keyadi smoothly renders high-performance OpenStreetMap & CartoDB tiles with zero setup required.
               </p>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                 <div className="relative flex-1">
                   <input
                     type="password"
-                    value={googleKeyInput}
-                    onChange={(e) => setGoogleKeyInput(e.target.value)}
-                    placeholder="AIzaSy... (Paste Google Maps API Key)"
+                    value={mapboxTokenInput}
+                    onChange={(e) => setMapboxTokenInput(e.target.value)}
+                    placeholder="pk.eyJ1... (Mapbox Public Token)"
                     style={{ backgroundColor: inputBg, borderColor: hairline, color: ink }}
                     className="w-full rounded-2xl border py-2.5 px-4 text-xs font-mono outline-none transition focus:border-amber-400"
                   />
                 </div>
                 <button
                   type="button"
-                  onClick={handleSaveGoogleKey}
+                  onClick={handleSaveMapboxToken}
                   className="rounded-2xl px-5 py-2.5 text-xs font-bold transition-all shadow-md shrink-0 flex items-center justify-center gap-2"
                   style={{
-                    backgroundColor: googleKeySaved ? '#34A853' : amber,
+                    backgroundColor: tokenSaved ? '#34A853' : amber,
                     color: '#0e0d0b',
                   }}
                 >
                   <SparklesIcon size={13} color="#0e0d0b" />
-                  <span>{googleKeySaved ? 'Saved!' : 'Save Key'}</span>
+                  <span>{tokenSaved ? 'Saved!' : 'Save Token'}</span>
                 </button>
               </div>
-
-              {!googleKeyInput && (
-                <p className="mt-3 text-[11px] leading-relaxed" style={{ color: inkFaint }}>
-                  Tip: Without an API key, Keyadi automatically uses high-res OpenStreetMap cartography and our intelligent Gemini AI engine with 0 downtime.
-                </p>
-              )}
             </div>
 
             {/* Card 2: Distance Units */}
