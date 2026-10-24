@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import mapboxgl from 'mapbox-gl'
+import {
+  loadGoogleMaps,
+  GOOGLE_MAPS_DARK_STYLE,
+  GOOGLE_MAPS_LIGHT_STYLE,
+  createHTMLOverlayClass,
+  reverseGeocodeGoogle,
+} from '../lib/googleMaps.js'
 import { useAuth } from '../context/AuthContext'
 import { useSettings } from '../context/SettingsContext'
 import { supabase } from '../lib/supabaseClient'
@@ -44,8 +50,6 @@ import {
   buildRegexOverpassQuery,
   searchPlacesReliable,
 } from '../lib/aiSearch'
-
-mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN
 const escapeHtml = (str) => {
   if (str == null) return ''
   return String(str).replace(/[&<>"']/g, (m) => ({
@@ -88,7 +92,7 @@ function createCircleGeoJSON(centerPoint, radiusInKm, points = 64) {
 const RADIUS_OPTIONS_KM = [1, 3, 5, 10, 20]
 const PLACEHOLDER_TERMS = ['best coffee shops', 'where to buy cement', 'pharmacy near me', 'plumber', 'hotel with wifi']
 
-// Mapbox Directions profiles we offer, with a friendly label + icon
+// Multi-modal travel direction profiles (Google Maps / OSRM fallback)
 const TRAVEL_MODES = [
   { key: 'driving', label: 'Car', icon: 'car' },
   { key: 'walking', label: 'Walk', icon: 'walk' },
@@ -219,9 +223,15 @@ export default function Dashboard() {
 
   const mapContainer = useRef(null)
   const mapRef = useRef(null)
+  const googleRef = useRef(null)
+  const HTMLOverlayRef = useRef(null)
   const markersRef = useRef([])
   const trackerMarkersRef = useRef([])
   const userMarkerRef = useRef(null)
+  const radiusCircleRef = useRef(null)
+  const routePolylineRef = useRef(null)
+  const routeGlowPolylineRef = useRef(null)
+  const directionsServiceRef = useRef(null)
   const abortRef = useRef(null)
   const watchIdRef = useRef(null)
   const hasCenteredRef = useRef(false)
@@ -326,89 +336,105 @@ export default function Dashboard() {
 
   const updateRadiusCircle = (originPoint = null, rKm = null) => {
     const map = mapRef.current
-    if (!map) return
+    const google = googleRef.current
+    if (!map || !google) return
     try {
       const activeOrigin = originPoint || getSearchOrigin()
       const activeRadius = typeof rKm === 'number' ? rKm : radiusKm
-      const geojson = createCircleGeoJSON(activeOrigin, activeRadius)
-      if (!geojson) return
+      const centerLatLng = new google.maps.LatLng(activeOrigin.lat, activeOrigin.lng)
+      const radiusMeters = activeRadius * 1000
 
-      const src = map.getSource('search-radius')
-      if (!src) {
-        map.addSource('search-radius', {
-          type: 'geojson',
-          data: geojson,
+      if (!radiusCircleRef.current) {
+        radiusCircleRef.current = new google.maps.Circle({
+          strokeColor: '#e8a33d',
+          strokeOpacity: 0.85,
+          strokeWeight: 2,
+          fillColor: '#e8a33d',
+          fillOpacity: isDark ? 0.08 : 0.12,
+          map,
+          center: centerLatLng,
+          radius: radiusMeters,
+          clickable: false,
         })
       } else {
-        src.setData(geojson)
-      }
-
-      if (!map.getLayer('search-radius-fill')) {
-        map.addLayer({
-          id: 'search-radius-fill',
-          type: 'fill',
-          source: 'search-radius',
-          paint: {
-            'fill-color': '#e8a33d',
-            'fill-opacity': 0.05,
-          },
-        })
-      }
-
-      if (!map.getLayer('search-radius-stroke')) {
-        map.addLayer({
-          id: 'search-radius-stroke',
-          type: 'line',
-          source: 'search-radius',
-          paint: {
-            'line-color': '#e8a33d',
-            'line-width': 1.5,
-            'line-opacity': 0.45,
-            'line-dasharray': [3, 2],
-          },
-        })
+        radiusCircleRef.current.setCenter(centerLatLng)
+        radiusCircleRef.current.setRadius(radiusMeters)
+        if (radiusCircleRef.current.getMap() !== map) {
+          radiusCircleRef.current.setMap(map)
+        }
       }
     } catch (err) {
-      console.warn('updateRadiusCircle notice:', err.message)
+      console.warn('updateRadiusCircle notice:', err?.message || err)
     }
   }
 
-  // Initialize map once
+  // Initialize Google Maps once
   useEffect(() => {
-    if (mapRef.current) return
-    mapRef.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: settings.mapStyle === 'satellite'
-        ? 'mapbox://styles/mapbox/satellite-streets-v12'
-        : (isDark ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11'),
-      center: [center.lng, center.lat],
-      zoom: 12,
-      attributionControl: false,
-    })
+    let isCancelled = false
 
-    mapRef.current.on('moveend', () => {
-      const c = mapRef.current?.getCenter()
-      if (c) {
-        mapCenterRef.current = { lat: c.lat, lng: c.lng }
-      }
-    })
+    async function initMap() {
+      if (mapRef.current) return
+      try {
+        const google = await loadGoogleMaps()
+        if (isCancelled || !mapContainer.current) return
+        googleRef.current = google
+        HTMLOverlayRef.current = createHTMLOverlayClass(google)
 
-    mapRef.current.on('load', () => {
-      setMapLoaded(true)
-      ensureRouteLayer()
-      updateRadiusCircle()
-    })
-    mapRef.current.on('style.load', () => {
-      ensureRouteLayer()
-      updateRadiusCircle()
-      if (userMarkerRef.current) {
-        userMarkerRef.current.remove()
-        userMarkerRef.current = null
+        const isSatellite = settings.mapStyle === 'satellite'
+        const initialCenter = new google.maps.LatLng(center.lat, center.lng)
+
+        const map = new google.maps.Map(mapContainer.current, {
+          center: initialCenter,
+          zoom: 13,
+          tilt: 45, // 3D oblique perspective
+          heading: -17.6,
+          mapTypeId: isSatellite ? 'hybrid' : 'roadmap',
+          styles: isSatellite ? [] : (isDark ? GOOGLE_MAPS_DARK_STYLE : GOOGLE_MAPS_LIGHT_STYLE),
+          disableDefaultUI: true,
+          zoomControl: false,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          rotateControl: false,
+        })
+        mapRef.current = map
+
+        map.addListener('idle', () => {
+          const c = map.getCenter()
+          if (c) {
+            mapCenterRef.current = { lat: c.lat(), lng: c.lng() }
+          }
+        })
+
+        // Reverse geocode on click
+        map.addListener('click', async (e) => {
+          if (!e.latLng) return
+          const clickedLat = e.latLng.lat()
+          const clickedLng = e.latLng.lng()
+          try {
+            const geo = await reverseGeocodeGoogle(clickedLat, clickedLng, google)
+            if (geo) {
+              setKeyword(geo.name || geo.formattedAddress)
+            }
+          } catch {}
+        })
+
+        setMapLoaded(true)
+        updateRadiusCircle(getSearchOrigin(), radiusKm)
+
+        if (myLocation) {
+          updateUserMarker(myLocation.lat, myLocation.lng, myLocation.accuracy)
+        }
+      } catch (err) {
+        console.error('Failed to initialize Google Maps:', err)
       }
-      if (myLocation) {
-        updateUserMarker(myLocation.lat, myLocation.lng, myLocation.accuracy)
-      }
-    })
+    }
+
+    initMap()
+
+    return () => {
+      isCancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -417,21 +443,31 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!mapRef.current) return
-    const style = settings.mapStyle === 'satellite'
-      ? 'mapbox://styles/mapbox/satellite-streets-v12'
-      : (isDark ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11')
-    mapRef.current.setStyle(style)
+    const isSatellite = settings.mapStyle === 'satellite'
+    mapRef.current.setOptions({
+      styles: isSatellite ? [] : (isDark ? GOOGLE_MAPS_DARK_STYLE : GOOGLE_MAPS_LIGHT_STYLE),
+      mapTypeId: isSatellite ? 'hybrid' : 'roadmap',
+    })
+    if (radiusCircleRef.current) {
+      radiusCircleRef.current.setOptions({
+        fillOpacity: isDark ? 0.08 : 0.12,
+      })
+    }
   }, [settings.mapStyle, isDark])
 
   // Apply Settings search-mode choice
   useEffect(() => {
+    if (!mapRef.current || !googleRef.current) return
+    const google = googleRef.current
     if (settings.searchMode === 'custom') {
       const custom = { lat: settings.defaultLat, lng: settings.defaultLng }
       setCenter(custom)
-      mapRef.current?.flyTo({ center: [custom.lng, custom.lat], zoom: 12 })
+      mapRef.current.panTo(new google.maps.LatLng(custom.lat, custom.lng))
+      mapRef.current.setZoom(13)
     } else if (myLocation) {
       setCenter(myLocation)
-      mapRef.current?.flyTo({ center: [myLocation.lng, myLocation.lat], zoom: 12 })
+      mapRef.current.panTo(new google.maps.LatLng(myLocation.lat, myLocation.lng))
+      mapRef.current.setZoom(13)
     }
   }, [settings.searchMode, settings.defaultLat, settings.defaultLng])
 
@@ -450,7 +486,11 @@ export default function Dashboard() {
   // ── High-Precision Geolocation System ──────────────────────────────
 
   const updateUserMarker = (lat, lng, accuracy = null) => {
-    if (!mapRef.current) return
+    const map = mapRef.current
+    const google = googleRef.current
+    const HTMLOverlay = HTMLOverlayRef.current
+    if (!map || !google || !HTMLOverlay) return
+
     if (!userMarkerRef.current) {
       const container = document.createElement('div')
       container.className = 'keyadi-user-location-marker'
@@ -463,36 +503,11 @@ export default function Dashboard() {
           <div class="keyadi-user-inner-white"></div>
         </div>
       `
-
-      const popup = new mapboxgl.Popup({
-        offset: 18,
-        closeButton: false,
-        className: 'keyadi-user-popup',
-        closeOnClick: false,
-      }).setHTML(`
-        <div style="padding: 5px 11px; font-family: 'Outfit', sans-serif; font-size: 11px; font-weight: 700; color: #100e0b; background: #e8a33d; border-radius: 9999px; box-shadow: 0 4px 14px rgba(0,0,0,0.35); text-align: center; white-space: nowrap; display: flex; align-items: center; gap: 4px;">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#100e0b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span>You Are Here</span>
-        </div>
-      `)
-
-      userMarkerRef.current = new mapboxgl.Marker({ element: container, anchor: 'center' })
-        .setLngLat([lng, lat])
-        .setPopup(popup)
-        .addTo(mapRef.current)
-
-      container.addEventListener('mouseenter', () => {
-        if (!userMarkerRef.current?.getPopup()?.isOpen()) {
-          userMarkerRef.current?.togglePopup()
-        }
-      })
-      container.addEventListener('mouseleave', () => {
-        if (userMarkerRef.current?.getPopup()?.isOpen()) {
-          userMarkerRef.current?.togglePopup()
-        }
-      })
+      const overlay = new HTMLOverlay(container, { lat, lng }, 'center')
+      overlay.setMap(map)
+      userMarkerRef.current = overlay
     } else {
-      userMarkerRef.current.setLngLat([lng, lat])
+      userMarkerRef.current.setPosition({ lat, lng })
     }
   }
 
@@ -515,7 +530,10 @@ export default function Dashboard() {
     if (!hasCenteredRef.current && settings.searchMode !== 'custom') {
       hasCenteredRef.current = true
       setCenter({ lat: latitude, lng: longitude })
-      mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 14, essential: true })
+      if (mapRef.current && googleRef.current) {
+        mapRef.current.panTo(new googleRef.current.maps.LatLng(latitude, longitude))
+        mapRef.current.setZoom(14)
+      }
     }
   }
 
@@ -611,14 +629,9 @@ export default function Dashboard() {
 
   const recenterOnMe = () => {
     if (locationStatus === 'granted' && myLocation) {
-      mapRef.current?.flyTo({ center: [myLocation.lng, myLocation.lat], zoom: 15, essential: true })
-      if (userMarkerRef.current) {
-        userMarkerRef.current.togglePopup()
-        setTimeout(() => {
-          if (userMarkerRef.current?.getPopup()?.isOpen()) {
-            userMarkerRef.current.togglePopup()
-          }
-        }, 3000)
+      if (mapRef.current && googleRef.current) {
+        mapRef.current.panTo(new googleRef.current.maps.LatLng(myLocation.lat, myLocation.lng))
+        mapRef.current.setZoom(15)
       }
     } else {
       startWatchingLocation()
@@ -638,13 +651,20 @@ export default function Dashboard() {
 
   // Plot saved tracker locations on the map (only when on Saved tab to prevent duplicate dot confusion)
   const plotTrackerMarkers = () => {
-    trackerMarkersRef.current.forEach((m) => m.remove())
+    trackerMarkersRef.current.forEach((m) => {
+      if (typeof m.setMap === 'function') m.setMap(null)
+      else if (typeof m.remove === 'function') m.remove()
+    })
     trackerMarkersRef.current = []
-    if (!mapRef.current) return
+    const map = mapRef.current
+    const google = googleRef.current
+    const HTMLOverlay = HTMLOverlayRef.current
+    if (!map || !google || !HTMLOverlay) return
     // Only plot saved tracker markers when viewing the Saved places tab!
     if (activeNav !== 'saved') return
 
     trackers.forEach((t) => {
+      if (!t.lat || !t.lng) return
       const el = document.createElement('div')
       el.className = 'cursor-pointer flex flex-col items-center group transition-transform hover:scale-110'
       const safeKeyword = escapeHtml(t.keyword)
@@ -662,11 +682,11 @@ export default function Dashboard() {
       `
       el.addEventListener('click', (e) => {
         e.stopPropagation()
-        mapRef.current?.flyTo({ center: [t.lng, t.lat], zoom: 13 })
+        map.panTo(new google.maps.LatLng(t.lat, t.lng))
+        map.setZoom(13)
       })
-      const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
-        .setLngLat([t.lng, t.lat])
-        .addTo(mapRef.current)
+      const marker = new HTMLOverlay(el, { lat: t.lat, lng: t.lng }, 'bottom')
+      marker.setMap(map)
       trackerMarkersRef.current.push(marker)
     })
   }
@@ -687,15 +707,21 @@ export default function Dashboard() {
   }
 
   const clearMarkers = () => {
-    markersRef.current.forEach((m) => m.remove())
+    markersRef.current.forEach((m) => {
+      if (typeof m.setMap === 'function') m.setMap(null)
+      else if (typeof m.remove === 'function') m.remove()
+    })
     markersRef.current = []
   }
 
   const plotResults = (places) => {
     clearMarkers()
-    if (!mapRef.current || !Array.isArray(places) || places.length === 0) return
+    const map = mapRef.current
+    const google = googleRef.current
+    const HTMLOverlay = HTMLOverlayRef.current
+    if (!map || !google || !HTMLOverlay || !Array.isArray(places) || places.length === 0) return
 
-    const bounds = new mapboxgl.LngLatBounds()
+    const bounds = new google.maps.LatLngBounds()
 
     places.forEach((place) => {
       const el = document.createElement('div')
@@ -718,22 +744,21 @@ export default function Dashboard() {
         selectPlace(place)
       })
 
-      const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
-        .setLngLat([place.lng, place.lat])
-        .addTo(mapRef.current)
+      const marker = new HTMLOverlay(el, { lat: place.lat, lng: place.lng }, 'bottom')
+      marker.setMap(map)
       markersRef.current.push(marker)
 
-      bounds.extend([place.lng, place.lat])
+      bounds.extend(new google.maps.LatLng(place.lat, place.lng))
     })
 
     const origin = getSearchOrigin()
     if (origin && typeof origin.lng === 'number' && typeof origin.lat === 'number') {
-      bounds.extend([origin.lng, origin.lat])
+      bounds.extend(new google.maps.LatLng(origin.lat, origin.lng))
     }
 
     try {
       if (!bounds.isEmpty()) {
-        mapRef.current.fitBounds(bounds, { padding: 80, maxZoom: 15, duration: 1000 })
+        map.fitBounds(bounds, { top: 70, right: 70, bottom: 70, left: 70 })
       }
     } catch (bErr) {
       console.warn('fitBounds error:', bErr)
@@ -791,7 +816,6 @@ export default function Dashboard() {
         term: term.trim(),
         center: origin,
         radiusKm: effectiveRadius,
-        mapboxToken: mapboxgl.accessToken || '',
         signal: controller.signal,
       })
       setAiThinking(false)
@@ -815,6 +839,9 @@ export default function Dashboard() {
           setSearchError(`No places found matching "${term.trim()}" within ${effectiveRadius} km. Try expanding your search distance or exploring another category.`)
         }
         setSearchNotice(null)
+      } else if (searchRes.isExpanded) {
+        setSearchNotice(`Showing ${found.length} verified places nearby (expanded beyond ${effectiveRadius} km)`)
+        setSearchError(null)
       } else {
         setSearchNotice(`Showing ${found.length} verified place${found.length !== 1 ? 's' : ''} strictly within ${effectiveRadius} km`)
         setSearchError(null)
@@ -876,7 +903,6 @@ export default function Dashboard() {
         term: category.label,
         center: origin,
         radiusKm: effectiveRadius,
-        mapboxToken: mapboxgl.accessToken || '',
         signal: controller.signal,
       })
 
@@ -892,6 +918,9 @@ export default function Dashboard() {
           setSearchError(`No ${category.label} found within ${effectiveRadius} km. Try increasing the search radius.`)
         }
         setSearchNotice(null)
+      } else if (searchRes.isExpanded) {
+        setSearchNotice(`Showing ${found.length} verified ${category.label} nearby (expanded beyond ${effectiveRadius} km)`)
+        setSearchError(null)
       } else {
         setSearchNotice(`Showing ${found.length} verified ${category.label} strictly within ${effectiveRadius} km`)
         setSearchError(null)
@@ -942,93 +971,60 @@ export default function Dashboard() {
     runSearch(keyword)
   }
 
-  // --- Crash-proof Directions & Route Layers ---
-
-  const ensureRouteLayer = () => {
-    const map = mapRef.current
-    if (!map) return
-    try {
-      if (!map.getSource('route')) {
-        map.addSource('route', {
-          type: 'geojson',
-          data: { type: 'FeatureCollection', features: [] },
-        })
-      }
-      if (!map.getLayer('route-glow')) {
-        map.addLayer({
-          id: 'route-glow',
-          type: 'line',
-          source: 'route',
-          layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: {
-            'line-color': '#e8a33d',
-            'line-width': 10,
-            'line-opacity': 0.35,
-            'line-blur': 4,
-          },
-        })
-      }
-      if (!map.getLayer('route-line')) {
-        map.addLayer({
-          id: 'route-line',
-          type: 'line',
-          source: 'route',
-          layout: { 'line-join': 'round', 'line-cap': 'round' },
-          paint: {
-            'line-color': '#fbbf24',
-            'line-width': 4,
-            'line-opacity': 0.95,
-          },
-        })
-      }
-    } catch (e) {
-      console.warn('ensureRouteLayer notice:', e.message)
-    }
-  }
+  // --- High-Performance Google Directions & Routing Engine ---
 
   const clearRoute = () => {
-    try {
-      if (!mapRef.current) return
-      ensureRouteLayer()
-      const src = mapRef.current.getSource('route')
-      if (src) {
-        src.setData({ type: 'FeatureCollection', features: [] })
-      }
-    } catch (err) {
-      console.warn('clearRoute error:', err)
+    if (routePolylineRef.current) {
+      routePolylineRef.current.setMap(null)
+      routePolylineRef.current = null
+    }
+    if (routeGlowPolylineRef.current) {
+      routeGlowPolylineRef.current.setMap(null)
+      routeGlowPolylineRef.current = null
     }
   }
 
-  const drawRoute = (coordinates) => {
-    try {
-      if (!mapRef.current) return
-      ensureRouteLayer()
-      const src = mapRef.current.getSource('route')
-      if (!src) return
+  const drawRoute = (path) => {
+    const map = mapRef.current
+    const google = googleRef.current
+    if (!map || !google || !Array.isArray(path) || path.length < 2) {
+      clearRoute()
+      return
+    }
 
-      if (Array.isArray(coordinates) && coordinates.length >= 2) {
-        src.setData({
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'LineString',
-            coordinates,
-          },
-        })
-        try {
-          const bounds = coordinates.reduce(
-            (b, coord) => b.extend(coord),
-            new mapboxgl.LngLatBounds(coordinates[0], coordinates[0])
-          )
-          mapRef.current.fitBounds(bounds, { padding: 60, maxZoom: 16 })
-        } catch (bErr) {
-          console.warn('fitBounds notice:', bErr)
-        }
-      } else {
-        src.setData({ type: 'FeatureCollection', features: [] })
-      }
+    clearRoute()
+
+    try {
+      const gPath = path.map((pt) =>
+        pt instanceof google.maps.LatLng ? pt : new google.maps.LatLng(pt.lat, pt.lng)
+      )
+
+      // 1. Glowing outer amber polyline
+      routeGlowPolylineRef.current = new google.maps.Polyline({
+        path: gPath,
+        geodesic: true,
+        strokeColor: '#e8a33d',
+        strokeOpacity: 0.35,
+        strokeWeight: 10,
+        map,
+      })
+
+      // 2. Crisp core gold polyline
+      routePolylineRef.current = new google.maps.Polyline({
+        path: gPath,
+        geodesic: true,
+        strokeColor: '#fbbf24',
+        strokeOpacity: 0.95,
+        strokeWeight: 4,
+        map,
+      })
+
+      // Zoom to fit full route
+      const bounds = new google.maps.LatLngBounds()
+      gPath.forEach((pt) => bounds.extend(pt))
+      map.fitBounds(bounds, { top: 60, right: 60, bottom: 60, left: 60 })
     } catch (err) {
-      console.warn('drawRoute error:', err)
+      console.warn('drawRoute notice:', err)
     }
   }
 
@@ -1039,48 +1035,114 @@ export default function Dashboard() {
 
     setRoutes({ driving: 'loading', walking: 'loading', cycling: 'loading' })
 
+    const google = googleRef.current
     const results = {}
+
     await Promise.all(
       TRAVEL_MODES.map(async ({ key }) => {
+        // 1. Google DirectionsService
+        if (google && google.maps && google.maps.DirectionsService) {
+          try {
+            const service = directionsServiceRef.current || new google.maps.DirectionsService()
+            const gMode =
+              key === 'walking'
+                ? google.maps.TravelMode.WALKING
+                : key === 'cycling'
+                ? google.maps.TravelMode.BICYCLING
+                : google.maps.TravelMode.DRIVING
+
+            const response = await new Promise((resolve, reject) => {
+              service.route(
+                {
+                  origin: new google.maps.LatLng(origin.lat, origin.lng),
+                  destination: new google.maps.LatLng(place.lat, place.lng),
+                  travelMode: gMode,
+                },
+                (result, status) => {
+                  if (status === 'OK' && result?.routes?.[0]?.legs?.[0]) {
+                    resolve(result)
+                  } else {
+                    reject(new Error(status))
+                  }
+                }
+              )
+            })
+
+            const leg = response.routes[0].legs[0]
+            const path = response.routes[0].overview_path.map((latLng) => ({
+              lat: latLng.lat(),
+              lng: latLng.lng(),
+            }))
+
+            results[key] = {
+              duration: leg.duration.value,
+              distance: leg.distance.value,
+              path,
+            }
+            return
+          } catch {
+            // Graceful fallback to OSRM below
+          }
+        }
+
+        // 2. Resilient Open Source Routing (OSRM) Fallback
         try {
-          const url = `https://api.mapbox.com/directions/v5/mapbox/${key}/${origin.lng},${origin.lat};${place.lng},${place.lat}?geometries=geojson&access_token=${mapboxgl.accessToken}`
-          const res = await fetch(url)
-          if (!res.ok) {
-            results[key] = 'error'
-            return
+          const profile = key === 'walking' ? 'foot' : key === 'cycling' ? 'bicycle' : 'car'
+          const url = `https://router.project-osrm.org/route/v1/${profile}/${origin.lng},${origin.lat};${place.lng},${place.lat}?overview=full&geometries=geojson`
+          const res = await fetch(url, { signal: AbortSignal.timeout(5000) })
+          if (res.ok) {
+            const data = await res.json()
+            const route = data.routes?.[0]
+            if (route?.geometry?.coordinates) {
+              const path = route.geometry.coordinates.map(([lng, lat]) => ({ lat, lng }))
+              results[key] = {
+                duration: route.duration,
+                distance: route.distance,
+                path,
+              }
+              return
+            }
           }
-          const data = await res.json()
-          const route = data.routes?.[0]
-          if (!route || !route.geometry || !Array.isArray(route.geometry.coordinates) || route.geometry.coordinates.length < 2) {
-            results[key] = 'error'
-            return
-          }
-          results[key] = { duration: route.duration, distance: route.distance, geometry: route.geometry }
-        } catch (err) {
-          console.error(`Directions failed for ${key}:`, err)
-          results[key] = 'error'
+        } catch {}
+
+        // 3. Direct Great-Circle Geodesic Fallback
+        const distKm = haversineDistance(origin.lat, origin.lng, place.lat, place.lng)
+        const speedKmh = key === 'walking' ? 5 : key === 'cycling' ? 15 : 40
+        results[key] = {
+          duration: (distKm / speedKmh) * 3600,
+          distance: distKm * 1000,
+          path: [
+            { lat: origin.lat, lng: origin.lng },
+            { lat: place.lat, lng: place.lng },
+          ],
         }
       })
     )
+
     setRoutes(results)
 
-    // Draw active mode's route once loaded safely
     const active = results[activeMode]
-    if (active && typeof active === 'object' && Array.isArray(active.geometry?.coordinates) && active.geometry.coordinates.length >= 2) {
-      drawRoute(active.geometry.coordinates)
+    if (active && Array.isArray(active.path) && active.path.length >= 2) {
+      drawRoute(active.path)
     }
   }
 
-  // Reverse geocode place
+  // Reverse geocode place with Google Geocoder
   const reverseGeocode = async (lat, lng) => {
     setPlaceAddressLoading(true)
     try {
-      const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}&limit=1`
-      )
-      const data = await res.json()
-      const addr = data.features?.[0]?.place_name || ''
-      setPlaceAddress(addr)
+      const geo = await reverseGeocodeGoogle(lat, lng, googleRef.current)
+      if (geo && geo.formattedAddress) {
+        setPlaceAddress(geo.formattedAddress)
+      } else {
+        // Fallback to OSM
+        const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+        const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(3000) })
+        if (res.ok) {
+          const d = await res.json()
+          setPlaceAddress(d.display_name || '')
+        }
+      }
     } catch {
       setPlaceAddress('')
     }
@@ -1097,7 +1159,10 @@ export default function Dashboard() {
     }
     try {
       if (typeof place.lng === 'number' && typeof place.lat === 'number' && !isNaN(place.lng) && !isNaN(place.lat)) {
-        mapRef.current?.flyTo({ center: [place.lng, place.lat], zoom: 15, essential: true })
+        if (mapRef.current && googleRef.current) {
+          mapRef.current.panTo(new googleRef.current.maps.LatLng(place.lat, place.lng))
+          mapRef.current.setZoom(16)
+        }
       }
       fetchRoutesFor(place)
       if (!place.address) {
@@ -1112,8 +1177,8 @@ export default function Dashboard() {
     try {
       setActiveMode(modeKey)
       const route = routes[modeKey]
-      if (route && typeof route === 'object' && Array.isArray(route.geometry?.coordinates) && route.geometry.coordinates.length >= 2) {
-        drawRoute(route.geometry.coordinates)
+      if (route && typeof route === 'object' && Array.isArray(route.path) && route.path.length >= 2) {
+        drawRoute(route.path)
       } else {
         clearRoute()
       }
@@ -2179,7 +2244,7 @@ export default function Dashboard() {
         <div className="absolute bottom-20 md:bottom-6 right-4 sm:right-6 z-30 flex flex-col gap-2 pointer-events-auto">
           {/* Zoom In */}
           <button
-            onClick={() => mapRef.current?.zoomIn()}
+            onClick={() => mapRef.current?.setZoom((mapRef.current?.getZoom() || 13) + 1)}
             className="flex h-10 w-10 items-center justify-center rounded-2xl border shadow-lg backdrop-blur-xl transition hover:scale-105"
             style={{ borderColor: hairline, backgroundColor: isDark ? 'rgba(18, 16, 13, 0.8)' : 'rgba(255,255,255,0.85)', color: ink }}
             title="Zoom in"
@@ -2188,16 +2253,28 @@ export default function Dashboard() {
           </button>
           {/* Zoom Out */}
           <button
-            onClick={() => mapRef.current?.zoomOut()}
+            onClick={() => mapRef.current?.setZoom((mapRef.current?.getZoom() || 13) - 1)}
             className="flex h-10 w-10 items-center justify-center rounded-2xl border shadow-lg backdrop-blur-xl transition hover:scale-105"
             style={{ borderColor: hairline, backgroundColor: isDark ? 'rgba(18, 16, 13, 0.8)' : 'rgba(255,255,255,0.85)', color: ink }}
             title="Zoom out"
           >
             −
           </button>
+          {/* 3D Oblique Perspective Toggle */}
+          <button
+            onClick={() => mapRef.current?.setTilt(mapRef.current?.getTilt() ? 0 : 45)}
+            title="Toggle 3D perspective"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border shadow-lg backdrop-blur-xl transition hover:scale-105 font-bold text-xs"
+            style={{ borderColor: hairline, backgroundColor: isDark ? 'rgba(18, 16, 13, 0.8)' : 'rgba(255,255,255,0.85)', color: amber }}
+          >
+            3D
+          </button>
           {/* Reset Bearing / Compass Arrow */}
           <button
-            onClick={() => mapRef.current?.resetNorthPitch()}
+            onClick={() => {
+              mapRef.current?.setHeading(0)
+              mapRef.current?.setTilt(0)
+            }}
             title="Reset north bearing"
             className="flex h-10 w-10 items-center justify-center rounded-2xl border shadow-lg backdrop-blur-xl transition hover:scale-105"
             style={{ borderColor: hairline, backgroundColor: isDark ? 'rgba(18, 16, 13, 0.8)' : 'rgba(255,255,255,0.85)', color: ink }}

@@ -93,11 +93,10 @@ const TRUSTED_COMPANIES = [
     ),
   },
   {
-    name: 'Mapbox',
+    name: 'Google Gemini',
     icon: (
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <circle cx="12" cy="12" r="12" fill="#4264FB" />
-        <path d="M12 4.5a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15zm-2.4 3.75v6.5h1.6v-3.7l1.7 3.7h1.4l1.7-3.7v3.7h1.6v-6.5h-1.8l-1.8 3.9-1.8-3.9H9.6z" fill="#FFFFFF" />
+        <path d="M12 2L14.5 9.5L22 12L14.5 14.5L12 22L9.5 14.5L2 12L9.5 9.5L12 2Z" fill="#8E75FF" />
       </svg>
     ),
   },

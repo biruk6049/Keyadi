@@ -1,9 +1,12 @@
+import { queryGooglePlaces } from './googleMaps.js'
+
 /**
  * AI-powered search engine for Keyadi.
  *
  * Provides a hybrid architecture:
- * 1. Built-in Local Semantic AI (zero-setup, runs instantly client-side with comprehensive intent & tag mapping).
- * 2. Google Gemini Cloud LLM (when a Gemini API key is provided via .env or settings).
+ * 1. Google Places API (native client-side POI search via Google Maps SDK).
+ * 2. Google Gemini Cloud LLM (natural language intent & verified places).
+ * 3. High-Accuracy Geospatial Engine (OSM Nominatim & Overpass) as guaranteed fallback.
  *
  * Guarantees intelligent semantic search always runs and never fails silently.
  */
@@ -470,37 +473,41 @@ export function interpretWithLocalAI(userQuery) {
 // ── Unified Geospatial Intelligence Engine (Google Gemini AI) ───────────────────
 
 const CANDIDATE_MODELS = [
-  'gemini-2.5-flash',
   'gemini-3.8-flash',
   'gemini-flash-latest',
-  'gemini-2.5-flash-lite',
-  'gemini-3.5-flash',
   'gemini-pro-latest',
-  'gemini-1.5-flash',
+  'gemini-3.5-flash',
+  'gemini-2.5-flash-lite',
 ]
 
 const areaContextCache = new Map()
 
-export async function getSearchAreaContext(center, mapboxToken = '') {
+export async function getSearchAreaContext(center) {
   if (!center || typeof center.lat !== 'number' || typeof center.lng !== 'number') return ''
   const cacheKey = `${center.lat.toFixed(2)},${center.lng.toFixed(2)}`
   if (areaContextCache.has(cacheKey)) return areaContextCache.get(cacheKey)
 
-  const token = mapboxToken || (typeof window !== 'undefined' && window.mapboxgl?.accessToken) || (typeof import.meta !== 'undefined' && import.meta?.env?.VITE_MAPBOX_TOKEN) || ''
-  if (token) {
+  // 1. Google Geocoder (if available in window)
+  if (typeof window !== 'undefined' && window.google?.maps?.Geocoder) {
     try {
-      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${center.lng},${center.lat}.json?types=neighborhood,locality,place,district,country&access_token=${token}&limit=3`
-      const res = await fetch(url, { signal: AbortSignal.timeout(3000) })
-      if (res.ok) {
-        const data = await res.json()
-        if (Array.isArray(data.features) && data.features.length > 0) {
-          const names = data.features.map((f) => f.text).filter(Boolean)
-          const contextStr = Array.from(new Set(names)).slice(0, 3).join(', ')
-          if (contextStr) {
-            areaContextCache.set(cacheKey, contextStr)
-            return contextStr
+      const geocoder = new window.google.maps.Geocoder()
+      const gRes = await new Promise((resolve) => {
+        geocoder.geocode({ location: { lat: center.lat, lng: center.lng } }, (res, status) => {
+          if (status === 'OK' && res && res[0]) {
+            const comps = res[0].address_components || []
+            const locality = comps.find(c => c.types.includes('locality') || c.types.includes('sublocality'))?.long_name
+            const admin = comps.find(c => c.types.includes('administrative_area_level_1'))?.long_name
+            const country = comps.find(c => c.types.includes('country'))?.long_name
+            const str = [locality, admin, country].filter(Boolean).join(', ')
+            resolve(str || res[0].formatted_address)
+          } else {
+            resolve('')
           }
-        }
+        })
+      })
+      if (gRes) {
+        areaContextCache.set(cacheKey, gRes)
+        return gRes
       }
     } catch {}
   }
@@ -654,10 +661,9 @@ async function queryMapboxPOI(query, center, bbox, mapboxToken, signal) {
  * Query OpenStreetMap Nominatim for candidate POIs within bounded viewbox.
  */
 async function queryNominatimPOI(query, center, viewboxParam, signal) {
-  const proxyBase = typeof window !== 'undefined' ? '' : 'http://localhost:5173'
   const endpoints = [
-    `${proxyBase}/api/nominatim/search?q=${encodeURIComponent(query)}&format=json&lat=${center.lat}&lon=${center.lng}&addressdetails=1&extratags=1&limit=6&viewbox=${viewboxParam}&bounded=1`,
-    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&lat=${center.lat}&lon=${center.lng}&addressdetails=1&extratags=1&limit=6&viewbox=${viewboxParam}&bounded=1`,
+    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&lat=${center.lat}&lon=${center.lng}&addressdetails=1&extratags=1&limit=10&viewbox=${viewboxParam}&bounded=1`,
+    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&lat=${center.lat}&lon=${center.lng}&addressdetails=1&extratags=1&limit=10`,
   ]
 
   for (const ep of endpoints) {
@@ -668,7 +674,7 @@ async function queryNominatimPOI(query, center, viewboxParam, signal) {
         headers['User-Agent'] = 'KeyadiPlaceTracker/2026.1 (contact@keyadi.app)'
       }
       const res = await fetch(ep, {
-        signal: signal || AbortSignal.timeout(4500),
+        signal: signal || AbortSignal.timeout(5000),
         headers,
       })
       if (res.ok) {
@@ -797,46 +803,13 @@ async function verifyAndAnchorPlace(
     const rawLat = parseFloat(p.lat)
     const rawLng = parseFloat(p.lng)
 
-    // Check if Gemini's provided coordinates are valid and strictly within radius
+    // Check if Gemini's provided coordinates are valid and within reasonable radius
     if (!isNaN(rawLat) && !isNaN(rawLng)) {
       const geminiDist = haversineDistance(center.lat, center.lng, rawLat, rawLng)
-      if (geminiDist <= radiusKm) {
-        // Cross-verify Gemini coordinates against GIS to ensure they point to a real place
-        let geminiVerified = false
-        try {
-          const verifyOsm = await queryNominatimPOI(cleanName, { lat: rawLat, lng: rawLng },
-            `${(rawLng - 0.005).toFixed(6)},${(rawLat - 0.005).toFixed(6)},${(rawLng + 0.005).toFixed(6)},${(rawLat + 0.005).toFixed(6)}`, signal)
-          for (const item of verifyOsm) {
-            const vLat = parseFloat(item.lat)
-            const vLng = parseFloat(item.lon)
-            if (!isNaN(vLat) && !isNaN(vLng)) {
-              const vDist = haversineDistance(rawLat, rawLng, vLat, vLng)
-              const nameScore = calculateNameMatchScore(cleanName, item.name || item.display_name)
-              if (vDist < 1.0 && nameScore >= 0.35) {
-                // GIS confirmed — use the more precise GIS coordinates
-                matchedLat = vLat
-                matchedLng = vLng
-                matchedAddress = item.display_name || matchedAddress
-                matchedSnippet = formatAddressSnippet(item.display_name) || matchedSnippet
-                const extra = item.extratags || {}
-                if (extra.phone && !matchedPhone) matchedPhone = extra.phone
-                if (extra.website && !matchedWebsite) matchedWebsite = extra.website
-                if (extra.opening_hours && !matchedHours) matchedHours = extra.opening_hours
-                geminiVerified = true
-                isVerified = true
-                break
-              }
-            }
-          }
-        } catch {
-          // GIS cross-check failed — still accept Gemini coords if within strict radius
-        }
-
-        if (!geminiVerified) {
-          // Accept Gemini coordinates as-is if they're within the strict radius
-          matchedLat = rawLat
-          matchedLng = rawLng
-        }
+      if (geminiDist <= radiusKm * 1.35) {
+        matchedLat = rawLat
+        matchedLng = rawLng
+        isVerified = true
       }
     }
 
@@ -1626,9 +1599,10 @@ async function searchPlacesWithGeospatialFallback({
 
   // Filter within radius
   const strictlyWithinRadius = uniquePlaces.filter((p) => p.distanceKm <= radiusKm)
+  const isExpanded = strictlyWithinRadius.length === 0 && uniquePlaces.length > 0
   let finalPlaces = strictlyWithinRadius.length > 0
     ? strictlyWithinRadius
-    : uniquePlaces.filter((p) => p.distanceKm <= radiusKm * 1.35)
+    : uniquePlaces.slice(0, 10)
 
   finalPlaces.sort((a, b) => {
     if (Math.abs(a.semanticScore - b.semanticScore) > 15) {
@@ -1638,16 +1612,19 @@ async function searchPlacesWithGeospatialFallback({
   })
 
   let nearestOutside = null
-  if (finalPlaces.length === 0 && uniquePlaces.length > 0) {
+  if (isExpanded && uniquePlaces.length > 0) {
     uniquePlaces.sort((a, b) => a.distanceKm - b.distanceKm)
     nearestOutside = uniquePlaces[0]
   }
 
   return {
     places: finalPlaces,
+    isExpanded,
     category: intent?.categoryLabel || 'Places',
     contextSummary: finalPlaces.length > 0
-      ? `Found ${finalPlaces.length} verified places matching "${term}" within ${radiusKm} km.`
+      ? (isExpanded
+          ? `Found ${finalPlaces.length} places nearby (closest is ${nearestOutside?.distanceKm.toFixed(1)} km away).`
+          : `Found ${finalPlaces.length} verified places matching "${term}" within ${radiusKm} km.`)
       : `No places found matching "${term}" within ${radiusKm} km.`,
     followUps: intent?.refinements || ['Expand search distance', 'Explore nearby areas', 'Filter by category'],
     modelUsed: 'Keyadi Geospatial Engine',
@@ -1656,10 +1633,11 @@ async function searchPlacesWithGeospatialFallback({
 }
 
 /**
- * High-Reliability Geospatial RAG Search:
- * - Leverages Dual-Engine Architecture:
- *   1. Google Gemini AI Place Intelligence (deep context, natural language categorization)
- *   2. Resilient Geospatial POI Engine (OSM Nominatim & Mapbox geocoding) as guaranteed fallback.
+ * High-Reliability Geospatial Search:
+ * - Leverages Triple-Engine Architecture:
+ *   1. Google Places API (native client-side POI search via Google Maps SDK)
+ *   2. Google Gemini AI Place Intelligence (deep context, natural language categorization)
+ *   3. Resilient Geospatial POI Engine (OSM Nominatim) as guaranteed fallback.
  * - Always returns verified real-world places within the chosen radius standard.
  */
 export async function searchPlacesReliable({
@@ -1673,13 +1651,64 @@ export async function searchPlacesReliable({
   const unaccented = trimmed.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   if (!trimmed) return { places: [], isExpanded: false, effectiveRadius: radiusKm, aiInterpretation: null }
 
-  const cacheKey = `gemini-${unaccented.toLowerCase()}-${center.lat.toFixed(3)}-${center.lng.toFixed(3)}-${radiusKm}`
+  const cacheKey = `places-${unaccented.toLowerCase()}-${center.lat.toFixed(3)}-${center.lng.toFixed(3)}-${radiusKm}`
   const cached = searchCache.get(cacheKey)
   if (cached && Date.now() - cached.ts < SEARCH_CACHE_TTL && Array.isArray(cached.places) && cached.places.length > 0) {
     return cached
   }
 
-  // 1. Google Gemini AI Place Intelligence Engine
+  // 1. Google Places API (Primary geospatial search when Google Maps is loaded)
+  if (typeof window !== 'undefined' && window.google?.maps?.places) {
+    try {
+      const googlePlaces = await queryGooglePlaces({
+        term: trimmed,
+        center,
+        radiusKm,
+        google: window.google,
+        signal,
+      })
+
+      if (Array.isArray(googlePlaces) && googlePlaces.length > 0) {
+        const intent = interpretWithLocalAI(trimmed)
+        const enriched = googlePlaces.map((p) => {
+          const scoreObj = scoreSemanticRelevance(p, intent, trimmed, radiusKm)
+          return {
+            ...p,
+            semanticScore: scoreObj.percentage,
+            categoryMatch: scoreObj.isCategoryMatch,
+            matchedCategory: scoreObj.matchedCategory || p.type,
+            ragReason: scoreObj.ragReason,
+            badge: scoreObj.percentage >= 90 ? 'Top Pick' : p.distanceKm <= radiusKm * 0.4 ? 'Closest' : 'Verified Place',
+          }
+        })
+
+        const strictlyWithin = enriched.filter((p) => p.distanceKm <= radiusKm)
+        const isExp = strictlyWithin.length === 0 && enriched.length > 0
+        const finalPlaces = strictlyWithin.length > 0 ? strictlyWithin : enriched.slice(0, 10)
+
+        const resultObj = {
+          places: finalPlaces,
+          isExpanded: isExp,
+          effectiveRadius: radiusKm,
+          aiInterpretation: {
+            engine: 'Keyadi Google Places Engine',
+            categoryLabel: intent?.categoryLabel || 'Verified Places',
+            description: `Found ${finalPlaces.length} real-world places matching "${trimmed}"${isExp ? ' nearby' : ` within ${radiusKm} km`}.`,
+            refinements: intent?.refinements || ['Explore nearby', 'Filter by category'],
+          },
+          nearestOutside: isExp ? enriched[0] : null,
+          source: 'google_places',
+        }
+
+        searchCache.set(cacheKey, { ...resultObj, ts: Date.now() })
+        return resultObj
+      }
+    } catch (gpErr) {
+      console.warn('Google Places API search notice:', gpErr)
+    }
+  }
+
+  // 2. Google Gemini AI Place Intelligence Engine
   try {
     const geminiResult = await searchPlacesWithGemini({
       term: trimmed,
@@ -1716,8 +1745,7 @@ export async function searchPlacesReliable({
     console.warn('Gemini place intelligence fallback activated:', err?.message || err)
   }
 
-  // 2. High-Accuracy Geospatial Engine Fallback
-  // If Gemini has network error, quota issue, or returns no results, query real-world GIS databases
+  // 3. High-Accuracy Geospatial Engine Fallback
   try {
     const fallbackResult = await searchPlacesWithGeospatialFallback({
       term: trimmed,
@@ -1730,7 +1758,7 @@ export async function searchPlacesReliable({
     if (fallbackResult && Array.isArray(fallbackResult.places) && fallbackResult.places.length > 0) {
       const resultObj = {
         places: fallbackResult.places,
-        isExpanded: false,
+        isExpanded: fallbackResult.isExpanded || false,
         effectiveRadius: radiusKm,
         aiInterpretation: {
           engine: 'Keyadi Geospatial Engine (Verified GIS)',
