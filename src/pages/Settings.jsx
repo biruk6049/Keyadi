@@ -4,7 +4,7 @@ import { useSettings } from '../context/SettingsContext'
 import { useAuth } from '../context/AuthContext'
 import { supabase } from '../lib/supabaseClient'
 import PageBackground from '../components/PageBackground'
-import { MapIcon, SatelliteIcon, CrosshairIcon, SparklesIcon, UserIcon, SunIcon, MoonIcon, SettingsIcon, LogoutIcon } from '../components/Icons'
+import { MapIcon, SatelliteIcon, CrosshairIcon, SparklesIcon, UserIcon, SunIcon, MoonIcon, SettingsIcon, LogoutIcon, MapPinIcon } from '../components/Icons'
 import KeyadiLogo from '../components/KeyadiLogo'
 import KeyadiWordmark from '../components/KeyadiWordmark'
 import ThemeToggle from '../components/ThemeToggle'
@@ -23,20 +23,84 @@ export default function Settings() {
   const inputBg = isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.03)'
   const amber = '#e8a33d'
 
-  // Mapbox Token state
-  const [mapboxTokenInput, setMapboxTokenInput] = useState(() => {
-    return localStorage.getItem('KEYADI_MAPBOX_TOKEN') || import.meta.env.VITE_MAPBOX_TOKEN || ''
-  })
-  const [tokenSaved, setTokenSaved] = useState(false)
+  // Live Location Detection state
+  const [locating, setLocating] = useState(false)
+  const [locationSuccessMsg, setLocationSuccessMsg] = useState(null)
+  const [locationError, setLocationError] = useState(null)
 
-  const handleSaveMapboxToken = () => {
-    if (!mapboxTokenInput || !mapboxTokenInput.trim()) {
-      localStorage.removeItem('KEYADI_MAPBOX_TOKEN')
-    } else {
-      localStorage.setItem('KEYADI_MAPBOX_TOKEN', mapboxTokenInput.trim())
+  const handleDetectCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser.')
+      return
     }
-    setTokenSaved(true)
-    setTimeout(() => setTokenSaved(false), 2400)
+    setLocating(true)
+    setLocationError(null)
+    setLocationSuccessMsg(null)
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords
+        const lat = parseFloat(latitude.toFixed(6))
+        const lng = parseFloat(longitude.toFixed(6))
+        let label = `${lat}, ${lng}`
+
+        // Reverse geocode with Nominatim to get human-readable city name
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=12`,
+            { headers: { Accept: 'application/json' } }
+          )
+          const data = await res.json()
+          if (data && data.address) {
+            const city = data.address.city || data.address.town || data.address.municipality || data.address.village || data.address.county || data.address.state || 'My Location'
+            const country = data.address.country || ''
+            label = country ? `${city}, ${country}` : city
+          } else if (data && data.display_name) {
+            label = data.display_name.split(',').slice(0, 2).join(',').trim()
+          }
+        } catch {}
+
+        setLocationQuery(label)
+        updateSettings({
+          defaultLocationLabel: label,
+          defaultLat: lat,
+          defaultLng: lng,
+          searchMode: 'auto',
+        })
+        setLocating(false)
+        setLocationSuccessMsg(`Real location set: ${label}`)
+        setTimeout(() => setLocationSuccessMsg(null), 3500)
+      },
+      async (err) => {
+        console.warn('GPS location error in settings:', err)
+        // Network IP Geolocation Fallback
+        try {
+          const ipRes = await fetch('https://ipapi.co/json/')
+          const ipData = await ipRes.json()
+          if (ipData && ipData.latitude && ipData.longitude) {
+            const lat = parseFloat(ipData.latitude.toFixed(6))
+            const lng = parseFloat(ipData.longitude.toFixed(6))
+            const label = ipData.city && ipData.country_name ? `${ipData.city}, ${ipData.country_name}` : (ipData.city || 'My Location')
+            setLocationQuery(label)
+            updateSettings({
+              defaultLocationLabel: label,
+              defaultLat: lat,
+              defaultLng: lng,
+              searchMode: 'auto',
+            })
+            setLocating(false)
+            setLocationSuccessMsg(`Estimated via network: ${label}`)
+            setTimeout(() => setLocationSuccessMsg(null), 3500)
+            return
+          }
+        } catch {}
+
+        setLocating(false)
+        setLocationError(err.code === 1 ? 'Location permission was denied in your browser settings.' : 'Unable to acquire current location.')
+        setTimeout(() => setLocationError(null), 4000)
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    )
   }
 
   // Geocoding autocomplete state
@@ -304,55 +368,6 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* Card 1.5: Mapbox Access Token */}
-            <div
-              className="rounded-3xl p-6 shadow-2xl backdrop-blur-2xl border"
-              style={{ backgroundColor: cardBg, borderColor: hairline }}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-base font-bold" style={{ color: ink }}>Mapbox Platform</h2>
-                <span
-                  className="flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
-                  style={{
-                    backgroundColor: (mapboxTokenInput && mapboxTokenInput.startsWith('pk.')) ? 'rgba(52, 168, 83, 0.15)' : 'rgba(232, 163, 61, 0.15)',
-                    color: (mapboxTokenInput && mapboxTokenInput.startsWith('pk.')) ? '#34A853' : amber,
-                    border: `1px solid ${(mapboxTokenInput && mapboxTokenInput.startsWith('pk.')) ? 'rgba(52, 168, 83, 0.3)' : 'rgba(232, 163, 61, 0.3)'}`,
-                  }}
-                >
-                  <span className={`h-1.5 w-1.5 rounded-full ${(mapboxTokenInput && mapboxTokenInput.startsWith('pk.')) ? 'bg-[#34A853]' : 'bg-amber-400'}`} />
-                  <span>{(mapboxTokenInput && mapboxTokenInput.startsWith('pk.')) ? 'Token Active' : 'OSM Standalone'}</span>
-                </span>
-              </div>
-              <p className="text-xs mb-4 leading-relaxed" style={{ color: inkMuted }}>
-                Powers custom Mapbox vector cartography, 3D buildings, and geocoding. If left blank, Keyadi smoothly renders high-performance OpenStreetMap & CartoDB tiles with zero setup required.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-                <div className="relative flex-1">
-                  <input
-                    type="password"
-                    value={mapboxTokenInput}
-                    onChange={(e) => setMapboxTokenInput(e.target.value)}
-                    placeholder="pk.eyJ1... (Mapbox Public Token)"
-                    style={{ backgroundColor: inputBg, borderColor: hairline, color: ink }}
-                    className="w-full rounded-2xl border py-2.5 px-4 text-xs font-mono outline-none transition focus:border-amber-400"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={handleSaveMapboxToken}
-                  className="rounded-2xl px-5 py-2.5 text-xs font-bold transition-all shadow-md shrink-0 flex items-center justify-center gap-2"
-                  style={{
-                    backgroundColor: tokenSaved ? '#34A853' : amber,
-                    color: '#0e0d0b',
-                  }}
-                >
-                  <SparklesIcon size={13} color="#0e0d0b" />
-                  <span>{tokenSaved ? 'Saved!' : 'Save Token'}</span>
-                </button>
-              </div>
-            </div>
-
             {/* Card 2: Distance Units */}
             <div
               className="rounded-3xl p-6 shadow-2xl backdrop-blur-2xl border"
@@ -390,18 +405,87 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* Card 3: Search Location & Coordinate Mode */}
+            {/* Card 3: Real Location & Search Origin */}
             <div
               className="rounded-3xl p-6 shadow-2xl backdrop-blur-2xl border"
               style={{ backgroundColor: cardBg, borderColor: hairline }}
             >
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-base font-bold" style={{ color: ink }}>Search Origin</h2>
+                <h2 className="text-base font-bold" style={{ color: ink }}>Real Location & Search Origin</h2>
                 <span className="text-xs font-medium" style={{ color: amber }}>Geospatial</span>
               </div>
               <p className="text-xs mb-4 leading-relaxed" style={{ color: inkMuted }}>
                 Choose whether Keyadi explores around your live GPS coordinates, or a custom pinpoint center.
               </p>
+
+              {/* Live Location Quick Detect Action */}
+              <div
+                className="mb-5 p-3.5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-all"
+                style={{
+                  backgroundColor: isDark ? 'rgba(232, 163, 61, 0.08)' : 'rgba(232, 163, 61, 0.06)',
+                  borderColor: 'rgba(232, 163, 61, 0.28)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="flex h-9 w-9 items-center justify-center rounded-xl shrink-0"
+                    style={{ backgroundColor: 'rgba(232, 163, 61, 0.18)', color: amber }}
+                  >
+                    <CrosshairIcon size={18} color={amber} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold truncate" style={{ color: ink }}>
+                      {settings.searchMode === 'auto' ? 'Live Location Tracking Active' : 'Custom Origin Active'}
+                    </p>
+                    <p className="text-[11px] truncate" style={{ color: inkMuted }}>
+                      {settings.defaultLocationLabel ? `${settings.defaultLocationLabel} (${settings.defaultLat.toFixed(3)}°, ${settings.defaultLng.toFixed(3)}°)` : `${settings.defaultLat.toFixed(3)}°, ${settings.defaultLng.toFixed(3)}°`}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleDetectCurrentLocation}
+                  disabled={locating}
+                  className="rounded-xl px-4 py-2 text-xs font-bold transition hover:scale-105 shrink-0 flex items-center justify-center gap-2 shadow-sm"
+                  style={{
+                    backgroundColor: amber,
+                    color: '#0e0d0b',
+                    opacity: locating ? 0.7 : 1,
+                  }}
+                >
+                  {locating ? (
+                    <>
+                      <span className="h-3 w-3 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                      <span>Detecting…</span>
+                    </>
+                  ) : (
+                    <>
+                      <MapPinIcon size={13} color="#0e0d0b" />
+                      <span>Detect My Real Location</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {locationSuccessMsg && (
+                <div
+                  className="mb-4 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border animate-in fade-in"
+                  style={{ backgroundColor: 'rgba(52, 168, 83, 0.15)', borderColor: 'rgba(52, 168, 83, 0.35)', color: '#34A853' }}
+                >
+                  <SparklesIcon size={13} color="#34A853" />
+                  <span>{locationSuccessMsg}</span>
+                </div>
+              )}
+
+              {locationError && (
+                <div
+                  className="mb-4 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 border animate-in fade-in"
+                  style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: 'rgba(239, 68, 68, 0.35)', color: '#f87171' }}
+                >
+                  <span>{locationError}</span>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3 mb-5">
                 {[
@@ -507,10 +591,15 @@ export default function Settings() {
                 </div>
               </div>
 
-              {settings.searchMode === 'custom' && (
+              {settings.searchMode === 'custom' ? (
                 <p className="mt-2 flex items-center gap-1.5 text-xs font-medium" style={{ color: '#2dd4bf' }}>
                   <span className="h-1.5 w-1.5 rounded-full bg-[#2dd4bf] animate-ping" />
-                  <span>Active — Keyadi is configured to explore around this origin.</span>
+                  <span>Custom Origin Active — Keyadi will explore around this pinpoint center.</span>
+                </p>
+              ) : (
+                <p className="mt-2 flex items-center gap-1.5 text-xs font-medium" style={{ color: amber }}>
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                  <span>Live GPS Active — Keyadi dynamically tracks and explores around your live position.</span>
                 </p>
               )}
             </div>

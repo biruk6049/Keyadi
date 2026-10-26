@@ -565,11 +565,38 @@ export default function Dashboard() {
     }
   }
 
-  const handleLocationError = (err) => {
+  const handleLocationError = async (err) => {
     console.warn('Geolocation error:', err)
+
+    // Attempt graceful IP network geolocation fallback so real location is still acquired
+    try {
+      const ipRes = await fetch('https://ipapi.co/json/')
+      const ipData = await ipRes.json()
+      if (ipData && typeof ipData.latitude === 'number' && typeof ipData.longitude === 'number') {
+        const latitude = parseFloat(ipData.latitude.toFixed(6))
+        const longitude = parseFloat(ipData.longitude.toFixed(6))
+        setLocationStatus('granted')
+        setLocationErrorMsg(null)
+        setMyLocation({ lat: latitude, lng: longitude, accuracy: 3000, isEstimated: true })
+
+        if (mapRef.current) {
+          updateUserMarker(latitude, longitude, 3000)
+        }
+
+        if (!hasCenteredRef.current && settings.searchMode !== 'custom') {
+          hasCenteredRef.current = true
+          setCenter({ lat: latitude, lng: longitude })
+          mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 13, essential: true })
+        }
+        return
+      }
+    } catch (ipErr) {
+      console.warn('IP fallback failed:', ipErr)
+    }
+
     if (err.code === 1) { // PERMISSION_DENIED
       setLocationStatus('denied')
-      setLocationErrorMsg('Location access is denied in your browser settings. Please allow location access in your browser to display your current position on the map.')
+      setLocationErrorMsg('Location access is denied in your browser settings. Please allow location access or click below to retry.')
     } else if (err.code === 2) { // POSITION_UNAVAILABLE
       setLocationStatus('unavailable')
       setLocationErrorMsg('Current geographic position is unavailable. Please check your device location settings or network.')
@@ -656,7 +683,8 @@ export default function Dashboard() {
   }, [])
 
   const recenterOnMe = () => {
-    if (locationStatus === 'granted' && myLocation) {
+    if (myLocation) {
+      setCenter({ lat: myLocation.lat, lng: myLocation.lng })
       mapRef.current?.flyTo({ center: [myLocation.lng, myLocation.lat], zoom: 15, essential: true })
       if (userMarkerRef.current) {
         userMarkerRef.current.togglePopup()
@@ -1086,24 +1114,61 @@ export default function Dashboard() {
     setRoutes({ driving: 'loading', walking: 'loading', cycling: 'loading' })
 
     const results = {}
+    const hasMapbox = Boolean(mapboxgl.accessToken && mapboxgl.accessToken.startsWith('pk.'))
+
     await Promise.all(
       TRAVEL_MODES.map(async ({ key }) => {
+        // 1. Try Mapbox if valid public token is present
+        if (hasMapbox) {
+          try {
+            const url = `https://api.mapbox.com/directions/v5/mapbox/${key}/${origin.lng},${origin.lat};${place.lng},${place.lat}?geometries=geojson&access_token=${mapboxgl.accessToken}`
+            const res = await fetch(url)
+            if (res.ok) {
+              const data = await res.json()
+              const route = data.routes?.[0]
+              if (route?.geometry?.coordinates?.length >= 2) {
+                results[key] = { duration: route.duration, distance: route.distance, geometry: route.geometry }
+                return
+              }
+            }
+          } catch {}
+        }
+
+        // 2. High-Performance Open-Source Routing Machine (OSRM) Fallback - guaranteed free & accurate
         try {
-          const url = `https://api.mapbox.com/directions/v5/mapbox/${key}/${origin.lng},${origin.lat};${place.lng},${place.lat}?geometries=geojson&access_token=${mapboxgl.accessToken}`
-          const res = await fetch(url)
-          if (!res.ok) {
-            results[key] = 'error'
-            return
+          const osrmProfile = key === 'walking' ? 'foot' : key === 'cycling' ? 'bike' : 'driving'
+          const osrmUrl = `https://router.project-osrm.org/route/v1/${osrmProfile}/${origin.lng},${origin.lat};${place.lng},${place.lat}?overview=full&geometries=geojson`
+          const res = await fetch(osrmUrl)
+          if (res.ok) {
+            const data = await res.json()
+            const route = data.routes?.[0]
+            if (route?.geometry?.coordinates?.length >= 2) {
+              results[key] = { duration: route.duration, distance: route.distance, geometry: route.geometry }
+              return
+            }
           }
-          const data = await res.json()
-          const route = data.routes?.[0]
-          if (!route || !route.geometry || !Array.isArray(route.geometry.coordinates) || route.geometry.coordinates.length < 2) {
-            results[key] = 'error'
-            return
+        } catch (osrmErr) {
+          console.warn(`OSRM directions fallback notice for ${key}:`, osrmErr)
+        }
+
+        // 3. Fallback direct line calculation if network routing fails
+        try {
+          const directDistKm = haversineDistance(origin.lat, origin.lng, place.lat, place.lng)
+          const distMeters = directDistKm * 1000
+          const speedKmH = key === 'walking' ? 4.8 : key === 'cycling' ? 15 : 40
+          const durationSec = Math.round((directDistKm / speedKmH) * 3600)
+          results[key] = {
+            duration: durationSec,
+            distance: distMeters,
+            geometry: {
+              type: 'LineString',
+              coordinates: [
+                [origin.lng, origin.lat],
+                [place.lng, place.lat],
+              ],
+            },
           }
-          results[key] = { duration: route.duration, distance: route.distance, geometry: route.geometry }
-        } catch (err) {
-          console.error(`Directions failed for ${key}:`, err)
+        } catch {
           results[key] = 'error'
         }
       })
@@ -1120,13 +1185,37 @@ export default function Dashboard() {
   // Reverse geocode place
   const reverseGeocode = async (lat, lng) => {
     setPlaceAddressLoading(true)
+    const hasMapbox = Boolean(mapboxgl.accessToken && mapboxgl.accessToken.startsWith('pk.'))
+    if (hasMapbox) {
+      try {
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}&limit=1`
+        )
+        if (res.ok) {
+          const data = await res.json()
+          const addr = data.features?.[0]?.place_name || ''
+          if (addr) {
+            setPlaceAddress(addr)
+            setPlaceAddressLoading(false)
+            return
+          }
+        }
+      } catch {}
+    }
+
+    // OpenStreetMap Nominatim reverse geocode fallback
     try {
       const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${mapboxgl.accessToken}&limit=1`
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+        { headers: { Accept: 'application/json' } }
       )
-      const data = await res.json()
-      const addr = data.features?.[0]?.place_name || ''
-      setPlaceAddress(addr)
+      if (res.ok) {
+        const data = await res.json()
+        const addr = data.display_name || ''
+        setPlaceAddress(addr)
+      } else {
+        setPlaceAddress('')
+      }
     } catch {
       setPlaceAddress('')
     }

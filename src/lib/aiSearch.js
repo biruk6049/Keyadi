@@ -658,33 +658,28 @@ async function queryMapboxPOI(query, center, bbox, mapboxToken, signal) {
  * Query OpenStreetMap Nominatim for candidate POIs within bounded viewbox.
  */
 async function queryNominatimPOI(query, center, viewboxParam, signal) {
-  const endpoints = [
-    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&lat=${center.lat}&lon=${center.lng}&addressdetails=1&extratags=1&limit=10&viewbox=${viewboxParam}&bounded=1`,
-    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&lat=${center.lat}&lon=${center.lng}&addressdetails=1&extratags=1&limit=10`,
-  ]
+  if (!query || !query.trim() || !viewboxParam) return []
+  const cleanQ = query.trim()
 
-  for (const ep of endpoints) {
-    if (signal?.aborted) break
-    try {
-      const headers = { Accept: 'application/json' }
-      if (typeof window === 'undefined') {
-        headers['User-Agent'] = 'KeyadiPlaceTracker/2026.1 (contact@keyadi.app)'
-      }
-      const res = await fetch(ep, {
-        signal: signal || AbortSignal.timeout(5000),
-        headers,
-      })
-      if (res.ok) {
-        const ct = res.headers.get('content-type') || ''
-        if (ct.includes('json')) {
-          const data = await res.json()
-          if (Array.isArray(data) && data.length > 0) return data
-        }
-      }
-    } catch {
-      // Try next endpoint
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cleanQ)}&format=json&lat=${center.lat}&lon=${center.lng}&addressdetails=1&extratags=1&limit=25&viewbox=${viewboxParam}&bounded=1`
+
+  try {
+    const headers = { Accept: 'application/json' }
+    if (typeof window === 'undefined') {
+      headers['User-Agent'] = 'KeyadiPlaceTracker/2026.1 (contact@keyadi.app)'
     }
-  }
+    const res = await fetch(url, {
+      signal: signal || AbortSignal.timeout(6000),
+      headers,
+    })
+    if (res.ok) {
+      const ct = res.headers.get('content-type') || ''
+      if (ct.includes('json')) {
+        const data = await res.json()
+        if (Array.isArray(data) && data.length > 0) return data
+      }
+    }
+  } catch {}
   return []
 }
 
@@ -950,7 +945,7 @@ Output strict JSON only with no markdown formatting:
   const west = Math.max(-180, center.lng - lngDelta).toFixed(6)
   const north = Math.min(90, center.lat + latDelta).toFixed(6)
   const east = Math.min(180, center.lng + lngDelta).toFixed(6)
-  const viewboxParam = `${west},${south},${east},${north}`
+  const viewboxParam = `${west},${north},${east},${south}`
   const mapboxBbox = `${west},${south},${east},${north}`
 
   for (const model of CANDIDATE_MODELS) {
@@ -1514,7 +1509,7 @@ async function searchPlacesWithGeospatialFallback({
   const west = Math.max(-180, center.lng - lngDelta).toFixed(6)
   const north = Math.min(90, center.lat + latDelta).toFixed(6)
   const east = Math.min(180, center.lng + lngDelta).toFixed(6)
-  const viewboxParam = `${west},${south},${east},${north}`
+  const viewboxParam = `${west},${north},${east},${south}`
   const mapboxBbox = `${west},${south},${east},${north}`
 
   const queries = [term]
@@ -1530,7 +1525,7 @@ async function searchPlacesWithGeospatialFallback({
 
   const rawCandidates = []
 
-  // 1. Query Nominatim for all query variations
+  // 1. Query Nominatim for all query variations strictly within the bounded viewbox
   for (const q of queries) {
     if (signal?.aborted) break
     try {
@@ -1540,6 +1535,10 @@ async function searchPlacesWithGeospatialFallback({
           const pLat = parseFloat(item.lat)
           const pLng = parseFloat(item.lon)
           if (isNaN(pLat) || isNaN(pLng)) continue
+          // Skip administrative boundaries or regional territories unless specifically asked
+          if (item.class === 'boundary' || (item.class === 'place' && ['country', 'state', 'county', 'village'].includes(item.type))) {
+            continue
+          }
           rawCandidates.push(normalizeOsmItem(item, q))
         }
       }
@@ -1547,8 +1546,8 @@ async function searchPlacesWithGeospatialFallback({
     if (rawCandidates.length >= 25) break
   }
 
-  // 2. Query Mapbox POI
-  if (rawCandidates.length < 15 && !signal?.aborted) {
+  // 2. Query Mapbox POI if token is available
+  if (rawCandidates.length < 15 && !signal?.aborted && mapboxToken) {
     for (const q of queries.slice(0, 2)) {
       if (signal?.aborted) break
       try {
@@ -1594,12 +1593,9 @@ async function searchPlacesWithGeospatialFallback({
     })
   }
 
-  // Filter within radius
-  const strictlyWithinRadius = uniquePlaces.filter((p) => p.distanceKm <= radiusKm)
-  const isExpanded = strictlyWithinRadius.length === 0 && uniquePlaces.length > 0
-  let finalPlaces = strictlyWithinRadius.length > 0
-    ? strictlyWithinRadius
-    : uniquePlaces.slice(0, 10)
+  // Strictly filter places within the radius (allowing a max 15% margin for border venues)
+  const maxAllowedDist = radiusKm * 1.15
+  const finalPlaces = uniquePlaces.filter((p) => p.distanceKm <= maxAllowedDist)
 
   finalPlaces.sort((a, b) => {
     if (Math.abs(a.semanticScore - b.semanticScore) > 15) {
@@ -1609,20 +1605,22 @@ async function searchPlacesWithGeospatialFallback({
   })
 
   let nearestOutside = null
-  if (isExpanded && uniquePlaces.length > 0) {
-    uniquePlaces.sort((a, b) => a.distanceKm - b.distanceKm)
-    nearestOutside = uniquePlaces[0]
+  if (finalPlaces.length === 0 && uniquePlaces.length > 0) {
+    const sorted = [...uniquePlaces].sort((a, b) => a.distanceKm - b.distanceKm)
+    if (sorted[0].distanceKm <= Math.max(50, radiusKm * 3)) {
+      nearestOutside = sorted[0]
+    }
   }
 
   return {
     places: finalPlaces,
-    isExpanded,
+    isExpanded: false,
     category: intent?.categoryLabel || 'Places',
     contextSummary: finalPlaces.length > 0
-      ? (isExpanded
-          ? `Found ${finalPlaces.length} places nearby (closest is ${nearestOutside?.distanceKm.toFixed(1)} km away).`
-          : `Found ${finalPlaces.length} verified places matching "${term}" within ${radiusKm} km.`)
-      : `No places found matching "${term}" within ${radiusKm} km.`,
+      ? `Found ${finalPlaces.length} verified places matching "${term}" within ${radiusKm} km.`
+      : (nearestOutside
+          ? `No places found matching "${term}" strictly within ${radiusKm} km. Nearest match is "${nearestOutside.name}" (${nearestOutside.distanceKm.toFixed(1)} km away).`
+          : `No places found matching "${term}" within ${radiusKm} km.`),
     followUps: intent?.refinements || ['Expand search distance', 'Explore nearby areas', 'Filter by category'],
     modelUsed: 'Keyadi Geospatial Engine',
     nearestOutside,
