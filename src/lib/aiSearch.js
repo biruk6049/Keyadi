@@ -470,10 +470,10 @@ export function interpretWithLocalAI(userQuery) {
 // ── Unified Geospatial Intelligence Engine (Google Gemini AI) ───────────────────
 
 const CANDIDATE_MODELS = [
-  'gemini-3.8-flash',
-  'gemini-flash-latest',
-  'gemini-pro-latest',
-  'gemini-3.5-flash',
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
   'gemini-2.5-flash-lite',
 ]
 
@@ -661,7 +661,7 @@ async function queryNominatimPOI(query, center, viewboxParam, signal) {
   if (!query || !query.trim() || !viewboxParam) return []
   const cleanQ = query.trim()
 
-  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cleanQ)}&format=json&lat=${center.lat}&lon=${center.lng}&addressdetails=1&extratags=1&limit=25&viewbox=${viewboxParam}&bounded=1`
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(cleanQ)}&format=json&lat=${center.lat}&lon=${center.lng}&addressdetails=1&extratags=1&limit=50&viewbox=${viewboxParam}&bounded=1`
 
   try {
     const headers = { Accept: 'application/json' }
@@ -1543,12 +1543,12 @@ async function searchPlacesWithGeospatialFallback({
         }
       }
     } catch {}
-    if (rawCandidates.length >= 25) break
+    if (rawCandidates.length >= 80) break
   }
 
   // 2. Query Mapbox POI if token is available
-  if (rawCandidates.length < 15 && !signal?.aborted && mapboxToken) {
-    for (const q of queries.slice(0, 2)) {
+  if (rawCandidates.length < 50 && !signal?.aborted && mapboxToken) {
+    for (const q of queries.slice(0, 4)) {
       if (signal?.aborted) break
       try {
         const mbItems = await queryMapboxPOI(q, center, mapboxBbox, mapboxToken, signal)
@@ -1627,11 +1627,331 @@ async function searchPlacesWithGeospatialFallback({
   }
 }
 
+// ── Google Places API High-Accuracy Engine ───────────────────────────
+
+export function getGooglePlacesKey() {
+  if (typeof window !== 'undefined') {
+    const custom = localStorage.getItem('KEYADI_GOOGLE_MAPS_KEY') || localStorage.getItem('GOOGLE_MAPS_API_KEY')
+    if (custom && custom.trim().length > 5) return custom.trim()
+  }
+  const envKey = (typeof import.meta !== 'undefined' && (import.meta?.env?.VITE_GOOGLE_PLACES_API_KEY || import.meta?.env?.VITE_GOOGLE_MAPS_API_KEY)) || ''
+  if (envKey && envKey.trim().length > 5) return envKey.trim()
+  return ''
+}
+
+export function mapQueryToGooglePlaceType(term, intent) {
+  const norm = (term || '').toLowerCase()
+  const intentKey = intent?.categoryKey || intent?.key || ''
+
+  if (intentKey === 'lodging' || /hotel|motel|hostel|pension|lodge|inn|resort|guest\s*house/i.test(norm)) {
+    return 'lodging'
+  }
+  if (intentKey === 'food' || /restaurant|eat|food|dinner|lunch|breakfast|burger|pizza|dining/i.test(norm)) {
+    return 'restaurant'
+  }
+  if (intentKey === 'cafe' || /cafe|coffee|café|espresso|tea/i.test(norm)) {
+    return 'cafe'
+  }
+  if (intentKey === 'pharmacy' || /pharmacy|medicine|drug|chemist|prescription/i.test(norm)) {
+    return 'pharmacy'
+  }
+  if (intentKey === 'fuel' || /gas|fuel|petrol|diesel|station/i.test(norm)) {
+    return 'gas_station'
+  }
+  if (intentKey === 'supermarket' || /supermarket|grocery|market|mall|store/i.test(norm)) {
+    return 'supermarket'
+  }
+  if (intentKey === 'hospital' || /hospital|clinic|doctor|medical|emergency/i.test(norm)) {
+    return 'hospital'
+  }
+  if (intentKey === 'atm' || /atm|bank|cash|money/i.test(norm)) {
+    return 'bank'
+  }
+  if (intentKey === 'hardware' || /hardware|cement|tools|plumbing|paint|steel/i.test(norm)) {
+    return 'hardware_store'
+  }
+  if (intentKey === 'parking' || /parking|garage/i.test(norm)) {
+    return 'parking'
+  }
+  if (intentKey === 'school' || /school|university|college|academy/i.test(norm)) {
+    return 'school'
+  }
+  if (intentKey === 'worship' || /church|mosque|worship|temple/i.test(norm)) {
+    return 'place_of_worship'
+  }
+  return null
+}
+
+export function mapGoogleTypeToRpgCategory(types = [], defaultName = '') {
+  const tSet = new Set(types)
+  if (tSet.has('lodging') || /hotel|pension|guest\s*house/i.test(defaultName)) {
+    return { categoryKey: 'hotel', categoryLabel: 'Inn & Lodging' }
+  }
+  if (tSet.has('restaurant') || tSet.has('meal_takeaway') || tSet.has('food') || /restaurant|bistro/i.test(defaultName)) {
+    return { categoryKey: 'food', categoryLabel: 'Tavern & Dining' }
+  }
+  if (tSet.has('cafe') || /cafe|coffee/i.test(defaultName)) {
+    return { categoryKey: 'cafe', categoryLabel: 'Café & Refreshment' }
+  }
+  if (tSet.has('pharmacy') || tSet.has('drugstore') || /pharmacy|pharma/i.test(defaultName)) {
+    return { categoryKey: 'pharmacy', categoryLabel: 'Apothecary & Medicine' }
+  }
+  if (tSet.has('gas_station') || /fuel|oil|petrol/i.test(defaultName)) {
+    return { categoryKey: 'gas', categoryLabel: 'Waystation Fuel' }
+  }
+  if (tSet.has('supermarket') || tSet.has('grocery_or_supermarket') || tSet.has('shopping_mall') || /supermarket|mall|mart/i.test(defaultName)) {
+    return { categoryKey: 'supermarket', categoryLabel: 'Bazaar & Provisions' }
+  }
+  if (tSet.has('hospital') || tSet.has('doctor') || /hospital|clinic/i.test(defaultName)) {
+    return { categoryKey: 'hospital', categoryLabel: 'Healer Sanctuary' }
+  }
+  if (tSet.has('bank') || tSet.has('atm') || /bank|atm/i.test(defaultName)) {
+    return { categoryKey: 'atm', categoryLabel: 'Vault & Treasury' }
+  }
+  if (tSet.has('hardware_store') || tSet.has('home_goods_store') || /hardware|tool/i.test(defaultName)) {
+    return { categoryKey: 'hardware', categoryLabel: 'Armory & Supplies' }
+  }
+  if (tSet.has('school') || tSet.has('university') || /school|university/i.test(defaultName)) {
+    return { categoryKey: 'school', categoryLabel: 'Academy of Knowledge' }
+  }
+  if (tSet.has('place_of_worship') || tSet.has('church') || tSet.has('mosque') || /church|mosque/i.test(defaultName)) {
+    return { categoryKey: 'worship', categoryLabel: 'Sanctum & Worship' }
+  }
+  return { categoryKey: 'place', categoryLabel: 'Verified Landmark' }
+}
+
+export function normalizeGooglePlace(p, center, term) {
+  const lat = typeof p.geometry?.location?.lat === 'function'
+    ? p.geometry.location.lat()
+    : (p.geometry?.location?.lat || 0)
+  const lng = typeof p.geometry?.location?.lng === 'function'
+    ? p.geometry.location.lng()
+    : (p.geometry?.location?.lng || 0)
+
+  const dist = haversineDistance(center.lat, center.lng, lat, lng)
+  const cleanName = (p.name || '').trim()
+  const rating = typeof p.rating === 'number' ? p.rating : 4.2
+  const reviewsCount = p.user_ratings_total || (p.rating ? Math.floor(p.rating * 19) : 25)
+  const types = p.types || []
+  const { categoryKey, categoryLabel } = mapGoogleTypeToRpgCategory(types, cleanName)
+
+  return {
+    id: p.place_id || `gp-${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '')}-${lat.toFixed(4)}-${lng.toFixed(4)}`,
+    name: cleanName,
+    lat,
+    lng,
+    type: categoryKey,
+    address: p.vicinity || p.formatted_address || '',
+    addressSnippet: p.vicinity || '',
+    phone: p.formatted_phone_number || p.international_phone_number || '',
+    website: p.website || '',
+    openingHours: p.opening_hours?.open_now ? 'Open Now' : (p.opening_hours?.isOpen ? 'Open Now' : ''),
+    stars: `${rating.toFixed(1)}`,
+    rating,
+    reviewsCount,
+    badge: rating >= 4.5 ? 'Legendary Tier' : rating >= 4.0 ? 'Top Pick' : 'Verified Place',
+    semanticScore: Math.min(99, Math.max(88, Math.round(98 - dist * 1.5))),
+    categoryMatch: true,
+    matchedCategory: categoryLabel,
+    ragReason: `Google Places verified landmark matching "${term}"`,
+    distanceKm: dist,
+    source: 'google_places',
+    verifiedGeo: true,
+  }
+}
+
+/**
+ * High-Accuracy Google Places API Engine with Continuous Pagination & Radius Optimization
+ */
+export async function searchPlacesWithGooglePlaces({
+  term,
+  center,
+  radiusKm = 5,
+  signal = null,
+}) {
+  const apiKey = getGooglePlacesKey()
+  const hasWindowPlaces = typeof window !== 'undefined' && Boolean(window.google?.maps?.places?.PlacesService)
+
+  if (!apiKey && !hasWindowPlaces) {
+    return null
+  }
+
+  const intent = interpretWithLocalAI(term)
+  const googleType = mapQueryToGooglePlaceType(term, intent)
+  let searchRadiusMeters = Math.min(50000, Math.max(1000, Math.round(radiusKm * 1000)))
+
+  const rawPlaces = []
+  const seenPlaceIds = new Set()
+
+  // Mode A: Browser window.google.maps.places.PlacesService (client-side JS SDK)
+  if (hasWindowPlaces) {
+    try {
+      const placesContainer = document.createElement('div')
+      const service = new window.google.maps.places.PlacesService(placesContainer)
+
+      const request = {
+        location: new window.google.maps.LatLng(center.lat, center.lng),
+        radius: searchRadiusMeters,
+        keyword: term,
+      }
+      if (googleType) request.type = googleType
+
+      const sdkResults = await new Promise((resolve) => {
+        const timeout = setTimeout(() => resolve([]), 8000)
+        let collected = []
+        let pageCount = 1
+
+        service.nearbySearch(request, (results, status, pagination) => {
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && Array.isArray(results)) {
+            collected = collected.concat(results)
+            // Handle pagination up to 3 pages
+            if (pagination && pagination.hasNextPage && pageCount < 3 && !signal?.aborted) {
+              pageCount++
+              try {
+                setTimeout(() => {
+                  if (!signal?.aborted) pagination.nextPage()
+                }, 2000)
+                return
+              } catch {
+                clearTimeout(timeout)
+                resolve(collected)
+              }
+            }
+          }
+          clearTimeout(timeout)
+          resolve(collected)
+        })
+      })
+
+      for (const item of sdkResults) {
+        const pid = item.place_id || item.name
+        if (!seenPlaceIds.has(pid)) {
+          seenPlaceIds.add(pid)
+          rawPlaces.push(normalizeGooglePlace(item, center, term))
+        }
+      }
+    } catch (sdkErr) {
+      console.warn('Google Places JS SDK notice:', sdkErr?.message || sdkErr)
+    }
+  }
+
+  // Mode B: Google Places Nearby Search REST API with Proxy & next_page_token pagination
+  if (rawPlaces.length === 0 && apiKey) {
+    const fetchPlacesPage = async (url) => {
+      const res = await fetch(url, {
+        headers: { Accept: 'application/json' },
+        signal: signal || AbortSignal.timeout(9000),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      return await res.json()
+    }
+
+    const buildNearbyUrl = (radiusMeters) => {
+      let u = `/api/google-places/nearbysearch/json?location=${center.lat},${center.lng}&radius=${radiusMeters}&keyword=${encodeURIComponent(term)}&key=${apiKey}`
+      if (googleType) u += `&type=${googleType}`
+      return u
+    }
+
+    const buildTokenUrl = (token) => {
+      return `/api/google-places/nearbysearch/json?pagetoken=${encodeURIComponent(token)}&key=${apiKey}`
+    }
+
+    try {
+      let pageData = null
+      try {
+        pageData = await fetchPlacesPage(buildNearbyUrl(searchRadiusMeters))
+      } catch {
+        // Fallback to direct maps.googleapis.com
+        const directUrl = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${center.lat},${center.lng}&radius=${searchRadiusMeters}&keyword=${encodeURIComponent(term)}&key=${apiKey}`
+        pageData = await fetchPlacesPage(directUrl)
+      }
+
+      if (pageData && pageData.status === 'OK' && Array.isArray(pageData.results)) {
+        for (const item of pageData.results) {
+          const pid = item.place_id || item.name
+          if (!seenPlaceIds.has(pid)) {
+            seenPlaceIds.add(pid)
+            rawPlaces.push(normalizeGooglePlace(item, center, term))
+          }
+        }
+
+        // Pagination loop using next_page_token (maximum 3 pages = 60 places)
+        let nextPageToken = pageData.next_page_token
+        let pageCount = 1
+
+        while (nextPageToken && pageCount < 3 && !signal?.aborted) {
+          // Google Places API requires ~2000ms before next_page_token becomes valid
+          await new Promise((resolve) => setTimeout(resolve, 2000))
+          if (signal?.aborted) break
+
+          try {
+            const nextData = await fetchPlacesPage(buildTokenUrl(nextPageToken))
+            if (nextData && nextData.status === 'OK' && Array.isArray(nextData.results)) {
+              for (const item of nextData.results) {
+                const pid = item.place_id || item.name
+                if (!seenPlaceIds.has(pid)) {
+                  seenPlaceIds.add(pid)
+                  rawPlaces.push(normalizeGooglePlace(item, center, term))
+                }
+              }
+              nextPageToken = nextData.next_page_token
+              pageCount++
+            } else {
+              break
+            }
+          } catch {
+            break
+          }
+        }
+      }
+
+      // Radius Optimization: If query returned too few results (< 5) and radius is modest, expand radius to maximize results
+      if (rawPlaces.length < 5 && searchRadiusMeters < 25000 && !signal?.aborted) {
+        const expandedRadius = Math.min(50000, Math.round(searchRadiusMeters * 2.5))
+        try {
+          const expData = await fetchPlacesPage(buildNearbyUrl(expandedRadius))
+          if (expData && expData.status === 'OK' && Array.isArray(expData.results)) {
+            for (const item of expData.results) {
+              const pid = item.place_id || item.name
+              if (!seenPlaceIds.has(pid)) {
+                seenPlaceIds.add(pid)
+                rawPlaces.push(normalizeGooglePlace(item, center, term))
+              }
+            }
+          }
+        } catch {}
+      }
+    } catch (apiErr) {
+      console.warn('Google Places REST API notice:', apiErr?.message || apiErr)
+    }
+  }
+
+  if (rawPlaces.length === 0) return null
+
+  // Deduplicate and filter within bounds
+  const maxAllowedDist = radiusKm * 1.5
+  const finalPlaces = rawPlaces.filter((p) => p.distanceKm <= maxAllowedDist)
+
+  finalPlaces.sort((a, b) => {
+    if (b.rating !== a.rating) return b.rating - a.rating
+    return a.distanceKm - b.distanceKm
+  })
+
+  return {
+    places: finalPlaces,
+    category: intent?.categoryLabel || 'Google Places',
+    contextSummary: `Retrieved ${finalPlaces.length} verified places via Google Places API matching "${term}".`,
+    followUps: intent?.refinements || ['Expand search distance', 'Explore nearby areas', 'Filter by rating'],
+    modelUsed: 'Google Places API (High-Accuracy Max Results)',
+  }
+}
+
 /**
  * High-Reliability Geospatial RAG Search:
- * - Leverages Dual-Engine Architecture:
- *   1. Google Gemini AI Place Intelligence (deep context, natural language categorization)
- *   2. Resilient Geospatial POI Engine (OSM Nominatim & Mapbox geocoding) as guaranteed fallback.
+ * - Leverages Multi-Tier Architecture:
+ *   1. Google Places API Engine (Maximized with continuous pagination & radius expansion)
+ *   2. Google Gemini AI Place Intelligence (deep context, natural language categorization)
+ *   3. Resilient Geospatial POI Engine (OSM Nominatim & Mapbox geocoding) as guaranteed fallback.
  * - Always returns verified real-world places within the chosen radius standard.
  */
 export async function searchPlacesReliable({
@@ -1645,13 +1965,44 @@ export async function searchPlacesReliable({
   const unaccented = trimmed.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   if (!trimmed) return { places: [], isExpanded: false, effectiveRadius: radiusKm, aiInterpretation: null }
 
-  const cacheKey = `gemini-${unaccented.toLowerCase()}-${center.lat.toFixed(3)}-${center.lng.toFixed(3)}-${radiusKm}`
+  const cacheKey = `search-${unaccented.toLowerCase()}-${center.lat.toFixed(3)}-${center.lng.toFixed(3)}-${radiusKm}`
   const cached = searchCache.get(cacheKey)
   if (cached && Date.now() - cached.ts < SEARCH_CACHE_TTL && Array.isArray(cached.places) && cached.places.length > 0) {
     return cached
   }
 
-  // 1. Google Gemini AI Place Intelligence Engine
+  // 1. Google Places API Engine (Maximized with Pagination & Radius Optimization)
+  try {
+    const googleResult = await searchPlacesWithGooglePlaces({
+      term: trimmed,
+      center,
+      radiusKm,
+      signal,
+    })
+
+    if (googleResult && Array.isArray(googleResult.places) && googleResult.places.length > 0) {
+      const resultObj = {
+        places: googleResult.places,
+        isExpanded: false,
+        effectiveRadius: radiusKm,
+        aiInterpretation: {
+          engine: 'Keyadi Google Places Engine',
+          categoryLabel: googleResult.category,
+          description: googleResult.contextSummary,
+          refinements: googleResult.followUps,
+        },
+        nearestOutside: null,
+        source: 'google_places',
+      }
+
+      searchCache.set(cacheKey, { ...resultObj, ts: Date.now() })
+      return resultObj
+    }
+  } catch (gpErr) {
+    console.warn('Google Places search notice:', gpErr?.message || gpErr)
+  }
+
+  // 2. Google Gemini AI Place Intelligence Engine
   try {
     const geminiResult = await searchPlacesWithGemini({
       term: trimmed,

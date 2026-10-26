@@ -99,7 +99,7 @@ export default function Settings() {
         setLocationError(err.code === 1 ? 'Location permission was denied in your browser settings.' : 'Unable to acquire current location.')
         setTimeout(() => setLocationError(null), 4000)
       },
-      { enableHighAccuracy: true, timeout: 8000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     )
   }
 

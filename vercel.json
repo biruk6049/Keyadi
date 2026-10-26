@@ -5,6 +5,10 @@
       "destination": "https://nominatim.openstreetmap.org/$1"
     },
     {
+      "source": "/api/google-places/(.*)",
+      "destination": "https://maps.googleapis.com/maps/api/place/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

@@ -275,6 +275,8 @@ export default function Dashboard() {
   const abortRef = useRef(null)
   const watchIdRef = useRef(null)
   const hasCenteredRef = useRef(false)
+  const hasCenteredOnGpsRef = useRef(false)
+  const initialTargetCenterRef = useRef(null)
   const searchInputRef = useRef(null)
   const mapCenterRef = useRef(null)
 
@@ -445,6 +447,13 @@ export default function Dashboard() {
       setMapLoaded(true)
       ensureRouteLayer()
       updateRadiusCircle()
+      if (initialTargetCenterRef.current) {
+        mapRef.current?.flyTo({
+          center: initialTargetCenterRef.current,
+          zoom: 16,
+          essential: true,
+        })
+      }
     })
     mapRef.current.on('style.load', () => {
       ensureRouteLayer()
@@ -548,27 +557,34 @@ export default function Dashboard() {
     updateUserMarker(myLocation.lat, myLocation.lng, myLocation.accuracy)
   }, [mapLoaded, myLocation])
 
-  const handleLocationSuccess = (pos) => {
+  const handleLocationSuccess = (pos, isDirectGps = true) => {
     const { latitude, longitude, accuracy } = pos.coords
     setLocationStatus('granted')
     setLocationErrorMsg(null)
-    setMyLocation({ lat: latitude, lng: longitude, accuracy })
+    setMyLocation({ lat: latitude, lng: longitude, accuracy, isEstimated: false })
 
     if (mapRef.current) {
       updateUserMarker(latitude, longitude, accuracy)
     }
 
-    if (!hasCenteredRef.current && settings.searchMode !== 'custom') {
+    // Enforce reliable centering on user's exact coordinates on load or when genuine GPS resolves
+    if ((!hasCenteredOnGpsRef.current || isDirectGps) && settings.searchMode !== 'custom') {
+      hasCenteredOnGpsRef.current = true
       hasCenteredRef.current = true
       setCenter({ lat: latitude, lng: longitude })
-      mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 14, essential: true })
+
+      if (mapRef.current && mapLoaded) {
+        mapRef.current.flyTo({ center: [longitude, latitude], zoom: 16, essential: true })
+      } else {
+        initialTargetCenterRef.current = [longitude, latitude]
+      }
     }
   }
 
   const handleLocationError = async (err) => {
-    console.warn('Geolocation error:', err)
+    console.warn('Geolocation notice:', err)
 
-    // Attempt graceful IP network geolocation fallback so real location is still acquired
+    // Graceful network IP geolocation fallback if device GPS is delayed or unavailable
     try {
       const ipRes = await fetch('https://ipapi.co/json/')
       const ipData = await ipRes.json()
@@ -583,29 +599,34 @@ export default function Dashboard() {
           updateUserMarker(latitude, longitude, 3000)
         }
 
-        if (!hasCenteredRef.current && settings.searchMode !== 'custom') {
+        // Only center if GPS hasn't already locked in
+        if (!hasCenteredOnGpsRef.current && settings.searchMode !== 'custom') {
           hasCenteredRef.current = true
           setCenter({ lat: latitude, lng: longitude })
-          mapRef.current?.flyTo({ center: [longitude, latitude], zoom: 13, essential: true })
+          if (mapRef.current && mapLoaded) {
+            mapRef.current.flyTo({ center: [longitude, latitude], zoom: 13, essential: true })
+          } else {
+            initialTargetCenterRef.current = [longitude, latitude]
+          }
         }
         return
       }
     } catch (ipErr) {
-      console.warn('IP fallback failed:', ipErr)
+      console.warn('Network location estimate notice:', ipErr)
     }
 
     if (err.code === 1) { // PERMISSION_DENIED
       setLocationStatus('denied')
-      setLocationErrorMsg('Location access is denied in your browser settings. Please allow location access or click below to retry.')
+      setLocationErrorMsg('Location access is denied in your browser settings. Please allow location permissions, or click below to retry.')
     } else if (err.code === 2) { // POSITION_UNAVAILABLE
       setLocationStatus('unavailable')
-      setLocationErrorMsg('Current geographic position is unavailable. Please check your device location settings or network.')
+      setLocationErrorMsg('Current physical position is unavailable. Please check your device location settings or network.')
     } else if (err.code === 3) { // TIMEOUT
       setLocationStatus('timeout')
-      setLocationErrorMsg('Location detection timed out. Click below to retry.')
+      setLocationErrorMsg('Location detection timed out. Click below to retry high-accuracy GPS.')
     } else {
       setLocationStatus('error')
-      setLocationErrorMsg(err.message || 'Unable to retrieve your current location.')
+      setLocationErrorMsg(err.message || 'Unable to retrieve your physical location.')
     }
   }
 
@@ -624,52 +645,39 @@ export default function Dashboard() {
       watchIdRef.current = null
     }
 
-    let resolved = false
-
-    // Two-tier strategy: fallback to low accuracy (Wi-Fi/IP network positioning) if GPS hardware times out
-    const fallbackLowAccuracy = () => {
-      if (resolved) return
-      console.warn('Geolocation: High accuracy unavailable or timed out. Falling back to network positioning.')
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          resolved = true
-          handleLocationSuccess(pos)
-        },
-        (err) => {
-          handleLocationError(err)
-        },
-        { enableHighAccuracy: false, timeout: 10000, maximumAge: 5000 }
-      )
+    // Enforce high accuracy GPS positioning immediately
+    const highAccuracyOptions = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0,
     }
 
-    const timer = setTimeout(() => {
-      if (!resolved) {
-        fallbackLowAccuracy()
-      }
-    }, 6500)
+    // 1. One-shot high-accuracy pinpoint
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        handleLocationSuccess(pos, true)
+      },
+      (err) => {
+        handleLocationError(err)
+      },
+      highAccuracyOptions
+    )
 
+    // 2. Continuous high-accuracy watch to follow movements in real time
     try {
       watchIdRef.current = navigator.geolocation.watchPosition(
         (pos) => {
-          clearTimeout(timer)
-          resolved = true
-          handleLocationSuccess(pos)
+          handleLocationSuccess(pos, false)
         },
         (err) => {
-          clearTimeout(timer)
           if (err.code === 1) {
-            // Explicit denial from user
             handleLocationError(err)
-          } else {
-            // Hardware timeout / unavailable -> fallback
-            fallbackLowAccuracy()
           }
         },
-        { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
       )
-    } catch {
-      clearTimeout(timer)
-      fallbackLowAccuracy()
+    } catch (watchErr) {
+      console.warn('watchPosition notice:', watchErr)
     }
   }
 

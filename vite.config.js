@@ -15,6 +15,11 @@ export default defineConfig({
           'User-Agent': 'KeyadiPlaceTracker/2.0 (contact@keyadi.app)',
         },
       },
+      '/api/google-places': {
+        target: 'https://maps.googleapis.com/maps/api/place',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/google-places/, ''),
+      },
     },
     fs: {
       strict: true,
