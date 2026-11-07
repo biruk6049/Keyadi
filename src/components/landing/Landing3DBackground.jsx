@@ -22,31 +22,43 @@ export default function Landing3DBackground({ isDark }) {
     const container = containerRef.current
     if (!container) return
 
-    // Scene setup
-    const scene = new THREE.Scene()
-    scene.fog = new THREE.FogExp2(dark ? 0x0a0908 : 0xfaf9f6, dark ? 0.028 : 0.022)
-    sceneRef.current = scene
+    let renderer = null
+    let animId = null
+    let handleMouseMove = null
+    let handleScroll = null
+    let handleResize = null
+    let dotGeometry = null, dotMaterial = null
+    let coreGeo = null, coreMat = null
+    let ringGeo = null, ringMat = null
+    let starGeo = null, starMat = null
+    let gridHelper = null
 
-    // Camera setup
-    const camera = new THREE.PerspectiveCamera(
-      55,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
-    )
-    camera.position.set(0, 0, 24)
+    try {
+      // Scene setup
+      const scene = new THREE.Scene()
+      scene.fog = new THREE.FogExp2(dark ? 0x0a0908 : 0xfaf9f6, dark ? 0.028 : 0.022)
+      sceneRef.current = scene
 
-    // Renderer setup
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: true,
-      powerPreference: 'high-performance',
-    })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.2
-    container.appendChild(renderer.domElement)
+      // Camera setup
+      const camera = new THREE.PerspectiveCamera(
+        55,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        1000
+      )
+      camera.position.set(0, 0, 24)
+
+      // Renderer setup
+      renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+        powerPreference: 'high-performance',
+      })
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+      renderer.setSize(window.innerWidth, window.innerHeight)
+      renderer.toneMapping = THREE.ACESFilmicToneMapping
+      renderer.toneMappingExposure = 1.2
+      container.appendChild(renderer.domElement)
 
     // Root 3D group that rotates & tilts with mouse and scroll
     const worldGroup = new THREE.Group()
@@ -328,29 +340,34 @@ export default function Landing3DBackground({ isDark }) {
     }
 
     animate()
+    } catch (err) {
+      console.warn('3D Background WebGL acceleration notice:', err)
+    }
 
     // ── Cleanup on unmount ──
     return () => {
-      cancelAnimationFrame(animationFrameId)
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('scroll', handleScroll)
-      window.removeEventListener('resize', handleResize)
+      if (typeof animationFrameId !== 'undefined') {
+        cancelAnimationFrame(animationFrameId)
+      }
+      if (handleMouseMove) window.removeEventListener('mousemove', handleMouseMove)
+      if (handleScroll) window.removeEventListener('scroll', handleScroll)
+      if (handleResize) window.removeEventListener('resize', handleResize)
 
-      dotGeometry.dispose()
-      dotMaterial.dispose()
-      coreGeo.dispose()
-      coreMat.dispose()
-      ringGeo.dispose()
-      ringMat.dispose()
-      starGeo.dispose()
-      starMat.dispose()
-      gridHelper.geometry.dispose()
-      gridHelper.material.dispose()
+      dotGeometry?.dispose?.()
+      dotMaterial?.dispose?.()
+      coreGeo?.dispose?.()
+      coreMat?.dispose?.()
+      ringGeo?.dispose?.()
+      ringMat?.dispose?.()
+      starGeo?.dispose?.()
+      starMat?.dispose?.()
+      gridHelper?.geometry?.dispose?.()
+      gridHelper?.material?.dispose?.()
 
-      if (container && renderer.domElement) {
+      if (container && renderer?.domElement && renderer.domElement.parentNode === container) {
         container.removeChild(renderer.domElement)
       }
-      renderer.dispose()
+      renderer?.dispose?.()
     }
   }, [])
 

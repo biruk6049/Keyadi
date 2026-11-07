@@ -573,11 +573,11 @@ export function interpretWithLocalAI(userQuery) {
 // ── Unified Geospatial Intelligence Engine (Google Gemini AI) ───────────────────
 
 const CANDIDATE_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
-  'gemini-1.5-pro',
-  'gemini-2.5-flash-lite',
+  'gemini-flash-lite-latest',
+  'gemini-3.5-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-flash-latest',
+  'gemini-3.8-flash',
 ]
 
 const areaContextCache = new Map()
@@ -637,10 +637,15 @@ export async function getSearchAreaContext(center) {
 function getGeminiKey() {
   try {
     const fromStorage = typeof localStorage !== 'undefined' ? localStorage.getItem('keyadi_gemini_key') : null
-    return fromStorage || (typeof import.meta !== 'undefined' && import.meta?.env?.VITE_GEMINI_API_KEY) || ''
-  } catch {
-    return (typeof import.meta !== 'undefined' && import.meta?.env?.VITE_GEMINI_API_KEY) || ''
+    if (fromStorage) return fromStorage
+  } catch {}
+  if (typeof import.meta !== 'undefined' && import.meta?.env?.VITE_GEMINI_API_KEY) {
+    return import.meta.env.VITE_GEMINI_API_KEY
   }
+  if (typeof process !== 'undefined' && process?.env?.VITE_GEMINI_API_KEY) {
+    return process.env.VITE_GEMINI_API_KEY
+  }
+  return ''
 }
 
 export function saveGeminiKey(key) {
@@ -662,13 +667,13 @@ export function getActiveGeminiKey() {
 /**
  * Resilient Gemini API call with model fallback and strict JSON parsing.
  */
-async function callGemini(contents, systemPrompt = '', timeoutMs = 6000, maxAttempts = 4) {
+async function callGemini(contents, systemPrompt = '', timeoutMs = 7000, maxAttempts = 3) {
   const apiKey = getGeminiKey()
   if (!apiKey) return null
 
   for (const model of CANDIDATE_MODELS.slice(0, maxAttempts)) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
       const bodyPayload = {
         contents: typeof contents === 'string' ? [{ parts: [{ text: contents }] }] : contents,
         generationConfig: {
@@ -824,37 +829,51 @@ async function verifyAndAnchorPlace(
   let matchedHours = p.openingHours || ''
   let isVerified = false
 
-  // 1. Check OpenStreetMap Nominatim first (high POI precision)
-  for (const qName of queryNames) {
-    if (isVerified || signal?.aborted) break
-    const osmCandidates = await queryNominatimPOI(qName, center, viewboxParam, signal)
-    let bestOsmCandidate = null
-    let bestOsmScore = 0
-
-    for (const item of osmCandidates) {
-      const cLat = parseFloat(item.lat)
-      const cLng = parseFloat(item.lon)
-      if (isNaN(cLat) || isNaN(cLng)) continue
-      const d = haversineDistance(center.lat, center.lng, cLat, cLng)
-      if (d > radiusKm * 1.45) continue
-
-      const score = calculateNameMatchScore(cleanName, item.name || item.display_name)
-      if (score > bestOsmScore && score >= 0.40) {
-        bestOsmScore = score
-        bestOsmCandidate = { item, lat: cLat, lng: cLng, dist: d }
-      }
-    }
-
-    if (bestOsmCandidate && bestOsmScore >= 0.40) {
-      matchedLat = bestOsmCandidate.lat
-      matchedLng = bestOsmCandidate.lng
-      matchedAddress = bestOsmCandidate.item.display_name || matchedAddress
-      matchedSnippet = formatAddressSnippet(bestOsmCandidate.item.display_name) || matchedSnippet
-      const extra = bestOsmCandidate.item.extratags || {}
-      if (extra.phone && !matchedPhone) matchedPhone = extra.phone
-      if (extra.website && !matchedWebsite) matchedWebsite = extra.website
-      if (extra.opening_hours && !matchedHours) matchedHours = extra.opening_hours
+  // 0. Use Gemini's verified coordinates if provided and within reasonable radius standard
+  const rawPcoordLat = parseFloat(p.lat)
+  const rawPcoordLng = parseFloat(p.lng)
+  if (!isNaN(rawPcoordLat) && !isNaN(rawPcoordLng)) {
+    const gemDist = haversineDistance(center.lat, center.lng, rawPcoordLat, rawPcoordLng)
+    if (gemDist <= radiusKm * 1.6) {
+      matchedLat = rawPcoordLat
+      matchedLng = rawPcoordLng
       isVerified = true
+    }
+  }
+
+  // 1. Check OpenStreetMap Nominatim if coordinates need confirmation or refinement
+  if (!isVerified) {
+    for (const qName of queryNames) {
+      if (isVerified || signal?.aborted) break
+      const osmCandidates = await queryNominatimPOI(qName, center, viewboxParam, signal)
+      let bestOsmCandidate = null
+      let bestOsmScore = 0
+
+      for (const item of osmCandidates) {
+        const cLat = parseFloat(item.lat)
+        const cLng = parseFloat(item.lon)
+        if (isNaN(cLat) || isNaN(cLng)) continue
+        const d = haversineDistance(center.lat, center.lng, cLat, cLng)
+        if (d > radiusKm * 1.45) continue
+
+        const score = calculateNameMatchScore(cleanName, item.name || item.display_name)
+        if (score > bestOsmScore && score >= 0.40) {
+          bestOsmScore = score
+          bestOsmCandidate = { item, lat: cLat, lng: cLng, dist: d }
+        }
+      }
+
+      if (bestOsmCandidate && bestOsmScore >= 0.40) {
+        matchedLat = bestOsmCandidate.lat
+        matchedLng = bestOsmCandidate.lng
+        matchedAddress = bestOsmCandidate.item.display_name || matchedAddress
+        matchedSnippet = formatAddressSnippet(bestOsmCandidate.item.display_name) || matchedSnippet
+        const extra = bestOsmCandidate.item.extratags || {}
+        if (extra.phone && !matchedPhone) matchedPhone = extra.phone
+        if (extra.website && !matchedWebsite) matchedWebsite = extra.website
+        if (extra.opening_hours && !matchedHours) matchedHours = extra.opening_hours
+        isVerified = true
+      }
     }
   }
 
@@ -1099,11 +1118,13 @@ Output strict JSON only with no markdown formatting:
             )
 
             const validAnchored = anchoredPlaces.filter(Boolean)
-            // Strictly enforce radius standard
+            // Prioritize places strictly within radius, falling back to nearby margin
             const strictlyWithinRadius = validAnchored.filter((p) => p.distanceKm <= radiusKm)
             const finalPlaces = strictlyWithinRadius.length > 0
               ? strictlyWithinRadius
-              : validAnchored.filter((p) => p.distanceKm <= radiusKm * 1.25)
+              : (validAnchored.filter((p) => p.distanceKm <= radiusKm * 1.5).length > 0
+                  ? validAnchored.filter((p) => p.distanceKm <= radiusKm * 1.5)
+                  : validAnchored.slice(0, 10))
 
             finalPlaces.sort((a, b) => a.distanceKm - b.distanceKm)
 
@@ -2269,7 +2290,7 @@ export async function searchPlacesReliable({
     })
 
     if (geminiResult && Array.isArray(geminiResult.places) && geminiResult.places.length > 0) {
-      if (geminiResult.places.length >= 6) {
+      if (geminiResult.places.length >= 3) {
         const resultObj = {
           places: geminiResult.places,
           isExpanded: false,

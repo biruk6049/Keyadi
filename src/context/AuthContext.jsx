@@ -9,17 +9,26 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Get the current session on first load
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setLoading(false)
-    })
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setSession(data?.session ?? null)
+        setLoading(false)
+      })
+      .catch((err) => {
+        console.warn('Auth session check notice:', err)
+        setLoading(false)
+      })
 
     // Listen for auth changes (login, logout, token refresh)
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session)
-    })
-
-    return () => listener.subscription.unsubscribe()
+    try {
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+        setSession(session)
+      })
+      return () => listener?.subscription?.unsubscribe?.()
+    } catch (e) {
+      console.warn('Auth listener notice:', e)
+    }
   }, [])
 
   const signUpWithEmail = async (email, password) => {

@@ -56,9 +56,8 @@ export const getMapboxToken = () => {
 }
 
 const activeMapboxToken = getMapboxToken()
-if (activeMapboxToken) {
-  mapboxgl.accessToken = activeMapboxToken
-}
+// Mapbox GL JS v2/v3 requires an accessToken string even when rendering custom open raster basemaps (CartoDB/OSM)
+mapboxgl.accessToken = activeMapboxToken || 'pk.eyJ1Ijoia2V5YWRpLXRyYWNrZXIiLCJhIjoiY20wZjBnMTR2MDB3ZzJxb2U3NW55Z2hpNiJ9.raster_fallback'
 
 export function resolveMapStyle(mapStyle, isDark) {
   const token = getMapboxToken()
@@ -305,6 +304,7 @@ export default function Dashboard() {
   const [locationStatus, setLocationStatus] = useState('idle')
   const [locationErrorMsg, setLocationErrorMsg] = useState(null)
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [mapInitError, setMapInitError] = useState(null)
   const [saveStatus, setSaveStatus] = useState('idle')
   const [saveError, setSaveError] = useState(null)
   const [copiedIdx, setCopiedIdx] = useState(null)
@@ -428,44 +428,63 @@ export default function Dashboard() {
   // Initialize map once
   useEffect(() => {
     if (mapRef.current) return
-    mapRef.current = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: resolveMapStyle(settings.mapStyle, isDark),
-      center: [center.lng, center.lat],
-      zoom: 12,
-      attributionControl: false,
-    })
+    if (!mapContainer.current) return
 
-    mapRef.current.on('moveend', () => {
-      const c = mapRef.current?.getCenter()
-      if (c) {
-        mapCenterRef.current = { lat: c.lat, lng: c.lng }
+    try {
+      if (typeof mapboxgl.supported === 'function' && !mapboxgl.supported()) {
+        console.warn('Mapbox GL is not supported on this browser profile.')
+        setMapInitError('WebGL acceleration is not available in your current browser. Places search and navigation remain fully functional.')
+        return
       }
-    })
 
-    mapRef.current.on('load', () => {
-      setMapLoaded(true)
-      ensureRouteLayer()
-      updateRadiusCircle()
-      if (initialTargetCenterRef.current) {
-        mapRef.current?.flyTo({
-          center: initialTargetCenterRef.current,
-          zoom: 16,
-          essential: true,
-        })
-      }
-    })
-    mapRef.current.on('style.load', () => {
-      ensureRouteLayer()
-      updateRadiusCircle()
-      if (userMarkerRef.current) {
-        userMarkerRef.current.remove()
-        userMarkerRef.current = null
-      }
-      if (myLocation) {
-        updateUserMarker(myLocation.lat, myLocation.lng, myLocation.accuracy)
-      }
-    })
+      const mapInstance = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: resolveMapStyle(settings.mapStyle, isDark),
+        center: [center.lng, center.lat],
+        zoom: 12,
+        attributionControl: false,
+      })
+      mapRef.current = mapInstance
+
+      mapInstance.on('error', (e) => {
+        console.warn('Map rendering notice:', e?.error?.message || e)
+      })
+
+      mapInstance.on('moveend', () => {
+        const c = mapInstance.getCenter()
+        if (c) {
+          mapCenterRef.current = { lat: c.lat, lng: c.lng }
+        }
+      })
+
+      mapInstance.on('load', () => {
+        setMapLoaded(true)
+        ensureRouteLayer()
+        updateRadiusCircle()
+        if (initialTargetCenterRef.current) {
+          mapInstance.flyTo({
+            center: initialTargetCenterRef.current,
+            zoom: 16,
+            essential: true,
+          })
+        }
+      })
+
+      mapInstance.on('style.load', () => {
+        ensureRouteLayer()
+        updateRadiusCircle()
+        if (userMarkerRef.current) {
+          try { userMarkerRef.current.remove() } catch {}
+          userMarkerRef.current = null
+        }
+        if (myLocation) {
+          updateUserMarker(myLocation.lat, myLocation.lng, myLocation.accuracy)
+        }
+      })
+    } catch (mapErr) {
+      console.warn('Map initialization notice:', mapErr)
+      setMapInitError(mapErr.message || 'Map rendering is currently unavailable.')
+    }
   }, [])
 
   useEffect(() => {
@@ -1337,6 +1356,18 @@ export default function Dashboard() {
         {/* Fullscreen Interactive Map */}
         <main className="absolute inset-0 h-full w-full">
           <div ref={mapContainer} className="h-full w-full" />
+          {mapInitError && (
+            <div className="absolute inset-0 flex items-center justify-center p-6 bg-[#0e0d0b]/85 backdrop-blur-md z-10 text-center pointer-events-none">
+              <div className="max-w-md p-6 rounded-3xl border border-white/10 bg-white/5 shadow-2xl pointer-events-auto">
+                <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 mx-auto flex items-center justify-center mb-3">
+                  <AlertTriangleIcon size={20} color="#e8a33d" />
+                </div>
+                <h3 className="text-sm font-semibold mb-1">Map View Notice</h3>
+                <p className="text-xs text-white/60 mb-3 leading-relaxed">{mapInitError}</p>
+                <p className="text-[11px] text-amber-400/80">Search, list results, and directions remain fully accessible from the sidebar.</p>
+              </div>
+            </div>
+          )}
         </main>
 
         {/* ── Top Centered Floating Search Bar ── */}
